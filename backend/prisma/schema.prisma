@@ -1,0 +1,272 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// AUTENTICACIÓN Y USUARIOS
+// ============================================
+
+enum Rol {
+  ADMIN
+  ENCARGADO_BENEFICENCIA
+}
+
+model Usuario {
+  id              String    @id @default(uuid())
+  username        String    @unique
+  email           String?   @unique
+  passwordHash    String    @map("password_hash")
+  nombreCompleto  String    @map("nombre_completo")
+  rol             Rol
+  activo          Boolean   @default(true)
+  ultimoAcceso    DateTime? @map("ultimo_acceso")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Relaciones
+  entradas        Entrada[]
+  dispensaciones  Dispensacion[]
+  logsAuditoria   LogAuditoria[]
+
+  @@map("usuarios")
+}
+
+// ============================================
+// CATÁLOGOS BASE
+// ============================================
+
+model Categoria {
+  id          String  @id @default(uuid())
+  nombre      String  @unique
+  descripcion String?
+  activo      Boolean @default(true)
+
+  // Relaciones
+  medicamentos Medicamento[]
+
+  @@map("categorias")
+}
+
+model Medicamento {
+  id               String  @id @default(uuid())
+  nombreGenerico   String  @map("nombre_generico")
+  nombreComercial  String? @map("nombre_comercial")
+  presentacion     String
+  concentracion    String?
+  unidadMedida     String  @map("unidad_medida")
+  categoriaId      String  @map("categoria_id")
+  stockMinimo      Int     @default(10) @map("stock_minimo")
+  activo           Boolean @default(true)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  categoria         Categoria          @relation(fields: [categoriaId], references: [id])
+  codigosBarras     CodigoBarras[]
+  lotes             Lote[]
+  detalleDispensaciones DetalleDispensacion[]
+
+  @@map("medicamentos")
+}
+
+model CodigoBarras {
+  id             String @id @default(uuid())
+  medicamentoId  String @map("medicamento_id")
+  codigo         String @unique
+  descripcion    String?
+
+  // Relaciones
+  medicamento Medicamento @relation(fields: [medicamentoId], references: [id])
+
+  @@map("codigos_barras")
+}
+
+model Proveedor {
+  id       String        @id @default(uuid())
+  nombre   String
+  tipo     TipoProveedor
+  contacto String?
+  notas    String?
+  activo   Boolean       @default(true)
+
+  // Relaciones
+  entradas Entrada[]
+
+  @@map("proveedores")
+}
+
+enum TipoProveedor {
+  INSTITUCION
+  PERSONA
+}
+
+model Ubicacion {
+  id          String @id @default(uuid())
+  codigo      String @unique
+  descripcion String?
+
+  // Relaciones
+  lotes Lote[]
+
+  @@map("ubicaciones")
+}
+
+// ============================================
+// INVENTARIO
+// ============================================
+
+enum OrigenEntrada {
+  DONACION
+  PRESUPUESTO_MUNICIPAL
+}
+
+model Entrada {
+  id             String        @id @default(uuid())
+  proveedorId    String        @map("proveedor_id")
+  origen         OrigenEntrada
+  usuarioId      String        @map("usuario_id")
+  observaciones  String?
+  createdAt      DateTime      @default(now()) @map("created_at")
+
+  // Relaciones
+  proveedor Proveedor @relation(fields: [proveedorId], references: [id])
+  usuario   Usuario   @relation(fields: [usuarioId], references: [id])
+  lotes     Lote[]
+
+  @@map("entradas")
+}
+
+enum EstadoLote {
+  DISPONIBLE
+  AGOTADO
+  VENCIDO
+  DADO_DE_BAJA
+}
+
+model Lote {
+  id               String     @id @default(uuid())
+  entradaId        String     @map("entrada_id")
+  medicamentoId    String     @map("medicamento_id")
+  cantidad         Int
+  cantidadActual   Int        @map("cantidad_actual")
+  numeroLote       String     @map("numero_lote")
+  fechaVencimiento DateTime   @map("fecha_vencimiento") @db.Date
+  costoUnitario    Decimal?   @map("costo_unitario") @db.Decimal(10, 2)
+  ubicacionId      String?    @map("ubicacion_id")
+  estado           EstadoLote @default(DISPONIBLE)
+  createdAt        DateTime   @default(now()) @map("created_at")
+
+  // Relaciones
+  entrada     Entrada     @relation(fields: [entradaId], references: [id])
+  medicamento Medicamento @relation(fields: [medicamentoId], references: [id])
+  ubicacion   Ubicacion?  @relation(fields: [ubicacionId], references: [id])
+  detalleDispensaciones DetalleDispensacion[]
+
+  @@map("lotes")
+}
+
+// ============================================
+// DISPENSACIÓN GRATUITA
+// ============================================
+
+model Beneficiario {
+  id              String   @id @default(uuid())
+  nombreCompleto  String   @map("nombre_completo")
+  dpi             String?  @unique
+  telefono        String?
+  direccion       String?
+  observaciones   String?
+  activo          Boolean  @default(true)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  dispensaciones Dispensacion[]
+
+  @@map("beneficiarios")
+}
+
+model Dispensacion {
+  id              String   @id @default(uuid())
+  beneficiarioId  String   @map("beneficiario_id")
+  usuarioId       String   @map("usuario_id")
+  observaciones   String?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relaciones
+  beneficiario Beneficiario @relation(fields: [beneficiarioId], references: [id])
+  usuario      Usuario      @relation(fields: [usuarioId], references: [id])
+  detalles     DetalleDispensacion[]
+
+  @@map("dispensaciones")
+}
+
+model DetalleDispensacion {
+  id                       String @id @default(uuid())
+  dispensacionId           String @map("dispensacion_id")
+  loteId                   String @map("lote_id")
+  medicamentoId            String @map("medicamento_id")
+  cantidad                 Int
+  // Snapshots inmutables del momento de dispensación
+  nombreMedicamentoSnapshot String @map("nombre_medicamento_snapshot")
+  presentacionSnapshot      String @map("presentacion_snapshot")
+  concentracionSnapshot     String? @map("concentracion_snapshot")
+
+  // Relaciones
+  dispensacion Dispensacion @relation(fields: [dispensacionId], references: [id])
+  lote         Lote        @relation(fields: [loteId], references: [id])
+  medicamento  Medicamento @relation(fields: [medicamentoId], references: [id])
+
+  @@map("detalle_dispensaciones")
+}
+
+// ============================================
+// AUDITORÍA
+// ============================================
+
+enum AccionAuditoria {
+  CREAR
+  EDITAR
+  ELIMINAR
+  DISPENSAR
+  BAJA
+  LOGIN
+  LOGOUT
+  ACTIVAR
+  DESACTIVAR
+}
+
+model LogAuditoria {
+  id              String          @id @default(uuid())
+  usuarioId       String          @map("usuario_id")
+  accion          AccionAuditoria
+  entidad         String
+  entidadId       String?         @map("entidad_id")
+  datosAnteriores Json?           @map("datos_anteriores")
+  datosNuevos     Json?           @map("datos_nuevos")
+  ipAddress       String?         @map("ip_address")
+  createdAt       DateTime        @default(now()) @map("created_at")
+
+  // Relaciones
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@map("log_auditoria")
+}
+
+// ============================================
+// CONFIGURACIÓN DEL SISTEMA
+// ============================================
+
+model ConfiguracionSistema {
+  id    String @id @default(uuid())
+  clave String @unique
+  valor String
+  descripcion String?
+
+  @@map("configuracion_sistema")
+}
