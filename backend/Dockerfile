@@ -12,4 +12,4 @@ COPY . .
 
 EXPOSE 3000
 
-CMD ["npm", "run", "dev"]
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npx prisma db seed && npx tsx watch src/server.ts"]
