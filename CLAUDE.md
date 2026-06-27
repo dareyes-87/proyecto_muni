@@ -127,19 +127,20 @@ farma-rh/
 - `frontend/src/pages/Beneficiarios.tsx` (crear)
 
 **Responsabilidades:**
-- [ ] Endpoint POST /api/dispensacion/beneficiarios (registrar beneficiario)
-- [ ] Endpoint GET /api/dispensacion/beneficiarios/buscar?q= (búsqueda por DPI/nombre)
-- [ ] Endpoint GET /api/dispensacion/beneficiarios/:id (detalle con historial)
-- [ ] Endpoint PUT /api/dispensacion/beneficiarios/:id (editar beneficiario)
-- [ ] Endpoint POST /api/dispensacion/despachar (dispensación con FIFO + concurrencia)
-- [ ] Endpoint GET /api/dispensacion/historial (con filtros de fecha)
-- [ ] Endpoint GET /api/dispensacion/:id (detalle de dispensación)
-- [ ] Página de Dispensación (flujo completo: buscar beneficiario → agregar medicamentos → confirmar)
-- [ ] Página de Beneficiarios (listado, búsqueda, historial)
-- [ ] Componente de escaneo de código de barras para dispensación
-- [ ] Lógica de concurrencia: SELECT FOR UPDATE + verificación optimista
+- [x] Endpoint POST /api/dispensacion/beneficiarios (registrar beneficiario)
+- [x] Endpoint GET /api/dispensacion/beneficiarios/buscar?q= (búsqueda por DPI/nombre)
+- [x] Endpoint GET /api/dispensacion/beneficiarios/:id (detalle con historial)
+- [x] Endpoint PUT /api/dispensacion/beneficiarios/:id (editar beneficiario)
+- [x] Endpoint POST /api/dispensacion/despachar (dispensación con FIFO + concurrencia)
+- [x] Endpoint GET /api/dispensacion/historial (con filtros de fecha)
+- [x] Endpoint GET /api/dispensacion/:id (detalle de dispensación)
+- [x] Endpoint GET /api/dispensacion/stock/:medicamentoId (consulta de stock)
+- [x] Página de Dispensación (flujo completo: buscar beneficiario → agregar medicamentos → confirmar)
+- [x] Página de Beneficiarios (listado, búsqueda, historial)
+- [x] Componente de escaneo de código de barras para dispensación
+- [x] Lógica de concurrencia: SELECT FOR UPDATE + transacción Serializable
 
-**Estado actual:** Rutas stub creadas. Pendiente implementación.
+**Estado actual:** Módulo completo — backend y frontend implementados.
 
 **CRÍTICO — Lógica FIFO + Concurrencia:**
 ```typescript
@@ -224,3 +225,12 @@ El sistema soporta 4 usuarios simultáneos. Para evitar inconsistencias de inven
 - Setup inicial completo: Docker Compose, Prisma schema, seed, auth, layout, login
 - Todas las rutas stub creadas para los 3 módulos
 - CLAUDE.md creado con asignación de tareas
+
+### 2026-06-27 — Jorge Vargas
+- Rebase sobre main (heredar fix Alpine/SELinux de 560d537, descartar cambios en Docker)
+- Backend completo: dispensacion.service.ts con lógica FIFO + concurrencia (SELECT FOR UPDATE, $transaction Serializable)
+- Rutas implementadas: 7 endpoints de beneficiarios + dispensación + 1 endpoint de stock
+- Frontend: Beneficiarios.tsx (CRUD completo con búsqueda, detalle, historial)
+- Frontend: Dispensacion.tsx (flujo completo: buscar beneficiario → escaneo barras / búsqueda manual → carrito con semáforo de vencimiento → confirmar)
+- Habilitadas rutas /dispensacion y /beneficiarios en App.tsx
+- Auditoría integrada en todos los endpoints que modifican datos

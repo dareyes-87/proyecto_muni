@@ -3,6 +3,8 @@ import { useAuth } from './context/AuthContext';
 import Layout from './components/layout/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import Dispensacion from './pages/Dispensacion';
+import Beneficiarios from './pages/Beneficiarios';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { usuario, loading } = useAuth();
@@ -48,8 +50,8 @@ export default function App() {
         {/* <Route path="entradas" element={<Entradas />} /> */}
 
         {/* === MÓDULO DISPENSACIÓN (Jorge) === */}
-        {/* <Route path="dispensacion" element={<Dispensacion />} /> */}
-        {/* <Route path="beneficiarios" element={<Beneficiarios />} /> */}
+        <Route path="dispensacion" element={<Dispensacion />} />
+        <Route path="beneficiarios" element={<Beneficiarios />} />
 
         {/* === MÓDULO REPORTES (equipo) === */}
         {/* <Route path="reportes" element={<Reportes />} /> */}
