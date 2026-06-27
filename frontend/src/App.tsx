@@ -3,6 +3,17 @@ import { useAuth } from './context/AuthContext';
 import Layout from './components/layout/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import Inventario from './pages/Inventario';
+import Entradas from './pages/Entradas';
+import Usuarios from './pages/Usuarios';
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { usuario } = useAuth();
+  if (usuario?.rol !== 'ADMIN') {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { usuario, loading } = useAuth();
@@ -37,15 +48,15 @@ export default function App() {
       >
         <Route index element={<Dashboard />} />
 
+        {/* === MÓDULO INVENTARIO (Daniel) === */}
+        <Route path="inventario" element={<Inventario />} />
+        <Route path="entradas" element={<Entradas />} />
+
         {/* === MÓDULO CATÁLOGOS (Audias) === */}
         {/* <Route path="medicamentos" element={<Medicamentos />} /> */}
         {/* <Route path="categorias" element={<Categorias />} /> */}
         {/* <Route path="proveedores" element={<Proveedores />} /> */}
         {/* <Route path="ubicaciones" element={<Ubicaciones />} /> */}
-
-        {/* === MÓDULO INVENTARIO (Daniel) === */}
-        {/* <Route path="inventario" element={<Inventario />} /> */}
-        {/* <Route path="entradas" element={<Entradas />} /> */}
 
         {/* === MÓDULO DISPENSACIÓN (Jorge) === */}
         {/* <Route path="dispensacion" element={<Dispensacion />} /> */}
@@ -55,7 +66,7 @@ export default function App() {
         {/* <Route path="reportes" element={<Reportes />} /> */}
 
         {/* === MÓDULO ADMIN (Daniel) === */}
-        {/* <Route path="usuarios" element={<Usuarios />} /> */}
+        <Route path="usuarios" element={<AdminRoute><Usuarios /></AdminRoute>} />
         {/* <Route path="auditoria" element={<Auditoria />} /> */}
       </Route>
 
