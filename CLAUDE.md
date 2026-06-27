@@ -76,9 +76,9 @@ interrumpe la operación principal.
   `services/vencimiento.service.ts` corre diario (00:05) y pasa lotes vencidos `DISPONIBLE → VENCIDO`.
 
 **Backend — patrón de rutas:** cada archivo en `routes/` instancia su propio `new PrismaClient()`
-y se monta en `server.ts` bajo `/api/<modulo>`. Hoy la mayoría de endpoints son **stubs** que
-devuelven `{ message: 'TODO...', data: [] }`; la implementación real va por módulo (ver asignación).
-Los errores se centralizan en `middleware/errorHandler.ts` (maneja `ZodError` → 400).
+y se monta en `server.ts` bajo `/api/<modulo>`. Los módulos de Inventario y Dispensación están
+implementados. Catálogos tiene GETs de lectura reales (Daniel) y el CRUD está en `feature/catalogos`
+(Audias, pendiente de merge). Los errores se centralizan en `middleware/errorHandler.ts` (maneja `ZodError` → 400).
 
 ---
 
@@ -227,7 +227,9 @@ farma-rh/
 - [x] Componente de escaneo de código de barras para dispensación
 - [x] Lógica de concurrencia: SELECT FOR UPDATE + transacción Serializable
 
-**Estado actual:** Módulo completo — backend y frontend implementados.
+**Estado actual:** Módulo completo — backend y frontend implementados. Mergeado a `main` el 2026-06-27.
+
+**Deuda técnica pendiente:** `dispensacion.routes.ts` usa `req.params.id` sin cast. Con `@types/express` v5 esto puede fallar en `tsc --noEmit`. Corrección: `const { id } = req.params as { id: string }` en cada handler que use `:id`.
 
 **CRÍTICO — Lógica FIFO + Concurrencia:**
 ```typescript
@@ -254,20 +256,21 @@ farma-rh/
 - `frontend/src/pages/Catalogos/Ubicaciones.tsx` (crear)
 
 **Responsabilidades:**
-- [ ] Endpoint CRUD completo para medicamentos (con detección de duplicados)
-- [ ] Endpoint de búsqueda por nombre parcial (autocompletado)
-- [ ] Endpoint de búsqueda por código de barras
-- [ ] Endpoint CRUD para códigos de barras (agregar/eliminar por medicamento)
-- [ ] Endpoint CRUD para categorías
-- [ ] Endpoint CRUD para proveedores/donantes
-- [ ] Endpoint CRUD para ubicaciones/estantes
-- [ ] Página de Medicamentos (tabla, crear, editar, buscar, códigos de barras)
-- [ ] Página de Categorías (tabla + formulario)
-- [ ] Página de Proveedores (tabla + formulario)
-- [ ] Página de Ubicaciones (tabla + formulario)
-- [ ] Detección de duplicados: al crear medicamento, buscar similitudes y advertir
+- [x] Endpoint CRUD completo para medicamentos (con detección de duplicados) — *en `feature/catalogos`, pendiente merge*
+- [x] Endpoint de búsqueda por nombre parcial (autocompletado) — *en `feature/catalogos`*
+- [x] Endpoint de búsqueda por código de barras — *en `feature/catalogos`*
+- [x] Endpoint CRUD para códigos de barras (agregar/eliminar por medicamento) — *en `feature/catalogos`*
+- [x] Endpoint CRUD para categorías — *en `feature/catalogos`*
+- [x] Endpoint CRUD para proveedores/donantes — *en `feature/catalogos`*
+- [x] Endpoint CRUD para ubicaciones/estantes — *en `feature/catalogos`*
+- [ ] ⚠️ PENDIENTE — Página de Medicamentos (tabla, crear, editar, buscar, códigos de barras)
+- [ ] ⚠️ PENDIENTE — Página de Categorías (tabla + formulario)
+- [ ] ⚠️ PENDIENTE — Página de Proveedores (tabla + formulario)
+- [ ] ⚠️ PENDIENTE — Página de Ubicaciones (tabla + formulario)
+- [ ] ⚠️ PENDIENTE — Merge de `feature/catalogos` a `main` (hacer rebase primero sobre main actualizado)
+- [ ] ⚠️ PENDIENTE — Actualizar CLAUDE.md con historial de sesión y tareas completadas
 
-**Estado actual:** Rutas stub creadas. Pendiente implementación.
+**Estado actual:** Backend implementado en `feature/catalogos` (auditado y aprobado el 2026-06-27). Las 4 páginas frontend no existen. La rama NO está mergeada a `main`. En `main` actual, `catalogos.routes.ts` tiene los GETs de lectura implementados por Daniel y el CRUD como stubs.
 
 ---
 
@@ -306,6 +309,83 @@ El sistema soporta 4 usuarios simultáneos. Para evitar inconsistencias de inven
 
 ---
 
+## Estado al reanudar
+
+> Última actualización: 2026-06-27 — cierre de sesión Daniel Reyes
+
+### Lo que está en `main` y funciona HOY
+
+| Módulo | Rutas activas | Estado |
+|--------|--------------|--------|
+| Inventario (Daniel) | `/inventario`, `/entradas` | ✅ Completo |
+| Dispensación (Jorge) | `/dispensacion`, `/beneficiarios` | ✅ Completo |
+| Admin / Usuarios (Daniel) | `/usuarios` (solo ADMIN) | ✅ Completo |
+| Dashboard | `/` | ✅ Con alertas reales |
+| Catálogos (Audias) | *sin rutas activas en frontend* | ⚠️ Backend en `feature/catalogos`, sin frontend, sin merge |
+| Reportes | *sin rutas activas* | ❌ No iniciado |
+
+### Bloqueado esperando a Audias (`feature/catalogos`)
+
+**En `main` actual los GETs de lectura de catálogos SÍ funcionan** (implementados por Daniel):
+- `GET /api/catalogos/medicamentos` ✅
+- `GET /api/catalogos/medicamentos/buscar?q=` ✅
+- `GET /api/catalogos/categorias` ✅
+- `GET /api/catalogos/proveedores` ✅
+- `GET /api/catalogos/ubicaciones` ✅
+- `GET /api/catalogos/medicamentos/barcode/:codigo` — **stub en main** → devuelve `{ message: 'TODO' }`
+
+**Lo que Audias tiene en `feature/catalogos` (pendiente de merge):**
+- CRUD completo medicamentos con detección de duplicados (`forzarCreacion: true` para forzar)
+- `GET /barcode/:codigo` con stock real
+- CRUD categorías, proveedores, ubicaciones + códigos de barras
+- Auditoría en todos los endpoints que modifican datos
+
+**Lo que Audias no entregó (bloqueante para hacer el merge):**
+- `frontend/src/pages/Catalogos/Medicamentos.tsx` — no existe
+- `frontend/src/pages/Catalogos/Categorias.tsx` — no existe
+- `frontend/src/pages/Catalogos/Proveedores.tsx` — no existe
+- `frontend/src/pages/Catalogos/Ubicaciones.tsx` — no existe
+
+**Impacto en Jorge (Dispensación):** el escáner de código de barras en `Dispensacion.tsx` llama
+a `GET /api/catalogos/medicamentos/barcode/:codigo`. Hoy recibe stub vacío — el flujo no se rompe
+(maneja array vacío) pero el escaneo real no funciona hasta que el endpoint de Audias esté en main.
+
+### Deuda técnica pendiente
+
+**Jorge — `dispensacion.routes.ts`:** todos los handlers con `:id` en el path usan `req.params.id`
+directamente sin el cast requerido por `@types/express` v5. Puede fallar en `tsc --noEmit` estricto.
+Corrección en cada handler: `const { id } = req.params as { id: string }`.
+No es bloqueante en runtime. Corregir antes de agregar más endpoints al módulo.
+
+### Primer paso cuando se reanude la sesión
+
+```bash
+git pull origin main          # traer el estado actual
+docker compose up             # verificar que todo sigue arriba
+curl -s http://localhost:3000/api/health   # confirmar API
+```
+
+Luego verificar si Audias ya subió trabajo:
+
+```bash
+git fetch --all
+git log --oneline origin/feature/catalogos
+git diff main..origin/feature/catalogos --name-only
+```
+
+**Prompt para auditar `feature/catalogos` de Audias cuando suba las páginas:**
+
+> Verifica el estado de `origin/feature/catalogos`. Necesito saber:
+> 1. ¿Existen las 4 páginas frontend en `frontend/src/pages/Catalogos/`?
+> 2. ¿El backend tiene CRUD completo + GET barcode + detección de duplicados?
+> 3. ¿Hizo rebase sobre main? (main actual está en commit `14d1f50`)
+> 4. ¿Hay conflictos con `catalogos.routes.ts` en main?
+> Si todo está completo y sin conflictos bloqueantes, proceder con
+> `git merge --no-ff origin/feature/catalogos` resolviendo cualquier conflicto en catalogos.routes.ts
+> tomando la versión de Audias (es más completa que los stubs actuales en main).
+
+---
+
 ## Historial de Sesiones
 
 ### 2026-06-26 — Daniel Reyes
@@ -328,3 +408,21 @@ El sistema soporta 4 usuarios simultáneos. Para evitar inconsistencias de inven
 - Frontend: Dispensacion.tsx (flujo completo: buscar beneficiario → escaneo barras / búsqueda manual → carrito con semáforo de vencimiento → confirmar)
 - Habilitadas rutas /dispensacion y /beneficiarios en App.tsx
 - Auditoría integrada en todos los endpoints que modifican datos
+
+### 2026-06-27 — Daniel Reyes — CIERRE DE SESIÓN (merges a main)
+
+**Auditoría de ramas antes de mergear:**
+- `feature/catalogos` (Audias): backend CRUD aprobado, sin páginas frontend → merge bloqueado
+- `feature/dispensacion` (Jorge): primera versión rechazada (Docker roto, stubs en backend, App.tsx
+  basado en commit antiguo sin fix Alpine). Segunda versión aprobada tras rebase y entrega completa.
+
+**Merges realizados a `main` en este orden:**
+1. `feature/dispensacion` → `main` (merge limpio, sin conflictos)
+2. `feature/inventario` → `main` (conflicto en `App.tsx` e `CLAUDE.md`, resuelto combinando
+   imports y entradas del historial de ambas ramas)
+
+**Estado de `main` al cerrar:** commit `14d1f50`. Módulos Inventario + Dispensación + Admin
+funcionando. Catálogos en stubs (GETs de lectura sí funcionan). Reportes no iniciado.
+
+**Veredicto de Jorge (aprobado):** FIFO correcto con `$queryRaw FOR UPDATE` + `Serializable`.
+Única deuda: cast `req.params as { id: string }` faltante en `dispensacion.routes.ts`.
