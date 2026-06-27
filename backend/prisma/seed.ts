@@ -128,6 +128,40 @@ async function main() {
     console.log('✅ Proveedor de ejemplo creado');
   }
 
+  // ============================================
+  // Medicamentos de ejemplo (solo si no existe ninguno)
+  // Datos de prueba para el módulo de Inventario. El CRUD real es de Catálogos.
+  // ============================================
+  const totalMedicamentos = await prisma.medicamento.count();
+  if (totalMedicamentos === 0) {
+    const categoriasMap = new Map(
+      (await prisma.categoria.findMany()).map((c) => [c.nombre, c.id])
+    );
+
+    const medicamentosEjemplo = [
+      { nombreGenerico: 'Acetaminofén', nombreComercial: 'Tylenol', presentacion: 'Tableta', concentracion: '500mg', unidadMedida: 'Tableta', categoria: 'Analgésico', stockMinimo: 50 },
+      { nombreGenerico: 'Amoxicilina', nombreComercial: null, presentacion: 'Cápsula', concentracion: '500mg', unidadMedida: 'Cápsula', categoria: 'Antibiótico', stockMinimo: 30 },
+      { nombreGenerico: 'Ibuprofeno', nombreComercial: 'Advil', presentacion: 'Tableta', concentracion: '400mg', unidadMedida: 'Tableta', categoria: 'Antiinflamatorio', stockMinimo: 40 },
+      { nombreGenerico: 'Losartán', nombreComercial: null, presentacion: 'Tableta', concentracion: '50mg', unidadMedida: 'Tableta', categoria: 'Antihipertensivo', stockMinimo: 20 },
+      { nombreGenerico: 'Metformina', nombreComercial: null, presentacion: 'Tableta', concentracion: '850mg', unidadMedida: 'Tableta', categoria: 'Antidiabético', stockMinimo: 20 },
+    ];
+
+    for (const m of medicamentosEjemplo) {
+      await prisma.medicamento.create({
+        data: {
+          nombreGenerico: m.nombreGenerico,
+          nombreComercial: m.nombreComercial,
+          presentacion: m.presentacion,
+          concentracion: m.concentracion,
+          unidadMedida: m.unidadMedida,
+          categoriaId: categoriasMap.get(m.categoria) ?? categoriasMap.get('Otro')!,
+          stockMinimo: m.stockMinimo,
+        },
+      });
+    }
+    console.log(`✅ ${medicamentosEjemplo.length} medicamentos de ejemplo creados`);
+  }
+
   console.log('\n🎉 Seed completado exitosamente');
 }
 

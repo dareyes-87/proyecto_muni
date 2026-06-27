@@ -1,22 +1,74 @@
 import { Router, Request, Response } from 'express';
+import { PrismaClient } from '@prisma/client';
 import { authMiddleware, requireRole } from '../middleware/auth';
 
 const router = Router();
+const prisma = new PrismaClient();
 
 // ============================================
 // MEDICAMENTOS
 // ============================================
 
 // GET /api/catalogos/medicamentos
-router.get('/medicamentos', authMiddleware, async (_req: Request, res: Response) => {
-  // TODO: Listar medicamentos con paginación y búsqueda
-  res.json({ message: 'TODO: Listar medicamentos', data: [] });
+// NOTA: lectura mínima implementada por el módulo de Inventario para poblar
+// formularios (entradas). El CRUD completo con detección de duplicados es de Catálogos.
+router.get('/medicamentos', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const q = (req.query.q as string) || undefined;
+    const where: any = { activo: true };
+    if (q) {
+      where.OR = [
+        { nombreGenerico: { contains: q, mode: 'insensitive' } },
+        { nombreComercial: { contains: q, mode: 'insensitive' } },
+      ];
+    }
+    const medicamentos = await prisma.medicamento.findMany({
+      where,
+      orderBy: { nombreGenerico: 'asc' },
+      include: {
+        categoria: { select: { id: true, nombre: true } },
+        codigosBarras: { select: { id: true, codigo: true } },
+      },
+    });
+    res.json({ data: medicamentos });
+  } catch (error) {
+    console.error('Error listando medicamentos:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
 });
 
 // GET /api/catalogos/medicamentos/buscar?q=aceta
-router.get('/medicamentos/buscar', authMiddleware, async (_req: Request, res: Response) => {
-  // TODO: Búsqueda por nombre parcial (autocompletado)
-  res.json({ message: 'TODO: Buscar medicamentos', data: [] });
+router.get('/medicamentos/buscar', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const q = ((req.query.q as string) || '').trim();
+    if (q.length < 2) {
+      res.json({ data: [] });
+      return;
+    }
+    const medicamentos = await prisma.medicamento.findMany({
+      where: {
+        activo: true,
+        OR: [
+          { nombreGenerico: { contains: q, mode: 'insensitive' } },
+          { nombreComercial: { contains: q, mode: 'insensitive' } },
+        ],
+      },
+      orderBy: { nombreGenerico: 'asc' },
+      take: 10,
+      select: {
+        id: true,
+        nombreGenerico: true,
+        nombreComercial: true,
+        presentacion: true,
+        concentracion: true,
+        unidadMedida: true,
+      },
+    });
+    res.json({ data: medicamentos });
+  } catch (error) {
+    console.error('Error buscando medicamentos:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
 });
 
 // GET /api/catalogos/medicamentos/barcode/:codigo
@@ -58,9 +110,17 @@ router.delete('/codigos/:id', authMiddleware, requireRole('ADMIN'), async (_req:
 // ============================================
 
 // GET /api/catalogos/categorias
-router.get('/categorias', authMiddleware, async (_req: Request, res: Response) => {
-  // TODO: Listar categorías
-  res.json({ message: 'TODO: Listar categorías', data: [] });
+router.get('/categorias', authMiddleware, async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const categorias = await prisma.categoria.findMany({
+      where: { activo: true },
+      orderBy: { nombre: 'asc' },
+    });
+    res.json({ data: categorias });
+  } catch (error) {
+    console.error('Error listando categorías:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
 });
 
 // POST /api/catalogos/categorias
@@ -80,9 +140,17 @@ router.put('/categorias/:id', authMiddleware, requireRole('ADMIN'), async (_req:
 // ============================================
 
 // GET /api/catalogos/proveedores
-router.get('/proveedores', authMiddleware, async (_req: Request, res: Response) => {
-  // TODO: Listar proveedores
-  res.json({ message: 'TODO: Listar proveedores', data: [] });
+router.get('/proveedores', authMiddleware, async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const proveedores = await prisma.proveedor.findMany({
+      where: { activo: true },
+      orderBy: { nombre: 'asc' },
+    });
+    res.json({ data: proveedores });
+  } catch (error) {
+    console.error('Error listando proveedores:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
 });
 
 // POST /api/catalogos/proveedores
@@ -102,9 +170,16 @@ router.put('/proveedores/:id', authMiddleware, requireRole('ADMIN'), async (_req
 // ============================================
 
 // GET /api/catalogos/ubicaciones
-router.get('/ubicaciones', authMiddleware, async (_req: Request, res: Response) => {
-  // TODO: Listar ubicaciones
-  res.json({ message: 'TODO: Listar ubicaciones', data: [] });
+router.get('/ubicaciones', authMiddleware, async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const ubicaciones = await prisma.ubicacion.findMany({
+      orderBy: { codigo: 'asc' },
+    });
+    res.json({ data: ubicaciones });
+  } catch (error) {
+    console.error('Error listando ubicaciones:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
 });
 
 // POST /api/catalogos/ubicaciones

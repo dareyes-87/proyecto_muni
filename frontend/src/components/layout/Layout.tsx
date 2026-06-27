@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
   LayoutDashboard,
   Package,
+  PackagePlus,
   Pill,
   HandHeart,
   Users,
@@ -17,6 +18,7 @@ import { useState } from 'react';
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard, roles: ['ADMIN', 'ENCARGADO_BENEFICENCIA'] },
   { name: 'Inventario', href: '/inventario', icon: Package, roles: ['ADMIN', 'ENCARGADO_BENEFICENCIA'] },
+  { name: 'Registrar Entrada', href: '/entradas', icon: PackagePlus, roles: ['ADMIN', 'ENCARGADO_BENEFICENCIA'] },
   { name: 'Medicamentos', href: '/medicamentos', icon: Pill, roles: ['ADMIN', 'ENCARGADO_BENEFICENCIA'] },
   { name: 'Dispensación', href: '/dispensacion', icon: HandHeart, roles: ['ADMIN', 'ENCARGADO_BENEFICENCIA'] },
   { name: 'Beneficiarios', href: '/beneficiarios', icon: Users, roles: ['ADMIN', 'ENCARGADO_BENEFICENCIA'] },

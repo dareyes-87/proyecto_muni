@@ -47,7 +47,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
         rol: usuario.rol,
       },
       config.jwtSecret,
-      { expiresIn: config.jwtExpiresIn }
+      { expiresIn: config.jwtExpiresIn } as jwt.SignOptions
     );
 
     await registrarAuditoria({

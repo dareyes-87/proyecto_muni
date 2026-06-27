@@ -1,7 +1,84 @@
-# CLAUDE.md — Contexto del Proyecto FarmaRH
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 > **Este archivo es la fuente de verdad para cualquier sesión de Claude que trabaje en este proyecto.**
 > Cada integrante debe actualizar su sección después de cada sesión de trabajo.
+
+---
+
+## Comandos
+
+Todo corre vía Docker Compose. Desde la raíz del proyecto:
+
+```bash
+docker compose up --build      # Levanta db + api + web (primera vez o tras cambiar deps)
+docker compose up              # Levanta sin reconstruir
+docker compose down            # Detiene. Agregar -v para borrar el volumen pgdata
+docker compose logs -f api     # Logs de un servicio (db | api | web)
+```
+
+- **Frontend (dev):** http://localhost:5173 · **API:** http://localhost:3000/api/health
+- Credenciales seed: `admin` / `admin2026`
+- `backend/src` y `frontend/src` están montados como volúmenes → hot reload sin reconstruir.
+
+**Backend (dentro del contenedor `farmarh_api`, o local en `backend/`):**
+```bash
+docker compose exec api sh                 # Shell dentro del contenedor api
+npx prisma studio                          # GUI de la base de datos (puerto 5555)
+npx prisma db push                         # Aplica el schema a la BD SIN crear migración
+npx prisma migrate dev --name <nombre>     # Crea y aplica una migración con nombre
+npx prisma generate                        # Regenera el cliente Prisma tras editar el schema
+npx prisma db seed                         # Re-ejecuta prisma/seed.ts (idempotente)
+npm run build                              # tsc → dist/ (chequeo de tipos)
+```
+
+> ⚠️ **Migraciones:** el `Dockerfile` del backend arranca con `prisma db push --accept-data-loss`
+> (no migraciones versionadas), mientras que `npm run dev` usa `prisma migrate deploy`. Al cambiar
+> el schema en desarrollo el flujo real es **editar `schema.prisma` → `db push` → `generate`**. No
+> existe carpeta `prisma/migrations/` todavía.
+
+**Frontend (local en `frontend/`):**
+```bash
+npm run build      # tsc -b && vite build (chequeo de tipos + bundle de producción)
+```
+
+No hay framework de tests ni linter configurado en el proyecto.
+
+---
+
+## Arquitectura
+
+Monorepo de 3 servicios orquestados por `docker-compose.yml`: **db** (PostgreSQL 16), **api** (Express)
+y **web** (Vite/React). En desarrollo el `vite.config.ts` hace proxy de `/api` → `http://api:3000`,
+así que el frontend nunca usa una URL absoluta de API. El servicio `web` es multi-stage: `development`
+(Vite, puerto 5173) o `production` (build estático servido por nginx, puerto 80) según `FRONTEND_TARGET`.
+
+**Flujo de autenticación (atraviesa varios archivos):**
+- `POST /api/auth/login` valida con bcrypt y firma un JWT con `{ userId, username, rol }`.
+- El frontend guarda el token en `localStorage['farmarh_token']`; `frontend/src/api/client.ts` lo
+  inyecta en cada request y, ante un `401`, limpia el storage y redirige a `/login`.
+- `backend/src/middleware/auth.ts` expone `authMiddleware` (verifica el JWT, rellena `req.user`) y
+  `requireRole(...roles)`. Roles: `ADMIN`, `ENCARGADO_BENEFICENCIA`.
+- En el frontend, `context/AuthContext` + `<ProtectedRoute>` en `App.tsx` protegen las rutas.
+
+**Auditoría:** toda acción que modifica datos debe llamar `registrarAuditoria()`
+(`backend/src/middleware/audit.ts`). Es fire-and-forget: captura sus propios errores y nunca
+interrumpe la operación principal.
+
+**Modelo de datos (`backend/prisma/schema.prisma`) — conceptos clave:**
+- El stock NO vive en `Medicamento` sino en **`Lote`** (cada entrada genera lotes con
+  `cantidadActual`, `fechaVencimiento` y `estado`). La dispensación descuenta de lotes en orden
+  **FIFO por `fechaVencimiento`** (ver reglas de concurrencia más abajo).
+- `DetalleDispensacion` guarda **snapshots inmutables** del nombre/presentación/concentración del
+  medicamento al momento de dispensar — no se debe leer el medicamento actual para mostrar historial.
+- `EstadoLote`: `DISPONIBLE | AGOTADO | VENCIDO | DADO_DE_BAJA`. El cron en
+  `services/vencimiento.service.ts` corre diario (00:05) y pasa lotes vencidos `DISPONIBLE → VENCIDO`.
+
+**Backend — patrón de rutas:** cada archivo en `routes/` instancia su propio `new PrismaClient()`
+y se monta en `server.ts` bajo `/api/<modulo>`. Hoy la mayoría de endpoints son **stubs** que
+devuelven `{ message: 'TODO...', data: [] }`; la implementación real va por módulo (ver asignación).
+Los errores se centralizan en `middleware/errorHandler.ts` (maneja `ZodError` → 400).
 
 ---
 
@@ -103,18 +180,28 @@ farma-rh/
 
 **Responsabilidades:**
 - [x] Setup inicial del proyecto (Docker, Prisma, Auth, Layout)
-- [ ] Endpoint POST /api/inventario/entradas (registro de entradas con lotes)
-- [ ] Endpoint GET /api/inventario (listado con semáforo de vencimiento)
-- [ ] Endpoint GET /api/inventario/alertas (stock bajo + por vencer + vencidos)
-- [ ] Endpoint GET /api/inventario/medicamento/:id (detalle de stock por medicamento)
-- [ ] Endpoint PUT /api/inventario/lotes/:id/baja (dar de baja lote vencido)
-- [ ] Página de Inventario (tabla con filtros, semáforo visual)
-- [ ] Página de registro de entradas (formulario con escáner)
-- [ ] Dashboard con alertas reales conectadas al backend
-- [ ] Página de gestión de usuarios (CRUD, activar/desactivar)
-- [ ] Cron job de vencimiento (ya creado, verificar funcionamiento)
+- [x] Endpoint POST /api/inventario/entradas (registro de entradas con lotes, transacción + auditoría)
+- [x] Endpoint GET /api/inventario (listado agregado por medicamento con semáforo de vencimiento)
+- [x] Endpoint GET /api/inventario/alertas (stock bajo + por vencer + vencidos + resumen dashboard)
+- [x] Endpoint GET /api/inventario/medicamento/:id (detalle de stock con todos sus lotes)
+- [x] Endpoint PUT /api/inventario/lotes/:id/baja (dar de baja lote, solo ADMIN)
+- [x] Endpoints GET/PUT /api/inventario/configuracion (umbrales de alerta de vencimiento)
+- [x] Página de Inventario (tabla con filtros, semáforo visual, modal de detalle con baja)
+- [x] Página de registro de entradas (formulario con lotes dinámicos + historial)
+- [x] Dashboard con alertas reales conectadas al backend
+- [x] Página de gestión de usuarios (CRUD, editar, reset password, activar/desactivar)
+- [x] Cron job de vencimiento (verificado, sin cambios)
+- [ ] Escáner de código de barras en el formulario de entradas (pendiente, depende de Catálogos)
 
-**Estado actual:** Setup base completado. Rutas stub creadas.
+**Estado actual:** Módulo de Inventario y Admin (Usuarios) completos y verificados end-to-end.
+
+**Notas para el equipo (cambios fuera de mi módulo, hechos para desbloquear):**
+- `inventario.service.ts` (nuevo): helpers `getUmbrales`, `calcularSemaforo`, `diasParaVencer`, `esDispensable`. Reutilizables.
+- `catalogos.routes.ts`: implementé **solo los GET de lectura** (medicamentos, categorías, proveedores, ubicaciones) que mis formularios necesitan. El CRUD/crear/editar/duplicados sigue como stub → **Audias**.
+- `auth.routes.ts`: cast `as jwt.SignOptions` en `jwt.sign` para que `npm run build` (tsc) pase. La firma JWT no cambió.
+- `prisma/seed.ts`: agregué 5 medicamentos de ejemplo (solo si no existe ninguno) para poder probar inventario. Audias puede reemplazarlos por el catálogo real.
+- `usuarios.routes.ts`: agregué `PUT /:id` (editar) y `PUT /:id/password` (reset).
+- Convención de IDs: `const { id } = req.params as { id: string }` porque `@types/express` v5 tipa los params como `string | string[]`.
 
 ---
 
@@ -226,7 +313,14 @@ El sistema soporta 4 usuarios simultáneos. Para evitar inconsistencias de inven
 - Todas las rutas stub creadas para los 3 módulos
 - CLAUDE.md creado con asignación de tareas
 
-### 2026-06-27 — Jorge Vargas
+### 2026-06-27 — Daniel Reyes (rama `feature/inventario`)
+- Módulo de Inventario completo (backend + frontend): entradas, listado con semáforo,
+  alertas, detalle por medicamento, baja de lotes, configuración de umbrales.
+- Módulo Admin: Usuarios CRUD (crear, editar, reset password, activar/desactivar) + Dashboard real.
+- GETs de lectura en Catálogos y 5 medicamentos de ejemplo en el seed (ver notas en mi sección).
+- Backend y frontend pasan `tsc` sin errores. Endpoints verificados con curl (incl. roles).
+
+### 2026-06-27 — Jorge Vargas (rama `feature/dispensacion`)
 - Rebase sobre main (heredar fix Alpine/SELinux de 560d537, descartar cambios en Docker)
 - Backend completo: dispensacion.service.ts con lógica FIFO + concurrencia (SELECT FOR UPDATE, $transaction Serializable)
 - Rutas implementadas: 7 endpoints de beneficiarios + dispensación + 1 endpoint de stock
