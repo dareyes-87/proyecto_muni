@@ -57,7 +57,7 @@ export default function Layout() {
         `}
       >
         <div className="flex items-center justify-between h-16 px-4 bg-primary-900">
-          <h1 className="text-lg font-bold tracking-wide">FarmaRH</h1>
+          <h1 className="text-lg font-bold tracking-wide text-dorado-400">FarmaRH</h1>
           <button className="lg:hidden" onClick={() => setSidebarOpen(false)}>
             <X size={20} />
           </button>
@@ -87,7 +87,9 @@ export default function Layout() {
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-primary-700">
           <div className="text-sm text-primary-300 mb-2">
             <p className="font-medium text-white">{usuario?.nombreCompleto}</p>
-            <p className="text-xs">{usuario?.rol === 'ADMIN' ? 'Administrador' : 'Enc. Beneficencia'}</p>
+            <span className="mt-1 inline-block rounded-full bg-dorado-500/15 px-2 py-0.5 text-xs font-medium text-dorado-300 ring-1 ring-dorado-500/40">
+              {usuario?.rol === 'ADMIN' ? 'Administrador' : 'Enc. Beneficencia'}
+            </span>
           </div>
           <button
             onClick={handleLogout}

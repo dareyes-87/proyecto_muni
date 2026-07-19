@@ -6,7 +6,8 @@ export interface ExcelTablaOptions {
   filas: Record<string, unknown>[];
 }
 
-const COLOR_HEADER_BG = 'FF1E3F88';
+// Azul muy oscuro de la Municipalidad de Gualán (= primary-900 en tailwind.config.js).
+const COLOR_HEADER_BG = 'FF003D8B';
 const COLOR_HEADER_TEXTO = 'FFFFFFFF';
 const ANCHO_MIN = 10;
 const ANCHO_MAX = 40;

@@ -35,8 +35,8 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-600 to-primary-900 px-4">
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-8">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-primary-100 rounded-xl mb-4">
-            <Pill className="text-primary-700" size={28} />
+          <div className="inline-flex items-center justify-center w-14 h-14 bg-primary-100 rounded-xl mb-4 ring-2 ring-dorado-400/60">
+            <Pill className="text-dorado-600" size={28} />
           </div>
           <h1 className="text-2xl font-bold text-gray-900">FarmaRH</h1>
           <p className="text-sm text-gray-500 mt-1">Farmacia Municipal de Gualán</p>

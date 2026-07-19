@@ -14,8 +14,9 @@ export interface PdfTablaOptions {
   alineaciones?: Alineacion[];
 }
 
-const COLOR_INSTITUCIONAL = '#1e3f88';
-const COLOR_HEADER_TABLA_BG = '#1e3f88';
+// Azul muy oscuro de la Municipalidad de Gualán (= primary-900 en tailwind.config.js).
+const COLOR_INSTITUCIONAL = '#003d8b';
+const COLOR_HEADER_TABLA_BG = '#003d8b';
 const COLOR_HEADER_TABLA_TEXTO = '#ffffff';
 const COLOR_ZEBRA = '#f3f4f6';
 const COLOR_BANDA_INFO = '#f3f4f6';

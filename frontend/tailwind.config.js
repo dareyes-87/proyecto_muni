@@ -4,17 +4,35 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Azules institucionales de la Municipalidad de Gualán, extraídos del logo.
+        // Anclas exactas (no tocar): 300 = azul claro, 500 = azul principal,
+        // 600 = azul oscuro (hover), 900 = azul muy oscuro (texto/encabezados).
         primary: {
-          50: '#eff8ff',
-          100: '#dbeefe',
-          200: '#bfdffd',
-          300: '#93c9fc',
-          400: '#60aaf8',
-          500: '#3b8af4',
-          600: '#256be9',
-          700: '#1d56d6',
-          800: '#1e47ad',
-          900: '#1e3f88',
+          50: '#f2fafd',
+          100: '#e0f3fb',
+          200: '#c2e5f4',
+          300: '#88c8e4',
+          400: '#27b1f1',
+          500: '#0089c6',
+          600: '#006eae',
+          700: '#005a9e',
+          800: '#004a94',
+          900: '#003d8b',
+        },
+        // Dorado institucional (del logo). Es un acento, no un color principal:
+        // usar en badges, detalles y texto corto sobre fondo oscuro, nunca en
+        // botones de acción primaria ni en bloques largos de texto.
+        dorado: {
+          50: '#fffdf0',
+          100: '#fffadb',
+          200: '#fff5b2',
+          300: '#ffee80',
+          400: '#ffe73d',
+          500: '#ffe000',
+          600: '#e6b800',
+          700: '#c28800',
+          800: '#9f6604',
+          900: '#7e4a07',
         },
         farmacia: {
           green: '#10b981',
