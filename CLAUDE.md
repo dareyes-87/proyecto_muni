@@ -683,3 +683,70 @@ Corrí de nuevo la batería de Playwright sobre los 6 tabs de Reportes para desc
 fix de la sesión anterior.
 
 **Commit:** `347b1cb`, pusheado a `origin/main`.
+
+### 2026-07-20 — Formato de fecha, espaciado de PDF, y rename FarmaRH → FarmaG
+
+Tres correcciones al módulo de Reportes/PDF más un cambio de nombre de marca en todo el proyecto.
+
+**1. Formato de fecha:** el sistema mostraba fechas inconsistentes entre componentes
+(`toLocaleString('es-GT')` sin opciones da "19/7/2026, 7:08:02 a. m." — con segundos, 12h, y sin
+ceros a la izquierda). Se creó un helper reutilizable en **dos** lugares —
+`frontend/src/utils/formatDate.ts` y `backend/src/utils/formatDate.ts` (no se pueden compartir
+directamente entre ambos runtimes sin infraestructura de paquete compartido, que este proyecto no
+tiene) — con `formatFechaHora()` (`dd/mm/aaaa HH:mm`, 24h, sin segundos) y `formatFecha()`
+(`dd/mm/aaaa`, sin hora), implementados con `padStart` manual en vez de `Intl`/`toLocaleString` para
+que el formato sea determinista y no dependa de la locale del runtime. Aplicado en
+`Reportes.tsx`, `Auditoria.tsx`, y en `pdf.ts`/`reportes.routes.ts` (backend, tanto la línea
+"Generado:" del PDF como las columnas de fecha de los 6 reportes exportados).
+
+**2. Espaciado de columnas en PDF:** `generarPdfTabla()` dividía el ancho de página en partes
+iguales entre columnas, lo que en Dispensaciones dejaba "Present." (palabras cortas como "Cápsula")
+con el mismo ancho que "Usuario" (nombres completos), truncando este último — dato importante para
+trazabilidad de quién dispensó. Se agregó `anchosRelativos?: number[]` a `PdfTablaOptions` (pesos
+proporcionales, no puntos absolutos) y un `anchosRelativosPdf` específico por tipo de reporte en
+`reportes.routes.ts` para los 6 reportes, no solo Dispensaciones.
+
+**3. Rename FarmaRH → FarmaG:** grep recursivo confirmó 0 ocurrencias de "farmarh" (case-insensitive)
+en todo el repo tras el cambio, incluyendo:
+- Contenido de código/docs (backend, frontend, README, docs/) vía reemplazo `FarmaRH`→`FarmaG` /
+  `farmarh`→`farmag` respetando mayúsculas.
+- El archivo `docs/FarmaRH_Especificacion_Tecnica_v1.md` **se renombró** (`git mv`) a
+  `docs/FarmaG_Especificacion_Tecnica_v1.md`, y se actualizaron sus 3 referencias cruzadas
+  (README.md, CLAUDE.md, docs/PROMPTS_EQUIPO.md).
+- `frontend/src/context/AuthContext.tsx` y `api/client.ts`: las claves de `localStorage`
+  (`farmarh_token`/`farmarh_usuario` → `farmag_token`/`farmag_usuario`). Efecto secundario esperado:
+  cualquier sesión activa en un navegador se invalida (localStorage ya no tiene esas claves) — hay
+  que volver a iniciar sesión una vez después de este cambio, no es un bug.
+- **`docker-compose.yml`:** `container_name` de los 3 servicios (`farmarh_db/api/web` →
+  `farmag_db/api/web`) y los *defaults* de `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `JWT_SECRET`
+  (`${DB_USER:-farmarh}` → `${DB_USER:-farmag}`, etc.). También `.env` (no versionado) y
+  `.env.example` (sí versionado) a juego.
+
+  **⚠️ Impacto operativo — leer antes de levantar Docker de nuevo:** cambiar el usuario/nombre de
+  base de datos por defecto significa que el volumen `pgdata` ya existente (inicializado con el
+  usuario/DB viejo `farmarh`) **ya no es compatible** con las nuevas credenciales — Postgres no
+  renombra usuarios/DBs existentes solo porque cambien las variables de entorno. Todo el que tenga
+  el proyecto corriendo localmente necesita:
+  ```bash
+  git pull origin main
+  docker compose down -v      # -v es necesario: borra el volumen de Postgres viejo (solo datos de prueba/seed, no hay nada de producción que perder)
+  docker compose up --build   # recrea todo con los nombres/credenciales nuevos y re-siembra la DB
+  ```
+  Sin el `-v`, el contenedor `api` fallará al conectar (usuario `farmag` no existe en el volumen
+  viejo). Esto se probó en esta sesión: `down -v` + `up --build` dejó los 3 contenedores como
+  `farmag_db`/`farmag_api`/`farmag_web`, sanos, con la DB re-sembrada desde cero.
+- Se dejó **una** mención deliberada de "FarmaRH" como nota histórica en la sección "Proyecto" de
+  este archivo (que antes se llamaba así) — es la única ocurrencia que debe sobrevivir un grep.
+
+**Verificación:** `tsc` limpio en backend y frontend. Regeneré los 12 combos de exportación
+(6 tipos × 2 formatos) tras el rebuild — todos 200 OK. Confirmé con `pdftotext` que el pie de
+página del PDF dice "Documento generado por el Sistema FarmaG". Con Playwright: título de la
+pestaña = "FarmaG - Farmacia Municipal de Gualán", `localStorage` con las claves `farmag_*`
+correctas tras login real, y repetí la batería de los 6 tabs de Reportes (sin errores) para
+descartar que el rebuild de contenedores rompiera el fix de la sesión anterior. Revisé
+visualmente (capturas convertidas de PDF) el reporte de Dispensaciones: fecha sin segundos en
+24h, "Usuario" ya no se trunca, "Present."/"Cant." angostas — y de paso los otros 5 tipos de
+reporte para confirmar que ninguno quedó con columnas desproporcionadas.
+
+**Commit:** `63b9be0`, pusheado a `origin/main` (además de `316a65b`, un commit manual del usuario
+que ya había renombrado el sidebar en `Layout.tsx` antes de esta sesión).
