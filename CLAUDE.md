@@ -256,21 +256,22 @@ farma-rh/
 - `frontend/src/pages/Catalogos/Ubicaciones.tsx` (crear)
 
 **Responsabilidades:**
-- [x] Endpoint CRUD completo para medicamentos (con detección de duplicados) — *en `feature/catalogos`, pendiente merge*
-- [x] Endpoint de búsqueda por nombre parcial (autocompletado) — *en `feature/catalogos`*
-- [x] Endpoint de búsqueda por código de barras — *en `feature/catalogos`*
-- [x] Endpoint CRUD para códigos de barras (agregar/eliminar por medicamento) — *en `feature/catalogos`*
-- [x] Endpoint CRUD para categorías — *en `feature/catalogos`*
-- [x] Endpoint CRUD para proveedores/donantes — *en `feature/catalogos`*
-- [x] Endpoint CRUD para ubicaciones/estantes — *en `feature/catalogos`*
-- [ ] ⚠️ PENDIENTE — Página de Medicamentos (tabla, crear, editar, buscar, códigos de barras)
-- [ ] ⚠️ PENDIENTE — Página de Categorías (tabla + formulario)
-- [ ] ⚠️ PENDIENTE — Página de Proveedores (tabla + formulario)
-- [ ] ⚠️ PENDIENTE — Página de Ubicaciones (tabla + formulario)
-- [ ] ⚠️ PENDIENTE — Merge de `feature/catalogos` a `main` (hacer rebase primero sobre main actualizado)
-- [ ] ⚠️ PENDIENTE — Actualizar CLAUDE.md con historial de sesión y tareas completadas
+- [x] Endpoint CRUD completo para medicamentos (con detección de duplicados)
+- [x] Endpoint de búsqueda por nombre parcial (autocompletado)
+- [x] Endpoint de búsqueda por código de barras
+- [x] Endpoint CRUD para códigos de barras (agregar/eliminar por medicamento)
+- [x] Endpoint CRUD para categorías
+- [x] Endpoint CRUD para proveedores/donantes
+- [x] Endpoint CRUD para ubicaciones/estantes
+- [x] Página de Medicamentos (tabla TanStack Table, búsqueda, modal crear/editar, advertencia de duplicados, gestión de códigos de barras)
+- [x] Página de Categorías (tabla + formulario)
+- [x] Página de Proveedores (tabla + formulario, filtro INSTITUCION/PERSONA)
+- [x] Página de Ubicaciones (tabla + formulario)
+- [ ] ⚠️ PENDIENTE — Rebase hecho localmente (`feature/catalogos` @ `dc9b292`, reescrito sobre `main` @ `89d7736`), pero **no se ha hecho push ni merge a `main`** — requiere `git push --force-with-lease` (reescribe historia) y confirmación del equipo antes de mergear.
 
-**Estado actual:** Backend implementado en `feature/catalogos` (auditado y aprobado el 2026-06-27). Las 4 páginas frontend no existen. La rama NO está mergeada a `main`. En `main` actual, `catalogos.routes.ts` tiene los GETs de lectura implementados por Daniel y el CRUD como stubs.
+**Estado actual (2026-07-19):** Backend + las 4 páginas frontend completos en `feature/catalogos`, rebaseado sobre `main` actual (post-merge de Inventario y Dispensación). `docker compose up`, los 4 GETs, el flujo de creación con detección de duplicados, alta/baja de códigos de barras, y el soft-delete (activo) en medicamentos/categorías/proveedores fueron probados en runtime con curl — todo funciona. `tsc` de `catalogos.routes.ts` y de las páginas nuevas pasa limpio. **Nota:** no se verificó visualmente en navegador (sin herramienta de automatización de browser disponible en esta sesión) — falta un pase manual de click-through antes de dar por cerrado el módulo.
+
+**Deuda técnica corregida en este merge:** `catalogos.routes.ts` tenía el mismo problema que ya estaba documentado como deuda técnica de Jorge en `dispensacion.routes.ts` (`@types/express` v5 vs `express` v4 → `req.params`/`req.query` tipan como `string | string[]`). Se corrigió con `as { id: string }` en los 7 handlers afectados. **`dispensacion.routes.ts` sigue con el mismo problema sin corregir** (fuera de mi alcance, ver sección de Jorge).
 
 ---
 
@@ -321,34 +322,27 @@ El sistema soporta 4 usuarios simultáneos. Para evitar inconsistencias de inven
 | Dispensación (Jorge) | `/dispensacion`, `/beneficiarios` | ✅ Completo |
 | Admin / Usuarios (Daniel) | `/usuarios` (solo ADMIN) | ✅ Completo |
 | Dashboard | `/` | ✅ Con alertas reales |
-| Catálogos (Audias) | *sin rutas activas en frontend* | ⚠️ Backend en `feature/catalogos`, sin frontend, sin merge |
+| Catálogos (Audias) | `/medicamentos`, `/categorias`, `/proveedores`, `/ubicaciones` | ✅ Completo en `feature/catalogos` (rebaseado sobre main, sin push/merge aún) |
 | Reportes | *sin rutas activas* | ❌ No iniciado |
 
-### Bloqueado esperando a Audias (`feature/catalogos`)
+### `feature/catalogos` — listo para revisión, pendiente push + merge (actualizado 2026-07-19)
 
-**En `main` actual los GETs de lectura de catálogos SÍ funcionan** (implementados por Daniel):
-- `GET /api/catalogos/medicamentos` ✅
-- `GET /api/catalogos/medicamentos/buscar?q=` ✅
-- `GET /api/catalogos/categorias` ✅
-- `GET /api/catalogos/proveedores` ✅
-- `GET /api/catalogos/ubicaciones` ✅
-- `GET /api/catalogos/medicamentos/barcode/:codigo` — **stub en main** → devuelve `{ message: 'TODO' }`
+**Ya no está bloqueado.** Audias completó backend + las 4 páginas frontend, hizo rebase de
+`feature/catalogos` sobre `main` (post-merge de Inventario y Dispensación) y verificó todo en
+runtime (docker compose, los 4 GETs, creación con detección de duplicados, códigos de barras,
+soft-delete). `tsc` pasa limpio en todos los archivos que tocó.
 
-**Lo que Audias tiene en `feature/catalogos` (pendiente de merge):**
-- CRUD completo medicamentos con detección de duplicados (`forzarCreacion: true` para forzar)
-- `GET /barcode/:codigo` con stock real
-- CRUD categorías, proveedores, ubicaciones + códigos de barras
-- Auditoría en todos los endpoints que modifican datos
+**Pendiente para completar el merge:**
+1. Push de `feature/catalogos` — es un rebase, así que requiere `git push --force-with-lease`
+   (reescribe la historia de la rama remota). **No se hizo automáticamente, requiere confirmación.**
+2. `git merge --no-ff feature/catalogos` a `main` una vez pusheado.
+3. Verificación visual en navegador de las 4 páginas nuevas — no se hizo en esta sesión por falta
+   de herramienta de browser automation.
 
-**Lo que Audias no entregó (bloqueante para hacer el merge):**
-- `frontend/src/pages/Catalogos/Medicamentos.tsx` — no existe
-- `frontend/src/pages/Catalogos/Categorias.tsx` — no existe
-- `frontend/src/pages/Catalogos/Proveedores.tsx` — no existe
-- `frontend/src/pages/Catalogos/Ubicaciones.tsx` — no existe
-
-**Impacto en Jorge (Dispensación):** el escáner de código de barras en `Dispensacion.tsx` llama
-a `GET /api/catalogos/medicamentos/barcode/:codigo`. Hoy recibe stub vacío — el flujo no se rompe
-(maneja array vacío) pero el escaneo real no funciona hasta que el endpoint de Audias esté en main.
+**Una vez en `main`:**
+- `GET /api/catalogos/medicamentos/barcode/:codigo` deja de ser stub → el escáner de código de
+  barras en `Dispensacion.tsx` (Jorge) empieza a funcionar de verdad.
+- Auditoría integrada en todos los endpoints que modifican datos de catálogos.
 
 ### Deuda técnica pendiente
 
@@ -373,16 +367,10 @@ git log --oneline origin/feature/catalogos
 git diff main..origin/feature/catalogos --name-only
 ```
 
-**Prompt para auditar `feature/catalogos` de Audias cuando suba las páginas:**
-
-> Verifica el estado de `origin/feature/catalogos`. Necesito saber:
-> 1. ¿Existen las 4 páginas frontend en `frontend/src/pages/Catalogos/`?
-> 2. ¿El backend tiene CRUD completo + GET barcode + detección de duplicados?
-> 3. ¿Hizo rebase sobre main? (main actual está en commit `14d1f50`)
-> 4. ¿Hay conflictos con `catalogos.routes.ts` en main?
-> Si todo está completo y sin conflictos bloqueantes, proceder con
-> `git merge --no-ff origin/feature/catalogos` resolviendo cualquier conflicto en catalogos.routes.ts
-> tomando la versión de Audias (es más completa que los stubs actuales en main).
+**Auditoría de `feature/catalogos` — completada 2026-07-19:** las 4 páginas existen, el backend
+tiene CRUD completo + GET barcode + detección de duplicados, ya está rebaseado sobre `main`
+(`89d7736`) sin conflictos pendientes (el único conflicto, en `catalogos.routes.ts`, se resolvió
+en el propio rebase). Falta: push (`--force-with-lease`, reescribe historia) y el merge a `main`.
 
 ---
 
@@ -426,3 +414,25 @@ funcionando. Catálogos en stubs (GETs de lectura sí funcionan). Reportes no in
 
 **Veredicto de Jorge (aprobado):** FIFO correcto con `$queryRaw FOR UPDATE` + `Serializable`.
 Única deuda: cast `req.params as { id: string }` faltante en `dispensacion.routes.ts`.
+
+### 2026-07-19 — Audias Guevara (rama `feature/catalogos`)
+- Rebase de `feature/catalogos` sobre `main` (`89d7736`): un solo conflicto en
+  `catalogos.routes.ts`, resuelto combinando mi CRUD completo con las lecturas mínimas de Daniel
+  (paginación + filtro `q` en `/medicamentos`, filtro `tipo` + `activo` en `/proveedores`).
+  `CLAUDE.md` se auto-mergeó sin conflicto.
+- Verificación en runtime (docker compose up, los 4 GETs, ciclo POST→GET→PUT activo:false→GET
+  para confirmar soft-delete): todo correcto.
+- Corregí en `catalogos.routes.ts` el mismo problema de tipos (`@types/express` v5 vs `express`
+  v4) que ya estaba documentado como deuda de Jorge en `dispensacion.routes.ts` — 7 handlers con
+  `const { id } = req.params as { id: string }`. No toqué `dispensacion.routes.ts` (fuera de mi
+  módulo); esa deuda sigue pendiente para Jorge.
+- Frontend: 4 páginas nuevas (`Medicamentos.tsx` con TanStack Table + flujo de duplicados +
+  gestión de códigos de barras, `Categorias.tsx`, `Proveedores.tsx`, `Ubicaciones.tsx`), extendí
+  `api/catalogos.ts` y `types/index.ts` de forma aditiva (sin romper las funciones/tipos que ya
+  usa `Entradas.tsx` de Daniel), agregué las 4 rutas y entradas de sidebar en `App.tsx` /
+  `Layout.tsx` sin tocar las de otros módulos.
+- `tsc` limpio en todo lo que toqué (backend y frontend). Probé las páginas vía Vite dev server
+  (todas transforman sin error de resolución) pero **no hubo verificación visual en navegador**
+  por no tener herramienta de browser automation disponible en esta sesión.
+- **Pendiente:** push de `feature/catalogos` (requiere `--force-with-lease` por el rebase) y merge
+  a `main` — ninguno de los dos se hizo, quedan para decisión del equipo.
