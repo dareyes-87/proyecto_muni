@@ -267,9 +267,9 @@ farma-rh/
 - [x] Página de Categorías (tabla + formulario)
 - [x] Página de Proveedores (tabla + formulario, filtro INSTITUCION/PERSONA)
 - [x] Página de Ubicaciones (tabla + formulario)
-- [ ] ⚠️ PENDIENTE — Rebase hecho localmente (`feature/catalogos` @ `dc9b292`, reescrito sobre `main` @ `89d7736`), pero **no se ha hecho push ni merge a `main`** — requiere `git push --force-with-lease` (reescribe historia) y confirmación del equipo antes de mergear.
+- [x] Merge de `feature/catalogos` a `main` — completado 2026-07-19 tras auditoría independiente (ver Historial de Sesiones).
 
-**Estado actual (2026-07-19):** Backend + las 4 páginas frontend completos en `feature/catalogos`, rebaseado sobre `main` actual (post-merge de Inventario y Dispensación). `docker compose up`, los 4 GETs, el flujo de creación con detección de duplicados, alta/baja de códigos de barras, y el soft-delete (activo) en medicamentos/categorías/proveedores fueron probados en runtime con curl — todo funciona. `tsc` de `catalogos.routes.ts` y de las páginas nuevas pasa limpio. **Nota:** no se verificó visualmente en navegador (sin herramienta de automatización de browser disponible en esta sesión) — falta un pase manual de click-through antes de dar por cerrado el módulo.
+**Estado actual (2026-07-19):** Módulo de Catálogos completo y **mergeado a `main`**. Backend (CRUD medicamentos con duplicados, categorías, proveedores, ubicaciones, códigos de barras) y las 4 páginas frontend verificados de forma independiente (no solo con el resumen de Audias): diff de archivos, contenido íntegro de `catalogos.routes.ts`, checkout real de la rama + `docker compose up --build`, y pruebas en vivo con curl de los 4 GET más el flujo completo de barcode (creación de código de prueba → `GET /barcode/:codigo` devolviendo `stockActual` → limpieza del dato de prueba). **Pendiente:** verificación visual en navegador (click-through) de las 4 páginas — no se hizo en ninguna sesión hasta ahora por falta de herramienta de browser automation.
 
 **Deuda técnica corregida en este merge:** `catalogos.routes.ts` tenía el mismo problema que ya estaba documentado como deuda técnica de Jorge en `dispensacion.routes.ts` (`@types/express` v5 vs `express` v4 → `req.params`/`req.query` tipan como `string | string[]`). Se corrigió con `as { id: string }` en los 7 handlers afectados. **`dispensacion.routes.ts` sigue con el mismo problema sin corregir** (fuera de mi alcance, ver sección de Jorge).
 
@@ -312,7 +312,7 @@ El sistema soporta 4 usuarios simultáneos. Para evitar inconsistencias de inven
 
 ## Estado al reanudar
 
-> Última actualización: 2026-06-27 — cierre de sesión Daniel Reyes
+> Última actualización: 2026-07-19 — merge de `feature/catalogos` a `main`
 
 ### Lo que está en `main` y funciona HOY
 
@@ -322,34 +322,40 @@ El sistema soporta 4 usuarios simultáneos. Para evitar inconsistencias de inven
 | Dispensación (Jorge) | `/dispensacion`, `/beneficiarios` | ✅ Completo |
 | Admin / Usuarios (Daniel) | `/usuarios` (solo ADMIN) | ✅ Completo |
 | Dashboard | `/` | ✅ Con alertas reales |
-| Catálogos (Audias) | `/medicamentos`, `/categorias`, `/proveedores`, `/ubicaciones` | ✅ Completo en `feature/catalogos` (rebaseado sobre main, sin push/merge aún) |
+| Catálogos (Audias) | `/medicamentos`, `/categorias`, `/proveedores`, `/ubicaciones` | ✅ Completo, mergeado a `main` 2026-07-19 |
 | Reportes | *sin rutas activas* | ❌ No iniciado |
 
-### `feature/catalogos` — listo para revisión, pendiente push + merge (actualizado 2026-07-19)
+### `feature/catalogos` — mergeado a `main` (2026-07-19)
 
-**Ya no está bloqueado.** Audias completó backend + las 4 páginas frontend, hizo rebase de
-`feature/catalogos` sobre `main` (post-merge de Inventario y Dispensación) y verificó todo en
-runtime (docker compose, los 4 GETs, creación con detección de duplicados, códigos de barras,
-soft-delete). `tsc` pasa limpio en todos los archivos que tocó.
+Auditoría independiente (no basada en el resumen de Audias) antes del merge: diff de archivos vs
+`main` (solo tocó archivos de su módulo), lectura completa de `catalogos.routes.ts`, checkout real
+de la rama, `docker compose up --build` limpio, y pruebas en vivo con curl de los 4 GET de catálogos
+más el flujo de barcode end-to-end (incluye `stockActual`). `tsc` del backend y frontend tiene 2
+errores preexistentes y ajenos (`dispensacion.routes.ts` y el import `Plus` sin usar en
+`Dispensacion.tsx`), confirmados iguales en `main` antes del merge — no introducidos por Audias.
+Merge sin conflictos (`git merge --no-ff feature/catalogos`).
 
-**Pendiente para completar el merge:**
-1. Push de `feature/catalogos` — es un rebase, así que requiere `git push --force-with-lease`
-   (reescribe la historia de la rama remota). **No se hizo automáticamente, requiere confirmación.**
-2. `git merge --no-ff feature/catalogos` a `main` una vez pusheado.
-3. Verificación visual en navegador de las 4 páginas nuevas — no se hizo en esta sesión por falta
-   de herramienta de browser automation.
+**El escáner de código de barras en `Dispensacion.tsx` (Jorge) ya funciona de verdad** —
+`GET /api/catalogos/medicamentos/barcode/:codigo` dejó de ser stub.
 
-**Una vez en `main`:**
-- `GET /api/catalogos/medicamentos/barcode/:codigo` deja de ser stub → el escáner de código de
-  barras en `Dispensacion.tsx` (Jorge) empieza a funcionar de verdad.
-- Auditoría integrada en todos los endpoints que modifican datos de catálogos.
+**Pendiente:** verificación visual en navegador (click-through) de las 4 páginas nuevas — ninguna
+sesión hasta ahora ha tenido herramienta de browser automation disponible.
+
+**Hallazgo de Audias sobre `Dispensacion.tsx` (verificado, correcto):** el botón "Confirmar
+dispensación" llama `confirmarDispensacion()` directamente sin modal de confirmación intermedio.
+No bloqueó este merge (es deuda de Jorge, fuera del módulo de Catálogos) pero queda como pendiente
+de UX/seguridad para el módulo de Dispensación.
 
 ### Deuda técnica pendiente
 
 **Jorge — `dispensacion.routes.ts`:** todos los handlers con `:id` en el path usan `req.params.id`
-directamente sin el cast requerido por `@types/express` v5. Puede fallar en `tsc --noEmit` estricto.
-Corrección en cada handler: `const { id } = req.params as { id: string }`.
+directamente sin el cast requerido por `@types/express` v5. Falla en `tsc -b` (5 errores
+confirmados). Corrección en cada handler: `const { id } = req.params as { id: string }`.
 No es bloqueante en runtime. Corregir antes de agregar más endpoints al módulo.
+
+**Jorge — `Dispensacion.tsx`:** falta modal de confirmación antes de ejecutar la dispensación
+(hallazgo de Audias, verificado). También tiene un import no usado (`Plus` de lucide-react) que
+rompe `tsc -b` del frontend.
 
 ### Primer paso cuando se reanude la sesión
 
@@ -358,19 +364,6 @@ git pull origin main          # traer el estado actual
 docker compose up             # verificar que todo sigue arriba
 curl -s http://localhost:3000/api/health   # confirmar API
 ```
-
-Luego verificar si Audias ya subió trabajo:
-
-```bash
-git fetch --all
-git log --oneline origin/feature/catalogos
-git diff main..origin/feature/catalogos --name-only
-```
-
-**Auditoría de `feature/catalogos` — completada 2026-07-19:** las 4 páginas existen, el backend
-tiene CRUD completo + GET barcode + detección de duplicados, ya está rebaseado sobre `main`
-(`89d7736`) sin conflictos pendientes (el único conflicto, en `catalogos.routes.ts`, se resolvió
-en el propio rebase). Falta: push (`--force-with-lease`, reescribe historia) y el merge a `main`.
 
 ---
 
@@ -435,4 +428,34 @@ funcionando. Catálogos en stubs (GETs de lectura sí funcionan). Reportes no in
   (todas transforman sin error de resolución) pero **no hubo verificación visual en navegador**
   por no tener herramienta de browser automation disponible en esta sesión.
 - **Pendiente:** push de `feature/catalogos` (requiere `--force-with-lease` por el rebase) y merge
+  a `main` (completado en la siguiente sesión, ver abajo).
+
+### 2026-07-19 — Auditoría y merge de `feature/catalogos` a `main`
+
+**Auditoría independiente de la rama de Audias antes de mergear** (no se confió en su resumen de
+sesión, se verificó todo directamente):
+- Rebase sobre `main`: correcto — `merge-base(main, feature/catalogos)` = `89d7736` = HEAD de main.
+- Archivos ajenos: ninguno tocado (`inventario.*`, `dispensacion.*`, `Usuarios.tsx`, etc. intactos).
+- `catalogos.routes.ts` leído completo: soft-delete correcto en los GETs que aplican (Ubicación no
+  tiene campo `activo` en el schema, así que no aplica ahí), barcode devuelve `stockActual`
+  (probado en vivo creando y borrando un código de prueba), detección de duplicados presente,
+  los 10 endpoints de escritura tienen `requireRole('ADMIN')` + `registrarAuditoria()`.
+- Las 4 páginas frontend existen con implementaciones reales (135–495 líneas cada una), rutas
+  activas en `App.tsx`.
+- Checkout real de `feature/catalogos` + `docker compose up --build`: build limpio, containers
+  arriba sin errores, los 4 GET de catálogos y el flujo de barcode responden con datos reales vía
+  curl con JWT real.
+- `tsc` backend y frontend: 2 errores, ambos preexistentes en `main` y ajenos al módulo de
+  Catálogos (`dispensacion.routes.ts` sin cast de `req.params`, import `Plus` sin usar en
+  `Dispensacion.tsx`) — confirmados comparando contra `origin/main`, no introducidos por Audias.
+- Hallazgo de Audias sobre falta de modal de confirmación en `Dispensacion.tsx`: verificado y
+  correcto.
+
+**Veredicto:** apto para merge sin correcciones. `git merge --no-ff feature/catalogos` a `main`,
+sin conflictos. Push a `origin/main` con autorización del usuario.
+
+**Estado de `main` tras este merge:** Inventario + Dispensación + Admin + Catálogos completos y
+funcionando end-to-end. El escáner de código de barras de Jorge ya tiene backend real. Reportes
+sigue sin iniciar. Deuda técnica pendiente: casts de `req.params` y modal de confirmación en
+`dispensacion.routes.ts` / `Dispensacion.tsx` (Jorge).
   a `main` — ninguno de los dos se hizo, quedan para decisión del equipo.
