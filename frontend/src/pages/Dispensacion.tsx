@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  HandHeart, Search, UserPlus, Plus, Trash2, X,
+  HandHeart, Search, UserPlus, Trash2, X,
   AlertCircle, CheckCircle, Package, Barcode,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -88,6 +88,7 @@ export default function Dispensacion() {
   const [observaciones, setObservaciones] = useState('');
   const [despachando, setDespachando] = useState(false);
   const [exitoso, setExitoso] = useState(false);
+  const [showConfirmacion, setShowConfirmacion] = useState(false);
 
   // --- Búsqueda de beneficiario ---
   const [queryBenef, setQueryBenef] = useState('');
@@ -607,23 +608,80 @@ export default function Dispensacion() {
         )}
 
         <button
-          onClick={confirmarDispensacion}
+          onClick={() => setShowConfirmacion(true)}
           disabled={!beneficiario || carrito.length === 0 || despachando}
           className="w-full py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium"
         >
-          {despachando ? (
-            <>
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              Procesando...
-            </>
-          ) : (
-            <>
-              <CheckCircle size={20} />
-              Confirmar dispensación
-            </>
-          )}
+          <CheckCircle size={20} />
+          Confirmar dispensación
         </button>
       </div>
+
+      {/* ================================================ */}
+      {/* MODAL: CONFIRMACIÓN DE DISPENSACIÓN */}
+      {/* ================================================ */}
+      {showConfirmacion && beneficiario && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowConfirmacion(false)}>
+          <div
+            className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Confirmar dispensación</h3>
+              <button onClick={() => setShowConfirmacion(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-sm">
+              <div className="bg-gray-50 rounded-lg p-3">
+                <p className="text-gray-500 text-xs uppercase font-medium mb-1">Beneficiario</p>
+                <p className="font-medium text-gray-900">{beneficiario.nombreCompleto}</p>
+                {beneficiario.dpi && <p className="text-gray-500 text-xs">DPI: {beneficiario.dpi}</p>}
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-3">
+                <p className="text-gray-500 text-xs uppercase font-medium mb-1">Medicamentos ({carrito.length})</p>
+                {carrito.map((item) => (
+                  <p key={item.medicamento.id} className="text-gray-700">
+                    {item.medicamento.nombreGenerico} {item.medicamento.presentacion}
+                    {item.medicamento.concentracion ? ` ${item.medicamento.concentracion}` : ''}
+                    {' — '}<span className="font-medium">{item.cantidad} unid.</span>
+                  </p>
+                ))}
+              </div>
+
+              {observaciones && (
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-gray-500 text-xs uppercase font-medium mb-1">Observaciones</p>
+                  <p className="text-gray-700">{observaciones}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 mt-5">
+              <button
+                onClick={() => setShowConfirmacion(false)}
+                className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => { setShowConfirmacion(false); confirmarDispensacion(); }}
+                disabled={despachando}
+                className="flex-1 px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {despachando ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <CheckCircle size={18} />
+                )}
+                Dispensar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ================================================ */}
       {/* MODAL: CREAR BENEFICIARIO RÁPIDO */}
