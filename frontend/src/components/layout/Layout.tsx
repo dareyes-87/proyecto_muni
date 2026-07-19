@@ -57,7 +57,7 @@ export default function Layout() {
         `}
       >
         <div className="flex items-center justify-between h-16 px-4 bg-primary-900">
-          <h1 className="text-lg font-bold tracking-wide text-dorado-400">FarmaRH</h1>
+          <h1 className="text-lg font-bold tracking-wide text-dorado-400">FarmaG</h1>
           <button className="lg:hidden" onClick={() => setSidebarOpen(false)}>
             <X size={20} />
           </button>
