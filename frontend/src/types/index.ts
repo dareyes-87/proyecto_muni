@@ -189,3 +189,95 @@ export interface LogAuditoria {
   createdAt: string;
   usuario: { username: string; nombreCompleto: string } | null;
 }
+
+// ============================================
+// REPORTES
+// ============================================
+
+export interface ReporteDispensacionRow {
+  id: string;
+  createdAt: string;
+  observaciones: string | null;
+  beneficiario: { nombreCompleto: string; dpi: string | null };
+  usuario: { nombreCompleto: string; username: string };
+  medicamentos: {
+    medicamentoId: string;
+    nombreGenerico: string;
+    presentacion: string;
+    concentracion: string | null;
+    cantidad: number;
+    codigoBarras: string | null;
+  }[];
+}
+
+export interface ReporteConsumoRow {
+  medicamentoId: string;
+  nombreGenerico: string;
+  presentacion: string;
+  categoria: string;
+  cantidadTotalDispensada: number;
+  numeroDispensaciones: number;
+}
+
+export interface ReporteInventarioRow {
+  loteId: string;
+  numeroLote: string;
+  medicamento: {
+    id: string;
+    nombreGenerico: string;
+    presentacion: string;
+    concentracion: string | null;
+    categoria: string | null;
+  };
+  codigoBarras: string | null;
+  cantidadActual: number;
+  fechaVencimiento: string;
+  diasParaVencer: number;
+  semaforo: Semaforo;
+  estado: EstadoLote;
+  ubicacion: { codigo: string; descripcion: string | null } | null;
+  origen: Origen;
+  proveedor: string;
+}
+
+export interface ReportePorVencerRow {
+  loteId: string;
+  numeroLote: string;
+  medicamento: { id: string; nombreGenerico: string; presentacion: string; categoria: string | null };
+  codigoBarras: string | null;
+  cantidadActual: number;
+  fechaVencimiento: string;
+  diasParaVencer: number;
+  semaforo: Semaforo;
+  ubicacion: { codigo: string } | null;
+}
+
+export interface ReporteEntradaRow {
+  id: string;
+  createdAt: string;
+  origen: Origen;
+  proveedor: string;
+  usuario: string;
+  totalLotes: number;
+  totalUnidades: number;
+  costoTotal: number;
+  lotes: {
+    numeroLote: string;
+    medicamento: string;
+    cantidad: number;
+    costoUnitario: string | null;
+    fechaVencimiento: string;
+  }[];
+}
+
+export interface ReporteBajaRow {
+  loteId: string;
+  numeroLote: string;
+  medicamento: { nombreGenerico: string; presentacion: string; categoria: string | null };
+  estado: EstadoLote;
+  fechaVencimiento: string;
+  cantidadPerdida: number;
+  costoUnitario: string | null;
+  costoEstimado: number | null;
+  proveedor: string;
+}

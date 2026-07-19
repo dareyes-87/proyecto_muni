@@ -9,6 +9,7 @@ import Inventario from './pages/Inventario';
 import Entradas from './pages/Entradas';
 import Usuarios from './pages/Usuarios';
 import Auditoria from './pages/Auditoria';
+import Reportes from './pages/Reportes';
 import Medicamentos from './pages/Catalogos/Medicamentos';
 import Categorias from './pages/Catalogos/Categorias';
 import Proveedores from './pages/Catalogos/Proveedores';
@@ -70,7 +71,7 @@ export default function App() {
         <Route path="beneficiarios" element={<Beneficiarios />} />
 
         {/* === MÓDULO REPORTES (equipo) === */}
-        {/* <Route path="reportes" element={<Reportes />} /> */}
+        <Route path="reportes" element={<AdminRoute><Reportes /></AdminRoute>} />
 
         {/* === MÓDULO ADMIN (Daniel) === */}
         <Route path="usuarios" element={<AdminRoute><Usuarios /></AdminRoute>} />
