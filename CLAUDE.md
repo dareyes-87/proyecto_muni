@@ -632,3 +632,51 @@ sintética. Reporté el diagnóstico y las capturas al usuario antes de hacer co
 
 **Commit:** `5f721e2`, pusheado a `origin/main`, incluye el logo real que el usuario ya había
 colocado en `backend/src/assets/logo-municipalidad.png`.
+
+### 2026-07-19 — Paleta de colores institucional de la Municipalidad de Gualán
+
+El usuario extrajo del logo los colores reales de la municipalidad y pidió reemplazar el azul
+genérico que se usaba desde el setup inicial (`primary-700/800/900` = `#1d56d6/#1e47ad/#1e3f88`)
+por la identidad real: azul principal `#0089C6`, azul oscuro `#006EAE`, azul muy oscuro `#003D8B`,
+azul claro `#88C8E4`, dorado `#FFE000`.
+
+- `frontend/tailwind.config.js`: la paleta `primary` (50-900) se regeneró completa por
+  interpolación HSL, con los 4 azules dados como anclas **exactas** (no aproximadas) en 300, 500,
+  600 y 900 — se calculó con un script de Python (`colorsys`) para que el resto de la escala fuera
+  perceptualmente consistente en vez de inventada a ojo. Se agregó una paleta nueva `dorado`
+  (50-900) anclada en `#FFE000` = `dorado-500`, para acentos únicamente.
+- Acentos dorados aplicados solo donde el usuario pidió explícitamente: el wordmark "FarmaRH" del
+  sidebar (`text-dorado-400`), el badge de rol bajo el nombre de usuario (antes texto plano, ahora
+  una píldora con fondo/anillo dorado), y un anillo + color de ícono dorado en el `Pill` del login.
+  **No** se tocaron botones de acción primaria, bloques de texto largo, ni los colores del
+  semáforo de vencimiento (`Semaforo.tsx` usa `emerald`/`amber`/`red`/`gray` de Tailwind
+  directamente, no la paleta `farmacia` del config — que de hecho no se referencia en ningún lado
+  del código; se dejó intacta igual, tal como pidió el usuario).
+- Se encontraron y corrigieron 2 hardcodeos de `bg-blue-*`/`text-blue-*` que no habrían heredado el
+  cambio de tailwind.config.js (`Dashboard.tsx` en el stat-tile de color "blue", `Auditoria.tsx` en
+  el badge de la acción `EDITAR`) — cambiados a `primary-*` equivalentes.
+- El color institucional hardcodeado en `backend/src/utils/pdf.ts` (`#1e3f88`, encabezado de tabla
+  y línea divisoria) y en `backend/src/utils/excel.ts` (`FF1E3F88`, fondo del header) se
+  actualizaron a `#003d8b` / `FF003D8B` — el usuario solo pidió `pdf.ts` explícitamente, pero
+  `excel.ts` tenía el mismo azul viejo hardcodeado desde la sesión anterior y se corrigió también
+  para no dejar el sistema con dos azules "institucionales" distintos conviviendo.
+
+**Gotcha de Docker (dejar constancia para el equipo):** `tailwind.config.js` vive en la raíz de
+`frontend/`, pero `docker-compose.yml` solo monta `./frontend/src` y `./frontend/public` como
+volúmenes. Un cambio a `tailwind.config.js` (o a `package.json`, `vite.config.ts`, etc., cualquier
+archivo fuera de `src/`/`public/`) **no se refleja con hot-reload** — el contenedor sigue sirviendo
+la copia que se horneó en la imagen en el último build. Hace falta `docker compose up --build web`
+para que tome el cambio. Esto costó una vuelta completa de verificación con capturas de pantalla
+que mostraban el azul viejo a pesar del `tsc` limpio y el HMR de Vite reportando éxito — hay que
+recordar este paso para cualquier cambio futuro a archivos de config del frontend.
+
+**Verificación:** `tsc` limpio en frontend y backend. Reconstruí el contenedor `web` (no bastaba
+con HMR por el punto anterior) y tomé capturas reales con Playwright del login, dashboard/sidebar,
+inventario y auditoría para confirmar visualmente los colores nuevos — no me quedé solo con "el
+build no truena". Confirmé que el semáforo de vencimiento sigue verde/ámbar/rojo sin cambios.
+Regeneré un PDF y un Excel para confirmar que el color institucional también se actualizó ahí
+(`#003d8b` presente, `#1e3f88` ausente, verificado extrayendo el XML interno de ambos archivos).
+Corrí de nuevo la batería de Playwright sobre los 6 tabs de Reportes para descartar regresiones del
+fix de la sesión anterior.
+
+**Commit:** `347b1cb`, pusheado a `origin/main`.
