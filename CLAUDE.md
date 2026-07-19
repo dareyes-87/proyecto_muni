@@ -227,9 +227,9 @@ farma-rh/
 - [x] Componente de escaneo de código de barras para dispensación
 - [x] Lógica de concurrencia: SELECT FOR UPDATE + transacción Serializable
 
-**Estado actual:** Módulo completo — backend y frontend implementados. Mergeado a `main` el 2026-06-27.
+**Estado actual:** Módulo completo — backend y frontend implementados. Mergeado a `main` el 2026-06-27; correcciones finales (cast de `req.params`, modal de confirmación, import sin usar) mergeadas el 2026-07-19 tras verificación integral con los tres módulos.
 
-**Deuda técnica pendiente:** `dispensacion.routes.ts` usa `req.params.id` sin cast. Con `@types/express` v5 esto puede fallar en `tsc --noEmit`. Corrección: `const { id } = req.params as { id: string }` en cada handler que use `:id`.
+**Deuda técnica:** resuelta. `dispensacion.routes.ts` ya usa `const { id } = req.params as { id: string }` en los handlers con `:id`, y `Dispensacion.tsx` ya tiene modal de confirmación antes de despachar. `tsc --noEmit` (backend) y `tsc -b` (frontend) limpios, verificado en `main`.
 
 **CRÍTICO — Lógica FIFO + Concurrencia:**
 ```typescript
@@ -312,50 +312,33 @@ El sistema soporta 4 usuarios simultáneos. Para evitar inconsistencias de inven
 
 ## Estado al reanudar
 
-> Última actualización: 2026-07-19 — merge de `feature/catalogos` a `main`
+> Última actualización: 2026-07-19 — merge de `feature/dispensacion` (correcciones finales) a `main`, tres módulos verificados end-to-end integrados
 
 ### Lo que está en `main` y funciona HOY
 
 | Módulo | Rutas activas | Estado |
 |--------|--------------|--------|
 | Inventario (Daniel) | `/inventario`, `/entradas` | ✅ Completo |
-| Dispensación (Jorge) | `/dispensacion`, `/beneficiarios` | ✅ Completo |
+| Dispensación (Jorge) | `/dispensacion`, `/beneficiarios` | ✅ Completo, verificado integrado con Catálogos e Inventario |
 | Admin / Usuarios (Daniel) | `/usuarios` (solo ADMIN) | ✅ Completo |
 | Dashboard | `/` | ✅ Con alertas reales |
 | Catálogos (Audias) | `/medicamentos`, `/categorias`, `/proveedores`, `/ubicaciones` | ✅ Completo, mergeado a `main` 2026-07-19 |
 | Reportes | *sin rutas activas* | ❌ No iniciado |
 
-### `feature/catalogos` — mergeado a `main` (2026-07-19)
-
-Auditoría independiente (no basada en el resumen de Audias) antes del merge: diff de archivos vs
-`main` (solo tocó archivos de su módulo), lectura completa de `catalogos.routes.ts`, checkout real
-de la rama, `docker compose up --build` limpio, y pruebas en vivo con curl de los 4 GET de catálogos
-más el flujo de barcode end-to-end (incluye `stockActual`). `tsc` del backend y frontend tiene 2
-errores preexistentes y ajenos (`dispensacion.routes.ts` y el import `Plus` sin usar en
-`Dispensacion.tsx`), confirmados iguales en `main` antes del merge — no introducidos por Audias.
-Merge sin conflictos (`git merge --no-ff feature/catalogos`).
-
-**El escáner de código de barras en `Dispensacion.tsx` (Jorge) ya funciona de verdad** —
-`GET /api/catalogos/medicamentos/barcode/:codigo` dejó de ser stub.
-
-**Pendiente:** verificación visual en navegador (click-through) de las 4 páginas nuevas — ninguna
-sesión hasta ahora ha tenido herramienta de browser automation disponible.
-
-**Hallazgo de Audias sobre `Dispensacion.tsx` (verificado, correcto):** el botón "Confirmar
-dispensación" llama `confirmarDispensacion()` directamente sin modal de confirmación intermedio.
-No bloqueó este merge (es deuda de Jorge, fuera del módulo de Catálogos) pero queda como pendiente
-de UX/seguridad para el módulo de Dispensación.
+**Tres módulos integrados y verificados en main.** Ver detalle completo de la verificación integral
+en Historial de Sesiones (2026-07-19).
 
 ### Deuda técnica pendiente
 
-**Jorge — `dispensacion.routes.ts`:** todos los handlers con `:id` en el path usan `req.params.id`
-directamente sin el cast requerido por `@types/express` v5. Falla en `tsc -b` (5 errores
-confirmados). Corrección en cada handler: `const { id } = req.params as { id: string }`.
-No es bloqueante en runtime. Corregir antes de agregar más endpoints al módulo.
+Ninguna conocida a la fecha. La deuda de casts de `req.params` y el modal de confirmación en
+`Dispensacion.tsx` (documentada en sesiones anteriores) se corrigió y verificó en el merge del
+2026-07-19.
 
-**Jorge — `Dispensacion.tsx`:** falta modal de confirmación antes de ejecutar la dispensación
-(hallazgo de Audias, verificado). También tiene un import no usado (`Plus` de lucide-react) que
-rompe `tsc -b` del frontend.
+### Pendiente para el equipo
+
+- Verificación visual en navegador (click-through) de las páginas de Catálogos y del flujo completo
+  de Dispensación — ninguna sesión hasta ahora ha tenido herramienta de browser automation.
+- Módulo de Reportes: no iniciado.
 
 ### Primer paso cuando se reanude la sesión
 
@@ -458,4 +441,38 @@ sin conflictos. Push a `origin/main` con autorización del usuario.
 funcionando end-to-end. El escáner de código de barras de Jorge ya tiene backend real. Reportes
 sigue sin iniciar. Deuda técnica pendiente: casts de `req.params` y modal de confirmación en
 `dispensacion.routes.ts` / `Dispensacion.tsx` (Jorge).
-  a `main` — ninguno de los dos se hizo, quedan para decisión del equipo.
+
+### 2026-07-19 — Verificación integral de los tres módulos + merge final de `feature/dispensacion`
+
+Jorge subió el commit `323bbe7` a `feature/dispensacion` corrigiendo los 3 pendientes que había
+dejado la auditoría de Catálogos: cast de `req.params`, modal de confirmación en `Dispensacion.tsx`,
+e import `Plus` sin usar. Antes de mergear se hizo una verificación integral de los tres módulos
+funcionando juntos (no solo lint/compilación):
+
+- Rebase de `feature/dispensacion` sobre `main` actualizado (con Catálogos ya mergeado): limpio,
+  sin conflictos.
+- `docker compose down -v && up --build`: los 3 contenedores arrancan sanos, sin errores en logs.
+- `tsc --noEmit` (backend) y `tsc -b` (frontend): **cero errores** — confirma que el commit de
+  Jorge corrigió los 2 errores preexistentes detectados en la auditoría de Catálogos.
+- Flujo funcional end-to-end con curl real (login + JWT) cubriendo los tres módulos integrados:
+  catálogos (crear medicamento → detección de duplicados real porque ya existía en el seed, código
+  de barras, búsqueda), inventario (entrada con 2 lotes, semáforos ROJO/VERDE, alertas de
+  `porVencer`), dispensación (beneficiario, FIFO exacto entre 2 lotes, lote agotado, historial,
+  rechazo por stock insuficiente).
+- **Concurrencia (crítico):** dos dispensaciones simultáneas de 15 unidades con solo 20 en stock —
+  una tuvo éxito (stock 20→5), la otra fue rechazada con 409 mostrando el stock ya actualizado
+  (5 disponibles). Sin doble gasto. Confirma que el `SELECT ... FOR UPDATE` + transacción
+  `Serializable` de Jorge funciona correctamente bajo carrera real, no solo en teoría.
+- Permisos por rol: usuario `ENCARGADO_BENEFICENCIA` bloqueado (403) en crear medicamento y dar de
+  baja un lote; permitido (201) en dispensar y registrar entradas.
+- Auditoría: los conteos de `LOGIN`/`CREAR`/`DISPENSAR` en `GET /api/auditoria` coinciden
+  exactamente con las acciones ejecutadas durante la prueba.
+
+**Veredicto:** sistema listo. `git merge --no-ff feature/dispensacion` a `main`, sin conflictos.
+Push a `origin/main` con autorización del usuario.
+
+**Estado de `main` tras este merge:** los tres módulos (Inventario, Dispensación, Catálogos) más
+Admin/Usuarios están integrados, compilan limpio y fueron verificados funcionando juntos en runtime,
+incluyendo el caso crítico de concurrencia. No queda deuda técnica conocida. Pendiente: verificación
+visual en navegador (nadie ha tenido herramienta de browser automation todavía) y el módulo de
+Reportes, que no ha iniciado.
