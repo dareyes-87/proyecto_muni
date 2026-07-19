@@ -21,6 +21,7 @@ import {
 } from '../api/reportes';
 import { listarCategorias, listarProveedores, buscarMedicamentos } from '../api/catalogos';
 import Semaforo from '../components/ui/Semaforo';
+import { formatFecha, formatFechaHora } from '../utils/formatDate';
 import type { CategoriaRef, Proveedor } from '../types';
 
 const inputClass =
@@ -35,8 +36,8 @@ const TIPOS: { value: TipoReporte; label: string }[] = [
   { value: 'baja', label: 'Dados de baja' },
 ];
 
-const fmt = (iso: string) => new Date(iso).toLocaleDateString('es-GT');
-const fmtDT = (iso: string) => new Date(iso).toLocaleString('es-GT');
+const fmt = formatFecha;
+const fmtDT = formatFechaHora;
 const quetzales = (n: number) => `Q${n.toFixed(2)}`;
 
 const filtrosVacios = {

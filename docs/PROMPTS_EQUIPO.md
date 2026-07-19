@@ -1,4 +1,4 @@
-# Prompts Iniciales para el Equipo FarmaRH
+# Prompts Iniciales para el Equipo FarmaG
 
 Cada compañero debe copiar su prompt completo y pegarlo como primer mensaje en un nuevo chat de Claude. Esto le da a Claude todo el contexto necesario para trabajar en su módulo.
 
@@ -9,7 +9,7 @@ Cada compañero debe copiar su prompt completo y pegarlo como primer mensaje en 
 > Copia todo lo que está dentro del bloque de abajo y pégalo en un nuevo chat de Claude:
 
 ```
-Actúa como ingeniero de software senior. Soy Jorge Vargas, parte de un equipo de 3 personas (Daniel Reyes, Audias Guevara y yo) desarrollando el sistema FarmaRH para la Farmacia Municipal de Gualán, Zacapa, Guatemala.
+Actúa como ingeniero de software senior. Soy Jorge Vargas, parte de un equipo de 3 personas (Daniel Reyes, Audias Guevara y yo) desarrollando el sistema FarmaG para la Farmacia Municipal de Gualán, Zacapa, Guatemala.
 
 El sistema gestiona el inventario y la dispensación gratuita de medicamentos (beneficencia). Corre en Docker Compose con 3 contenedores (PostgreSQL 16, Express API con Prisma ORM, React con Vite + Tailwind). Todo en red local LAN, sin servicios en la nube.
 
@@ -76,7 +76,7 @@ CONVENCIONES:
 - Toda modificación de datos debe llamar registrarAuditoria() del middleware/audit.ts
 - El API client ya está en frontend/src/api/client.ts con JWT interceptor
 
-IMPORTANTE: Antes de empezar a codear, lee el archivo CLAUDE.md en la raíz del proyecto y el archivo docs/FarmaRH_Especificacion_Tecnica_v1.md para el contexto completo. Después de cada sesión de trabajo, actualiza mi sección en CLAUDE.md con lo que completé.
+IMPORTANTE: Antes de empezar a codear, lee el archivo CLAUDE.md en la raíz del proyecto y el archivo docs/FarmaG_Especificacion_Tecnica_v1.md para el contexto completo. Después de cada sesión de trabajo, actualiza mi sección en CLAUDE.md con lo que completé.
 
 Mi sistema operativo es Windows. Debo tener instalado: Docker Desktop, Git, Node.js LTS, VS Code.
 
@@ -90,7 +90,7 @@ Empecemos. Primero guíame para clonar el repo y verificar que Docker levanta co
 > Copia todo lo que está dentro del bloque de abajo y pégalo en un nuevo chat de Claude:
 
 ```
-Actúa como ingeniero de software senior. Soy Audias Guevara, parte de un equipo de 3 personas (Daniel Reyes, Jorge Vargas y yo) desarrollando el sistema FarmaRH para la Farmacia Municipal de Gualán, Zacapa, Guatemala.
+Actúa como ingeniero de software senior. Soy Audias Guevara, parte de un equipo de 3 personas (Daniel Reyes, Jorge Vargas y yo) desarrollando el sistema FarmaG para la Farmacia Municipal de Gualán, Zacapa, Guatemala.
 
 El sistema gestiona el inventario y la dispensación gratuita de medicamentos (beneficencia). Corre en Docker Compose con 3 contenedores (PostgreSQL 16, Express API con Prisma ORM, React con Vite + Tailwind). Todo en red local LAN, sin servicios en la nube.
 
@@ -162,7 +162,7 @@ CONVENCIONES:
 - El API client ya está en frontend/src/api/client.ts con JWT interceptor
 - Solo ADMIN puede crear/editar catálogos. ENCARGADO_BENEFICENCIA solo puede consultar (GET)
 
-IMPORTANTE: Antes de empezar a codear, lee el archivo CLAUDE.md en la raíz del proyecto y el archivo docs/FarmaRH_Especificacion_Tecnica_v1.md para el contexto completo. Después de cada sesión de trabajo, actualiza mi sección en CLAUDE.md con lo que completé.
+IMPORTANTE: Antes de empezar a codear, lee el archivo CLAUDE.md en la raíz del proyecto y el archivo docs/FarmaG_Especificacion_Tecnica_v1.md para el contexto completo. Después de cada sesión de trabajo, actualiza mi sección en CLAUDE.md con lo que completé.
 
 Mi sistema operativo es Windows. Debo tener instalado: Docker Desktop, Git, Node.js LTS, VS Code.
 

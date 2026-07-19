@@ -14,7 +14,7 @@ const ANCHO_MAX = 40;
 
 export async function generarExcel(opts: ExcelTablaOptions): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = 'FarmaRH';
+  workbook.creator = 'FarmaG';
   workbook.created = new Date();
 
   const sheet = workbook.addWorksheet(opts.hoja.slice(0, 31));

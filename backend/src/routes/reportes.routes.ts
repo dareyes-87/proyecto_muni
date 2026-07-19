@@ -13,6 +13,7 @@ import {
 } from '../services/reportes.service';
 import { generarPdfTabla, type Alineacion } from '../utils/pdf';
 import { generarExcel } from '../utils/excel';
+import { formatFecha, formatFechaHora } from '../utils/formatDate';
 
 const router = Router();
 
@@ -159,6 +160,8 @@ interface TablaExport {
   titulo: string;
   columnasPdf: string[];
   alineacionesPdf: Alineacion[];
+  /** Ancho relativo de cada columna del PDF (ver Alineacion en utils/pdf.ts). */
+  anchosRelativosPdf: number[];
   filasPdf: (string | number)[][];
   columnasExcel: { header: string; key: string; width?: number }[];
   filasExcel: Record<string, unknown>[];
@@ -179,7 +182,7 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
       });
       const filas = data.flatMap((d) =>
         d.medicamentos.map((m) => ({
-          fecha: new Date(d.createdAt).toLocaleString('es-GT'),
+          fecha: formatFechaHora(d.createdAt),
           beneficiario: d.beneficiario.nombreCompleto,
           dpi: d.beneficiario.dpi ?? '',
           medicamento: m.nombreGenerico,
@@ -193,6 +196,7 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
         titulo: 'Reporte de Dispensaciones',
         columnasPdf: ['Fecha', 'Beneficiario', 'DPI', 'Medicamento', 'Present.', 'Cant.', 'Cód. barras', 'Usuario'],
         alineacionesPdf: ['left', 'left', 'left', 'left', 'left', 'right', 'left', 'left'],
+        anchosRelativosPdf: [1.3, 1.6, 1.1, 1.5, 0.8, 0.6, 1.1, 1.8],
         filasPdf: filas.map((f) => [f.fecha, f.beneficiario, f.dpi, f.medicamento, f.presentacion, f.cantidad, f.codigoBarras, f.usuario]),
         columnasExcel: [
           { header: 'Fecha', key: 'fecha', width: 20 },
@@ -220,6 +224,7 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
         titulo: 'Reporte de Consumo por Medicamento',
         columnasPdf: ['Medicamento', 'Presentación', 'Categoría', 'Cant. total dispensada', 'N.º dispensaciones'],
         alineacionesPdf: ['left', 'left', 'left', 'right', 'right'],
+        anchosRelativosPdf: [1.6, 1.0, 1.2, 1.1, 1.1],
         filasPdf: data.map((d) => [d.nombreGenerico, d.presentacion, d.categoria, d.cantidadTotalDispensada, d.numeroDispensaciones]),
         columnasExcel: [
           { header: 'Medicamento', key: 'nombreGenerico', width: 25 },
@@ -247,7 +252,7 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
         numeroLote: l.numeroLote,
         codigoBarras: l.codigoBarras ?? '',
         cantidadActual: l.cantidadActual,
-        fechaVencimiento: new Date(l.fechaVencimiento).toLocaleDateString('es-GT'),
+        fechaVencimiento: formatFecha(l.fechaVencimiento),
         semaforo: l.semaforo,
         ubicacion: l.ubicacion?.codigo ?? '',
         origen: l.origen,
@@ -257,6 +262,7 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
         titulo: 'Reporte de Inventario Actual',
         columnasPdf: ['Medicamento', 'Lote', 'Cód. barras', 'Cant.', 'Vence', 'Semáforo', 'Ubicación', 'Proveedor'],
         alineacionesPdf: ['left', 'left', 'left', 'right', 'left', 'left', 'left', 'left'],
+        anchosRelativosPdf: [1.6, 0.9, 1.1, 0.6, 0.9, 0.8, 0.7, 1.6],
         filasPdf: filas.map((f) => [f.medicamento, f.numeroLote, f.codigoBarras, f.cantidadActual, f.fechaVencimiento, f.semaforo, f.ubicacion, f.proveedor]),
         columnasExcel: [
           { header: 'Medicamento', key: 'medicamento', width: 25 },
@@ -288,7 +294,7 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
         numeroLote: l.numeroLote,
         codigoBarras: l.codigoBarras ?? '',
         cantidadActual: l.cantidadActual,
-        fechaVencimiento: new Date(l.fechaVencimiento).toLocaleDateString('es-GT'),
+        fechaVencimiento: formatFecha(l.fechaVencimiento),
         diasParaVencer: l.diasParaVencer,
         semaforo: l.semaforo,
         ubicacion: l.ubicacion?.codigo ?? '',
@@ -297,6 +303,7 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
         titulo: 'Reporte de Medicamentos por Vencer',
         columnasPdf: ['Medicamento', 'Lote', 'Cód. barras', 'Cant.', 'Vence', 'Días', 'Semáforo', 'Ubicación'],
         alineacionesPdf: ['left', 'left', 'left', 'right', 'left', 'right', 'left', 'left'],
+        anchosRelativosPdf: [1.8, 0.9, 1.1, 0.6, 0.9, 0.6, 0.8, 0.7],
         filasPdf: filas.map((f) => [f.medicamento, f.numeroLote, f.codigoBarras, f.cantidadActual, f.fechaVencimiento, f.diasParaVencer, f.semaforo, f.ubicacion]),
         columnasExcel: [
           { header: 'Medicamento', key: 'medicamento', width: 25 },
@@ -324,7 +331,7 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
         limit: LIMITE_EXPORT,
       });
       const filas = data.map((e) => ({
-        fecha: new Date(e.createdAt).toLocaleString('es-GT'),
+        fecha: formatFechaHora(e.createdAt),
         proveedor: e.proveedor,
         origen: e.origen,
         usuario: e.usuario,
@@ -336,6 +343,7 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
         titulo: 'Reporte de Entradas por Proveedor',
         columnasPdf: ['Fecha', 'Proveedor', 'Origen', 'Usuario', 'N.º lotes', 'Unidades', 'Costo total'],
         alineacionesPdf: ['left', 'left', 'left', 'left', 'right', 'right', 'right'],
+        anchosRelativosPdf: [1.3, 1.8, 1.3, 1.8, 0.7, 0.8, 0.9],
         filasPdf: filas.map((f) => [f.fecha, f.proveedor, f.origen, f.usuario, f.totalLotes, f.totalUnidades, f.costoTotal.toFixed(2)]),
         columnasExcel: [
           { header: 'Fecha', key: 'fecha', width: 20 },
@@ -363,7 +371,7 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
         categoria: l.medicamento.categoria ?? '',
         numeroLote: l.numeroLote,
         estado: l.estado,
-        fechaVencimiento: new Date(l.fechaVencimiento).toLocaleDateString('es-GT'),
+        fechaVencimiento: formatFecha(l.fechaVencimiento),
         cantidadPerdida: l.cantidadPerdida,
         costoEstimado: l.costoEstimado !== null ? l.costoEstimado.toFixed(2) : '',
         proveedor: l.proveedor,
@@ -372,6 +380,7 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
         titulo: 'Reporte de Medicamentos Dados de Baja',
         columnasPdf: ['Medicamento', 'Lote', 'Estado', 'Vencimiento', 'Cant. perdida', 'Costo est.', 'Proveedor'],
         alineacionesPdf: ['left', 'left', 'left', 'left', 'right', 'right', 'left'],
+        anchosRelativosPdf: [1.7, 0.9, 1.0, 0.9, 0.9, 0.9, 1.7],
         filasPdf: filas.map((f) => [f.medicamento, f.numeroLote, f.estado, f.fechaVencimiento, f.cantidadPerdida, f.costoEstimado, f.proveedor]),
         columnasExcel: [
           { header: 'Medicamento', key: 'medicamento', width: 25 },
@@ -426,6 +435,7 @@ router.get(
           filtrosTexto,
           columnas: tabla.columnasPdf,
           alineaciones: tabla.alineacionesPdf,
+          anchosRelativos: tabla.anchosRelativosPdf,
           filas: tabla.filasPdf,
         });
         contentType = 'application/pdf';

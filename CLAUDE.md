@@ -22,7 +22,7 @@ docker compose logs -f api     # Logs de un servicio (db | api | web)
 - Credenciales seed: `admin` / `admin2026`
 - `backend/src` y `frontend/src` están montados como volúmenes → hot reload sin reconstruir.
 
-**Backend (dentro del contenedor `farmarh_api`, o local en `backend/`):**
+**Backend (dentro del contenedor `farmag_api`, o local en `backend/`):**
 ```bash
 docker compose exec api sh                 # Shell dentro del contenedor api
 npx prisma studio                          # GUI de la base de datos (puerto 5555)
@@ -56,7 +56,7 @@ así que el frontend nunca usa una URL absoluta de API. El servicio `web` es mul
 
 **Flujo de autenticación (atraviesa varios archivos):**
 - `POST /api/auth/login` valida con bcrypt y firma un JWT con `{ userId, username, rol }`.
-- El frontend guarda el token en `localStorage['farmarh_token']`; `frontend/src/api/client.ts` lo
+- El frontend guarda el token en `localStorage['farmag_token']`; `frontend/src/api/client.ts` lo
   inyecta en cada request y, ante un `401`, limpia el storage y redirige a `/login`.
 - `backend/src/middleware/auth.ts` expone `authMiddleware` (verifica el JWT, rellena `req.user`) y
   `requireRole(...roles)`. Roles: `ADMIN`, `ENCARGADO_BENEFICENCIA`.
@@ -84,11 +84,14 @@ implementados. Catálogos tiene GETs de lectura reales (Daniel) y el CRUD está 
 
 ## Proyecto
 
-**FarmaRH** — Sistema de gestión de inventario y dispensación gratuita de medicamentos para la Farmacia Municipal de Gualán, Zacapa, Guatemala.
+**FarmaG** — Sistema de gestión de inventario y dispensación gratuita de medicamentos para la Farmacia Municipal de Gualán, Zacapa, Guatemala.
+
+*(Antes se llamaba "FarmaRH"; renombrado a "FarmaG" el 2026-07-20 — ver sesión correspondiente en el
+Historial. El repositorio de GitHub sigue llamándose `proyecto_muni`, eso no cambió.)*
 
 **Repositorio:** https://github.com/dareyes-87/proyecto_muni.git
 
-**Especificación completa:** Ver `docs/FarmaRH_Especificacion_Tecnica_v1.md`
+**Especificación completa:** Ver `docs/FarmaG_Especificacion_Tecnica_v1.md`
 
 ---
 
@@ -645,7 +648,7 @@ azul claro `#88C8E4`, dorado `#FFE000`.
   600 y 900 — se calculó con un script de Python (`colorsys`) para que el resto de la escala fuera
   perceptualmente consistente en vez de inventada a ojo. Se agregó una paleta nueva `dorado`
   (50-900) anclada en `#FFE000` = `dorado-500`, para acentos únicamente.
-- Acentos dorados aplicados solo donde el usuario pidió explícitamente: el wordmark "FarmaRH" del
+- Acentos dorados aplicados solo donde el usuario pidió explícitamente: el wordmark "FarmaG" del
   sidebar (`text-dorado-400`), el badge de rol bajo el nombre de usuario (antes texto plano, ahora
   una píldora con fondo/anillo dorado), y un anillo + color de ícono dorado en el `Pill` del login.
   **No** se tocaron botones de acción primaria, bloques de texto largo, ni los colores del

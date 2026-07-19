@@ -2,7 +2,7 @@
 
 ## 1.1 Descripción General del Sistema
 
-El presente proyecto consiste en el desarrollo de un sistema web denominado FarmaRH, destinado a digitalizar y optimizar la gestión de la Farmacia Municipal de Gualán, Zacapa. La farmacia opera actualmente de forma manual, sin herramientas digitales para el control de inventario, lo que genera pérdidas de información, dificultad para auditar existencias y falta de trazabilidad en las dispensaciones.
+El presente proyecto consiste en el desarrollo de un sistema web denominado FarmaG, destinado a digitalizar y optimizar la gestión de la Farmacia Municipal de Gualán, Zacapa. La farmacia opera actualmente de forma manual, sin herramientas digitales para el control de inventario, lo que genera pérdidas de información, dificultad para auditar existencias y falta de trazabilidad en las dispensaciones.
 
 El sistema cubrirá dos modalidades de operación claramente diferenciadas que coexisten dentro de la misma farmacia:
 
@@ -160,7 +160,7 @@ Administrativo</th>
 
 ### 2.1 Entidades del Sistema y su Descripción
 
-A partir del análisis de requerimientos y las definiciones acordadas con el equipo, se identificaron las siguientes entidades principales que formarán parte del modelo de datos del sistema FarmaRH. El modelo ha sido diseñado siguiendo las tres formas normales (3FN) para garantizar integridad y evitar redundancia.
+A partir del análisis de requerimientos y las definiciones acordadas con el equipo, se identificaron las siguientes entidades principales que formarán parte del modelo de datos del sistema FarmaG. El modelo ha sido diseñado siguiendo las tres formas normales (3FN) para garantizar integridad y evitar redundancia.
 
 <table>
   <thead>
@@ -268,7 +268,7 @@ A partir del análisis de requerimientos y las definiciones acordadas con el equ
 
 ## 3.1 Flujo de Venta con Tickets
 
-El proceso de venta de medicamentos en la Farmacia Municipal de Gualán involucra una interacción entre la farmacia y la ventanilla de cobro de la municipalidad. El sistema FarmaRH gestiona únicamente el lado de la farmacia. A continuación se describe el flujo completo:
+El proceso de venta de medicamentos en la Farmacia Municipal de Gualán involucra una interacción entre la farmacia y la ventanilla de cobro de la municipalidad. El sistema FarmaG gestiona únicamente el lado de la farmacia. A continuación se describe el flujo completo:
 
 **Paso 1: Registro del pedido**
 

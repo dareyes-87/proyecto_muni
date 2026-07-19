@@ -9,7 +9,7 @@ const api = axios.create({
 
 // Interceptor: agregar token JWT a cada petición
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('farmarh_token');
+  const token = localStorage.getItem('farmag_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -21,8 +21,8 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('farmarh_token');
-      localStorage.removeItem('farmarh_usuario');
+      localStorage.removeItem('farmag_token');
+      localStorage.removeItem('farmag_usuario');
       window.location.href = '/login';
     }
     return Promise.reject(error);

@@ -9,6 +9,7 @@ import {
 import { ChevronDown, ChevronRight, Shield } from 'lucide-react';
 import { listarAuditoria } from '../api/auditoria';
 import { listarUsuarios } from '../api/usuarios';
+import { formatFechaHora } from '../utils/formatDate';
 import type { LogAuditoria, Usuario, AccionAuditoria } from '../types';
 
 const inputClass =
@@ -132,7 +133,7 @@ export default function Auditoria() {
         header: 'Fecha',
         cell: (info) => (
           <span className="whitespace-nowrap text-gray-600">
-            {new Date(info.getValue()).toLocaleString('es-GT')}
+            {formatFechaHora(info.getValue())}
           </span>
         ),
       }),

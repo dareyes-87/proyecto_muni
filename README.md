@@ -1,4 +1,4 @@
-# FarmaRH — Sistema de Farmacia Municipal
+# FarmaG — Sistema de Farmacia Municipal
 
 Sistema web para la gestión de inventario y dispensación gratuita de medicamentos de la Farmacia Municipal de Gualán, Zacapa, Guatemala.
 
@@ -44,5 +44,5 @@ docker compose up --build
 
 ## Documentación
 
-- `docs/FarmaRH_Especificacion_Tecnica_v1.md` — Especificación técnica completa
+- `docs/FarmaG_Especificacion_Tecnica_v1.md` — Especificación técnica completa
 - `CLAUDE.md` — Contexto del proyecto y estado de tareas por integrante

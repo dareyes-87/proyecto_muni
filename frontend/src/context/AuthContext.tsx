@@ -26,8 +26,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedToken = localStorage.getItem('farmarh_token');
-    const savedUser = localStorage.getItem('farmarh_usuario');
+    const savedToken = localStorage.getItem('farmag_token');
+    const savedUser = localStorage.getItem('farmag_usuario');
 
     if (savedToken && savedUser) {
       setToken(savedToken);
@@ -40,16 +40,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const response = await api.post('/auth/login', { username, password });
     const { token: newToken, usuario: newUsuario } = response.data;
 
-    localStorage.setItem('farmarh_token', newToken);
-    localStorage.setItem('farmarh_usuario', JSON.stringify(newUsuario));
+    localStorage.setItem('farmag_token', newToken);
+    localStorage.setItem('farmag_usuario', JSON.stringify(newUsuario));
 
     setToken(newToken);
     setUsuario(newUsuario);
   };
 
   const logout = () => {
-    localStorage.removeItem('farmarh_token');
-    localStorage.removeItem('farmarh_usuario');
+    localStorage.removeItem('farmag_token');
+    localStorage.removeItem('farmag_usuario');
     setToken(null);
     setUsuario(null);
   };

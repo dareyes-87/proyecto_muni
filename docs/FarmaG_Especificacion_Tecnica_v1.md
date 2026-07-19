@@ -1,4 +1,4 @@
-# FarmaRH — Especificación Técnica Consolidada v1.0
+# FarmaG — Especificación Técnica Consolidada v1.0
 
 **Proyecto:** Sistema de Gestión de Farmacia Municipal — Beneficencia
 **Cliente:** Municipalidad de Gualán, Zacapa, Guatemala

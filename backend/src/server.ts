@@ -42,7 +42,7 @@ app.use(errorHandler);
 
 // Iniciar servidor
 app.listen(config.port, () => {
-  console.log(`\n🏥 FarmaRH API corriendo en puerto ${config.port}`);
+  console.log(`\n🏥 FarmaG API corriendo en puerto ${config.port}`);
   console.log(`📍 Entorno: ${config.nodeEnv}`);
   console.log(`🔗 http://localhost:${config.port}/api/health\n`);
 

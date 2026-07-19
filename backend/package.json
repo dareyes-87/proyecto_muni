@@ -1,7 +1,7 @@
 {
-  "name": "farmarh-api",
+  "name": "farmag-api",
   "version": "1.0.0",
-  "description": "API del Sistema FarmaRH - Farmacia Municipal de Gualán",
+  "description": "API del Sistema FarmaG - Farmacia Municipal de Gualán",
   "main": "src/server.ts",
   "scripts": {
     "dev": "npx prisma migrate deploy && npx prisma db seed && tsx watch src/server.ts",

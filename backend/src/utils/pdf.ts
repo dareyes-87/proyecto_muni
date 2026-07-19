@@ -1,6 +1,7 @@
 import PDFDocument from 'pdfkit';
 import fs from 'fs';
 import path from 'path';
+import { formatFechaHora } from './formatDate';
 
 export type Alineacion = 'left' | 'right' | 'center';
 
@@ -12,6 +13,12 @@ export interface PdfTablaOptions {
   filas: (string | number)[][];
   /** Una por columna; por defecto 'left'. Usar 'right' para columnas numéricas. */
   alineaciones?: Alineacion[];
+  /**
+   * Ancho relativo de cada columna (proporciones, no puntos absolutos — p. ej.
+   * [1.3, 1.8, 0.6] reparte el ancho de página en esa proporción). Por defecto
+   * todas las columnas se reparten el ancho en partes iguales.
+   */
+  anchosRelativos?: number[];
 }
 
 // Azul muy oscuro de la Municipalidad de Gualán (= primary-900 en tailwind.config.js).
@@ -46,8 +53,18 @@ export function generarPdfTabla(opts: PdfTablaOptions): Promise<Buffer> {
     const startX = doc.page.margins.left;
     const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
     const alineaciones = opts.alineaciones ?? opts.columnas.map(() => 'left' as Alineacion);
-    const colWidth = pageWidth / Math.max(1, opts.columnas.length);
     const logoPath = rutaLogoSiExiste();
+
+    // Ancho de cada columna en puntos, a partir de las proporciones relativas
+    // (o partes iguales si no se especifican), más el offset x acumulado de cada una.
+    const pesos = opts.anchosRelativos ?? opts.columnas.map(() => 1);
+    const sumaPesos = pesos.reduce((s, p) => s + p, 0) || 1;
+    const colWidths = pesos.map((p) => (p / sumaPesos) * pageWidth);
+    const colX: number[] = [];
+    colWidths.reduce((acc, w, i) => {
+      colX[i] = acc;
+      return acc + w;
+    }, startX);
 
     // ============================================
     // ENCABEZADO (logo a la izquierda + nombre/título a la derecha del logo)
@@ -92,7 +109,7 @@ export function generarPdfTabla(opts: PdfTablaOptions): Promise<Buffer> {
         .font('Helvetica')
         .fontSize(8)
         .fillColor(COLOR_TEXTO_SECUNDARIO)
-        .text(`Generado: ${new Date().toLocaleString('es-GT')}`, startX + 8, y + 6, { width: pageWidth - 16 })
+        .text(`Generado: ${formatFechaHora(new Date())}`, startX + 8, y + 6, { width: pageWidth - 16 })
         .text(`Filtros aplicados: ${opts.filtrosTexto || 'ninguno'}`, startX + 8, y + 17, { width: pageWidth - 16 });
       y += alturaBanda + 10;
 
@@ -106,8 +123,8 @@ export function generarPdfTabla(opts: PdfTablaOptions): Promise<Buffer> {
       doc.rect(startX, y, pageWidth, ALTO_HEADER_TABLA).fill(COLOR_HEADER_TABLA_BG);
       doc.font('Helvetica-Bold').fontSize(8.5).fillColor(COLOR_HEADER_TABLA_TEXTO);
       opts.columnas.forEach((col, i) => {
-        doc.text(col, startX + i * colWidth + 5, y + 6, {
-          width: colWidth - 10,
+        doc.text(col, colX[i] + 5, y + 6, {
+          width: colWidths[i] - 10,
           height: 11,
           align: alineaciones[i] ?? 'left',
           ellipsis: true,
@@ -136,8 +153,8 @@ export function generarPdfTabla(opts: PdfTablaOptions): Promise<Buffer> {
       }
       doc.font('Helvetica').fontSize(8).fillColor('#1f2937');
       valores.forEach((valor, i) => {
-        doc.text(String(valor ?? ''), startX + i * colWidth + 5, y + 5, {
-          width: colWidth - 10,
+        doc.text(String(valor ?? ''), colX[i] + 5, y + 5, {
+          width: colWidths[i] - 10,
           height: 10,
           align: alineaciones[i] ?? 'left',
           ellipsis: true,
@@ -170,7 +187,7 @@ export function generarPdfTabla(opts: PdfTablaOptions): Promise<Buffer> {
         .font('Helvetica')
         .fontSize(7.5)
         .fillColor(COLOR_TEXTO_SECUNDARIO)
-        .text('Documento generado por el Sistema FarmaRH', startX, yPie, {
+        .text('Documento generado por el Sistema FarmaG', startX, yPie, {
           width: pageWidth / 2,
           height: 12,
           align: 'left',
