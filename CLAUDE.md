@@ -275,19 +275,42 @@ farma-rh/
 
 ---
 
-### Módulo Compartido — Reportes (después de que los 3 módulos funcionen)
+### Módulo Compartido — Reportes
 
-**Responsable:** Por asignar (equipo completo)
+**Responsable:** Daniel Reyes (implementado 2026-07-19)
 
-- [ ] Endpoint GET /api/reportes/dispensaciones
-- [ ] Endpoint GET /api/reportes/consumo-medicamentos
-- [ ] Endpoint GET /api/reportes/inventario-actual
-- [ ] Endpoint GET /api/reportes/por-vencer
-- [ ] Endpoint GET /api/reportes/entradas-proveedor
-- [ ] Endpoint GET /api/reportes/exportar/:tipo/:formato (PDF + Excel)
-- [ ] Página de Reportes con filtros
-- [ ] Exportación a PDF (librería: pdfkit o puppeteer)
-- [ ] Exportación a Excel (librería: exceljs)
+**Archivos principales:**
+- `backend/src/routes/reportes.routes.ts`
+- `backend/src/services/reportes.service.ts`
+- `backend/src/utils/pdf.ts`, `backend/src/utils/excel.ts`
+- `frontend/src/pages/Reportes.tsx`
+
+**Responsabilidades:**
+- [x] Endpoint GET /api/reportes/dispensaciones (filtros: fecha, beneficiario, medicamento)
+- [x] Endpoint GET /api/reportes/consumo-medicamentos (ranking, filtros: fecha, categoría)
+- [x] Endpoint GET /api/reportes/inventario-actual (a nivel de lote, filtros: categoría, origen, estado)
+- [x] Endpoint GET /api/reportes/por-vencer (filtro: umbral de días, default 90)
+- [x] Endpoint GET /api/reportes/entradas-proveedor (filtros: fecha, proveedor, origen)
+- [x] Endpoint GET /api/reportes/medicamentos-baja (lotes VENCIDO/DADO_DE_BAJA, con resumen de unidades y costo estimado perdidos)
+- [x] Endpoint GET /api/reportes/exportar/:tipo/:formato (PDF + Excel, solo ADMIN)
+- [x] Página de Reportes con selector de tipo, filtros dinámicos y tabla TanStack
+- [x] Exportación a PDF (pdfkit, con encabezado institucional desde `NOMBRE_FARMACIA`)
+- [x] Exportación a Excel (exceljs, headers + autofilter)
+- [x] Auditoría de cada exportación (`accion: 'CREAR'`, `entidad: 'reporte'`)
+
+**Estado actual:** Completo y verificado. `tsc` limpio en backend y frontend. Probados con curl los
+6 GET (incl. filtros reales) y las 6×2 combinaciones de exportación PDF/Excel — todas devuelven
+archivos válidos y no vacíos (verificado con `file`, `pdftotext` y lectura de `sharedStrings.xml`
+del xlsx). Confirmado 403 en `/exportar` para rol `ENCARGADO_BENEFICENCIA` (los 6 GET de solo
+lectura sí son accesibles para ambos roles, por diseño — solo exportar es ADMIN-only).
+
+**Notas de diseño:**
+- El reporte "Historial de beneficiario" de la spec 3.5 **no se implementó como endpoint nuevo**:
+  ya existe como `GET /api/dispensacion/beneficiarios/:id` (módulo de Jorge). No se duplicó.
+- `medicamentos-baja` filtra por rango de fechas sobre `fechaVencimiento`, no sobre una fecha de
+  "cuándo se dio de baja" — el modelo `Lote` no tiene ese campo (el motivo de baja solo queda en
+  el log de auditoría). Es la aproximación más razonable con el esquema actual.
+- Código de barras en reportes: texto/número plano, no imagen escaneable (decisión ya tomada).
 
 ---
 
@@ -312,7 +335,7 @@ El sistema soporta 4 usuarios simultáneos. Para evitar inconsistencias de inven
 
 ## Estado al reanudar
 
-> Última actualización: 2026-07-19 — merge de `feature/dispensacion` (correcciones finales) a `main`, tres módulos verificados end-to-end integrados
+> Última actualización: 2026-07-19 — módulo de Reportes completo. **Proyecto funcionalmente completo según la especificación técnica v1.**
 
 ### Lo que está en `main` y funciona HOY
 
@@ -321,24 +344,26 @@ El sistema soporta 4 usuarios simultáneos. Para evitar inconsistencias de inven
 | Inventario (Daniel) | `/inventario`, `/entradas` | ✅ Completo |
 | Dispensación (Jorge) | `/dispensacion`, `/beneficiarios` | ✅ Completo, verificado integrado con Catálogos e Inventario |
 | Admin / Usuarios (Daniel) | `/usuarios` (solo ADMIN) | ✅ Completo |
+| Auditoría | `/auditoria` (solo ADMIN) | ✅ Completo |
 | Dashboard | `/` | ✅ Con alertas reales |
 | Catálogos (Audias) | `/medicamentos`, `/categorias`, `/proveedores`, `/ubicaciones` | ✅ Completo, mergeado a `main` 2026-07-19 |
-| Reportes | *sin rutas activas* | ❌ No iniciado |
+| Reportes (Daniel) | `/reportes` (solo ADMIN) | ✅ Completo, 6 reportes + exportación PDF/Excel |
 
-**Tres módulos integrados y verificados en main.** Ver detalle completo de la verificación integral
-en Historial de Sesiones (2026-07-19).
+**Los 5 módulos de la especificación técnica v1 están implementados, integrados y verificados en
+`main`.** Ver detalle de cada verificación en Historial de Sesiones.
 
 ### Deuda técnica pendiente
 
-Ninguna conocida a la fecha. La deuda de casts de `req.params` y el modal de confirmación en
-`Dispensacion.tsx` (documentada en sesiones anteriores) se corrigió y verificó en el merge del
-2026-07-19.
+Ninguna conocida a la fecha.
 
 ### Pendiente para el equipo
 
-- Verificación visual en navegador (click-through) de las páginas de Catálogos y del flujo completo
-  de Dispensación — ninguna sesión hasta ahora ha tenido herramienta de browser automation.
-- Módulo de Reportes: no iniciado.
+- Verificación visual en navegador (click-through) de las páginas de Catálogos, Auditoría y
+  Reportes — ninguna sesión hasta ahora ha tenido herramienta de browser automation disponible.
+  Todo lo demás (backend, compilación, endpoints, exportación) está verificado con curl/tsc.
+- Fuera de fase 1 (no bloqueante, ver sección 5 de la especificación técnica): módulo de ventas con
+  tickets, devoluciones, alertas de tratamientos recurrentes, código de barras visual en PDFs,
+  super admin multi-tienda, integración con sistema de trámites municipal.
 
 ### Primer paso cuando se reanude la sesión
 
@@ -476,3 +501,64 @@ Admin/Usuarios están integrados, compilan limpio y fueron verificados funcionan
 incluyendo el caso crítico de concurrencia. No queda deuda técnica conocida. Pendiente: verificación
 visual en navegador (nadie ha tenido herramienta de browser automation todavía) y el módulo de
 Reportes, que no ha iniciado.
+
+### 2026-07-19 — Página de Auditoría (frontend)
+
+El backend de auditoría (`auditoria.routes.ts`, `GET /api/auditoria` con filtros y paginación) ya
+existía y funcionaba, pero **la página frontend nunca se había creado** — la ruta `/auditoria`
+estaba comentada en `App.tsx` y el link del sidebar (ya visible para ADMIN en `Layout.tsx`) llevaba
+a un destino roto.
+
+- Creado `frontend/src/pages/Auditoria.tsx`: tabla TanStack con filtros (usuario, acción, entidad,
+  rango de fechas), paginación, fila expandible con `datosAnteriores`/`datosNuevos` en JSON, badges
+  de color por acción.
+- Creado `frontend/src/api/auditoria.ts` y tipos `LogAuditoria`/`AccionAuditoria` en `types/index.ts`.
+- Ruta `/auditoria` descomentada en `App.tsx`, envuelta en `AdminRoute`.
+- Verificado: `tsc -b` limpio, Vite transforma el módulo sin error, endpoint probado con los
+  filtros reales que usa la página (por acción, por entidad, por rango de fechas, paginación), y
+  control de acceso (401 sin token, 403 para `ENCARGADO_BENEFICENCIA`).
+
+### 2026-07-19 — Módulo de Reportes (backend + frontend, completo)
+
+Último módulo pendiente de la especificación técnica v1. Implementado por Daniel Reyes (dueño del
+módulo de Reportes según CLAUDE.md).
+
+**Backend:**
+- `backend/src/services/reportes.service.ts`: las 6 consultas (dispensaciones, consumo por
+  medicamento vía `groupBy`, inventario actual a nivel de lote reutilizando
+  `getUmbrales`/`calcularSemaforo`/`diasParaVencer` de `inventario.service.ts`, por vencer con
+  umbral configurable, entradas por proveedor con totales calculados, medicamentos dados de baja
+  con resumen de unidades/costo perdido), todas paginadas.
+- `backend/src/utils/pdf.ts` (pdfkit, tabla simple con paginación automática) y
+  `backend/src/utils/excel.ts` (exceljs, headers + autofilter).
+- `backend/src/routes/reportes.routes.ts`: 6 GET (solo `authMiddleware`) + `GET
+  /exportar/:tipo/:formato` (`requireRole('ADMIN')`), con encabezado institucional leído de
+  `configuracion_sistema` (`NOMBRE_FARMACIA`) y `registrarAuditoria()` en cada exportación.
+- Dependencias `pdfkit` y `exceljs` agregadas a `backend/package.json` (sin `package-lock.json` en
+  este proyecto, nada más que actualizar).
+
+**Frontend:** `frontend/src/pages/Reportes.tsx` — selector de tipo (6 tabs), panel de filtros
+dinámico según el tipo seleccionado (incluye buscador con autocompletado para beneficiario y
+medicamento en el reporte de Dispensaciones, reutilizando `/dispensacion/beneficiarios/buscar` y
+`buscarMedicamentos`), tabla TanStack con columnas específicas por tipo, botones de exportación que
+descargan el archivo vía blob (necesario porque el JWT va en `Authorization` header, no en cookie,
+así que `window.open` no habría funcionado). Ruta `/reportes` activada en `App.tsx` dentro de
+`AdminRoute` (el link del sidebar ya existía).
+
+**Verificación:** `tsc --noEmit` (backend) y `tsc -b` (frontend) limpios. Los 6 GET probados con
+curl y filtros reales (incl. `dias` dinámico en por-vencer, filtro de `medicamentoId`, `origen`
+inválido → 400). Las 6 combinaciones de exportación × 2 formatos (12 en total) devuelven archivos
+no vacíos y válidos — confirmado con `file`, `pdftotext` (el PDF trae el encabezado "Farmacia
+Municipal de Gualán" + filtros aplicados + datos reales) y lectura de `sharedStrings.xml` dentro
+del `.xlsx`. 403 confirmado en `/exportar` para `ENCARGADO_BENEFICENCIA`; los 6 GET de solo lectura
+sí son accesibles para ambos roles (por diseño, solo exportar es ADMIN-only). Auditoría: 10
+exportaciones de prueba generaron exactamente 10 registros `CREAR`/`reporte`.
+
+**Nota:** el reporte "Historial de beneficiario" de la spec 3.5 no se implementó como endpoint
+nuevo porque ya existe (`GET /api/dispensacion/beneficiarios/:id`, módulo de Jorge).
+
+**Veredicto: proyecto funcionalmente completo según la especificación técnica v1.** Los 5 módulos
+(Inventario, Dispensación, Catálogos, Auditoría, Reportes) más Admin/Usuarios están en `main`,
+compilan limpio y fueron verificados end-to-end. Pendiente global: verificación visual en
+navegador de todas las páginas (ninguna sesión ha tenido herramienta de browser automation) y las
+funcionalidades explícitamente fuera de fase 1 según la spec (sección 5).
