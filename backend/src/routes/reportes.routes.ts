@@ -11,7 +11,7 @@ import {
   reporteMedicamentosBaja,
   obtenerNombreFarmacia,
 } from '../services/reportes.service';
-import { generarPdfTabla } from '../utils/pdf';
+import { generarPdfTabla, type Alineacion } from '../utils/pdf';
 import { generarExcel } from '../utils/excel';
 
 const router = Router();
@@ -158,6 +158,7 @@ const FORMATOS_VALIDOS = ['pdf', 'xlsx'] as const;
 interface TablaExport {
   titulo: string;
   columnasPdf: string[];
+  alineacionesPdf: Alineacion[];
   filasPdf: (string | number)[][];
   columnasExcel: { header: string; key: string; width?: number }[];
   filasExcel: Record<string, unknown>[];
@@ -191,6 +192,7 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
       return {
         titulo: 'Reporte de Dispensaciones',
         columnasPdf: ['Fecha', 'Beneficiario', 'DPI', 'Medicamento', 'Present.', 'Cant.', 'Cód. barras', 'Usuario'],
+        alineacionesPdf: ['left', 'left', 'left', 'left', 'left', 'right', 'left', 'left'],
         filasPdf: filas.map((f) => [f.fecha, f.beneficiario, f.dpi, f.medicamento, f.presentacion, f.cantidad, f.codigoBarras, f.usuario]),
         columnasExcel: [
           { header: 'Fecha', key: 'fecha', width: 20 },
@@ -217,6 +219,7 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
       return {
         titulo: 'Reporte de Consumo por Medicamento',
         columnasPdf: ['Medicamento', 'Presentación', 'Categoría', 'Cant. total dispensada', 'N.º dispensaciones'],
+        alineacionesPdf: ['left', 'left', 'left', 'right', 'right'],
         filasPdf: data.map((d) => [d.nombreGenerico, d.presentacion, d.categoria, d.cantidadTotalDispensada, d.numeroDispensaciones]),
         columnasExcel: [
           { header: 'Medicamento', key: 'nombreGenerico', width: 25 },
@@ -253,6 +256,7 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
       return {
         titulo: 'Reporte de Inventario Actual',
         columnasPdf: ['Medicamento', 'Lote', 'Cód. barras', 'Cant.', 'Vence', 'Semáforo', 'Ubicación', 'Proveedor'],
+        alineacionesPdf: ['left', 'left', 'left', 'right', 'left', 'left', 'left', 'left'],
         filasPdf: filas.map((f) => [f.medicamento, f.numeroLote, f.codigoBarras, f.cantidadActual, f.fechaVencimiento, f.semaforo, f.ubicacion, f.proveedor]),
         columnasExcel: [
           { header: 'Medicamento', key: 'medicamento', width: 25 },
@@ -292,6 +296,7 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
       return {
         titulo: 'Reporte de Medicamentos por Vencer',
         columnasPdf: ['Medicamento', 'Lote', 'Cód. barras', 'Cant.', 'Vence', 'Días', 'Semáforo', 'Ubicación'],
+        alineacionesPdf: ['left', 'left', 'left', 'right', 'left', 'right', 'left', 'left'],
         filasPdf: filas.map((f) => [f.medicamento, f.numeroLote, f.codigoBarras, f.cantidadActual, f.fechaVencimiento, f.diasParaVencer, f.semaforo, f.ubicacion]),
         columnasExcel: [
           { header: 'Medicamento', key: 'medicamento', width: 25 },
@@ -330,6 +335,7 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
       return {
         titulo: 'Reporte de Entradas por Proveedor',
         columnasPdf: ['Fecha', 'Proveedor', 'Origen', 'Usuario', 'N.º lotes', 'Unidades', 'Costo total'],
+        alineacionesPdf: ['left', 'left', 'left', 'left', 'right', 'right', 'right'],
         filasPdf: filas.map((f) => [f.fecha, f.proveedor, f.origen, f.usuario, f.totalLotes, f.totalUnidades, f.costoTotal.toFixed(2)]),
         columnasExcel: [
           { header: 'Fecha', key: 'fecha', width: 20 },
@@ -365,6 +371,7 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
       return {
         titulo: 'Reporte de Medicamentos Dados de Baja',
         columnasPdf: ['Medicamento', 'Lote', 'Estado', 'Vencimiento', 'Cant. perdida', 'Costo est.', 'Proveedor'],
+        alineacionesPdf: ['left', 'left', 'left', 'left', 'right', 'right', 'left'],
         filasPdf: filas.map((f) => [f.medicamento, f.numeroLote, f.estado, f.fechaVencimiento, f.cantidadPerdida, f.costoEstimado, f.proveedor]),
         columnasExcel: [
           { header: 'Medicamento', key: 'medicamento', width: 25 },
@@ -418,6 +425,7 @@ router.get(
           titulo: tabla.titulo,
           filtrosTexto,
           columnas: tabla.columnasPdf,
+          alineaciones: tabla.alineacionesPdf,
           filas: tabla.filasPdf,
         });
         contentType = 'application/pdf';

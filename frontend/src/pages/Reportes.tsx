@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
   useReactTable,
@@ -149,6 +149,7 @@ export default function Reportes() {
   const [tipo, setTipo] = useState<TipoReporte>('dispensaciones');
   const [filtros, setFiltros] = useState(filtrosVacios);
   const [filas, setFilas] = useState<any[]>([]);
+  const [filasTipo, setFilasTipo] = useState<TipoReporte>('dispensaciones');
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -158,6 +159,11 @@ export default function Reportes() {
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [exportando, setExportando] = useState<'pdf' | 'xlsx' | null>(null);
 
+  // Espejo síncrono de `tipo` legible dentro de `cargar` sin esperar a que el efecto
+  // corra: nos deja detectar, apenas resuelve una petición, si el tab ya cambió.
+  const tipoRef = useRef(tipo);
+  tipoRef.current = tipo;
+
   useEffect(() => {
     listarCategorias().catch(() => []).then((r) => setCategorias(r ?? []));
     listarProveedores().catch(() => []).then((r) => setProveedores(r ?? []));
@@ -166,6 +172,8 @@ export default function Reportes() {
   useEffect(() => {
     setFiltros(filtrosVacios);
     setPage(1);
+    setTotal(0);
+    setTotalPages(1);
   }, [tipo]);
 
   useEffect(() => {
@@ -173,87 +181,78 @@ export default function Reportes() {
   }, [filtros]);
 
   const cargar = useCallback(async () => {
+    // Cada tabs cambia la forma de las columnas (useMemo por `tipo`) de forma síncrona,
+    // pero la carga de datos es async. Si no se descarta la respuesta de un tipo que ya
+    // no es el actual (petición en vuelo cuando el usuario cambió de tab) o no se etiqueta
+    // `filas` con el tipo al que pertenecen, TanStack puede aplicar columnas de un tipo a
+    // filas con la forma de otro y tronar el render (pantalla en blanco).
+    const tipoSolicitado = tipo;
     setLoading(true);
     try {
       const base = { page, limit: 20 };
       const hasta = filtros.hasta ? `${filtros.hasta}T23:59:59.999` : undefined;
+      let resultado: { data: any[]; pagination: { totalPages: number; total: number } };
+      let resumenNuevo: { totalUnidadesPerdidas: number; costoTotalEstimado: number } | null = null;
 
-      switch (tipo) {
-        case 'dispensaciones': {
-          const res = await reporteDispensaciones({
+      switch (tipoSolicitado) {
+        case 'dispensaciones':
+          resultado = await reporteDispensaciones({
             ...base,
             desde: filtros.desde || undefined,
             hasta,
             beneficiarioId: filtros.beneficiarioId || undefined,
             medicamentoId: filtros.medicamentoId || undefined,
           });
-          setFilas(res.data);
-          setTotalPages(res.pagination.totalPages);
-          setTotal(res.pagination.total);
-          setResumen(null);
           break;
-        }
-        case 'consumo': {
-          const res = await reporteConsumoMedicamentos({
+        case 'consumo':
+          resultado = await reporteConsumoMedicamentos({
             ...base,
             desde: filtros.desde || undefined,
             hasta,
             categoriaId: filtros.categoriaId || undefined,
           });
-          setFilas(res.data);
-          setTotalPages(res.pagination.totalPages);
-          setTotal(res.pagination.total);
-          setResumen(null);
           break;
-        }
-        case 'inventario': {
-          const res = await reporteInventarioActual({
+        case 'inventario':
+          resultado = await reporteInventarioActual({
             ...base,
             categoriaId: filtros.categoriaId || undefined,
             origen: filtros.origen || undefined,
             estado: filtros.estado || undefined,
           });
-          setFilas(res.data);
-          setTotalPages(res.pagination.totalPages);
-          setTotal(res.pagination.total);
-          setResumen(null);
           break;
-        }
-        case 'por-vencer': {
-          const res = await reportePorVencer({ ...base, dias: filtros.dias || undefined });
-          setFilas(res.data);
-          setTotalPages(res.pagination.totalPages);
-          setTotal(res.pagination.total);
-          setResumen(null);
+        case 'por-vencer':
+          resultado = await reportePorVencer({ ...base, dias: filtros.dias || undefined });
           break;
-        }
-        case 'entradas': {
-          const res = await reporteEntradasProveedor({
+        case 'entradas':
+          resultado = await reporteEntradasProveedor({
             ...base,
             desde: filtros.desde || undefined,
             hasta,
             proveedorId: filtros.proveedorId || undefined,
             origen: filtros.origen || undefined,
           });
-          setFilas(res.data);
-          setTotalPages(res.pagination.totalPages);
-          setTotal(res.pagination.total);
-          setResumen(null);
           break;
-        }
         case 'baja': {
           const res = await reporteMedicamentosBaja({ ...base, desde: filtros.desde || undefined, hasta });
-          setFilas(res.data);
-          setTotalPages(res.pagination.totalPages);
-          setTotal(res.pagination.total);
-          setResumen(res.resumen);
+          resultado = res;
+          resumenNuevo = res.resumen;
           break;
         }
       }
+
+      // Si el usuario ya cambió de tab mientras esta petición estaba en vuelo, descartarla:
+      // aplicarla ahora pisaría datos más nuevos con una respuesta obsoleta.
+      if (tipoRef.current !== tipoSolicitado) return;
+
+      setFilas(resultado.data);
+      setFilasTipo(tipoSolicitado);
+      setTotalPages(resultado.pagination.totalPages);
+      setTotal(resultado.pagination.total);
+      setResumen(resumenNuevo);
     } catch {
-      toast.error('No se pudo cargar el reporte');
+      if (tipoRef.current === tipoSolicitado) toast.error('No se pudo cargar el reporte');
     } finally {
-      setLoading(false);
+      if (tipoRef.current === tipoSolicitado) setLoading(false);
     }
   }, [tipo, filtros, page]);
 
@@ -405,7 +404,12 @@ export default function Reportes() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tipo]);
 
-  const table = useReactTable({ data: filas, columns, getCoreRowModel: getCoreRowModel() });
+  // Mientras `filasTipo` no coincida con `tipo` (el tab cambió pero la respuesta para el
+  // tipo nuevo todavía no llegó), no se le pasan las filas viejas a la tabla: tienen una
+  // forma distinta a la que esperan las columnas ya recalculadas para el tipo nuevo.
+  const filasVisibles = filasTipo === tipo ? filas : [];
+  const cargando = loading || filasTipo !== tipo;
+  const table = useReactTable({ data: filasVisibles, columns, getCoreRowModel: getCoreRowModel() });
 
   return (
     <div>
@@ -607,13 +611,13 @@ export default function Reportes() {
             ))}
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {loading ? (
+            {cargando ? (
               <tr>
                 <td colSpan={columns.length} className="px-4 py-10 text-center text-gray-400">
                   Cargando...
                 </td>
               </tr>
-            ) : filas.length === 0 ? (
+            ) : filasVisibles.length === 0 ? (
               <tr>
                 <td colSpan={columns.length} className="px-4 py-10 text-center text-gray-400">
                   Sin resultados
