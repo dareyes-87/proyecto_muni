@@ -71,7 +71,8 @@ router.post('/beneficiarios', authMiddleware, async (req: Request, res: Response
 // GET /api/dispensacion/beneficiarios/:id
 router.get('/beneficiarios/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const beneficiario = await obtenerBeneficiario(req.params.id);
+    const { id } = req.params as { id: string };
+    const beneficiario = await obtenerBeneficiario(id);
     res.json(beneficiario);
   } catch (error: any) {
     const status = error.message?.includes('no encontrado') ? 404 : 500;
@@ -82,6 +83,7 @@ router.get('/beneficiarios/:id', authMiddleware, async (req: Request, res: Respo
 // PUT /api/dispensacion/beneficiarios/:id
 router.put('/beneficiarios/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
+    const { id } = req.params as { id: string };
     const { nombreCompleto, dpi, telefono, direccion, observaciones } = req.body;
 
     if (nombreCompleto !== undefined && nombreCompleto.trim().length < 3) {
@@ -94,8 +96,8 @@ router.put('/beneficiarios/:id', authMiddleware, async (req: Request, res: Respo
       return;
     }
 
-    const anterior = await obtenerBeneficiario(req.params.id);
-    const actualizado = await editarBeneficiario(req.params.id, {
+    const anterior = await obtenerBeneficiario(id);
+    const actualizado = await editarBeneficiario(id, {
       nombreCompleto: nombreCompleto?.trim(),
       dpi,
       telefono,
@@ -107,7 +109,7 @@ router.put('/beneficiarios/:id', authMiddleware, async (req: Request, res: Respo
       usuarioId: req.user!.userId,
       accion: 'EDITAR',
       entidad: 'Beneficiario',
-      entidadId: actualizado.id,
+      entidadId: id,
       datosAnteriores: anterior,
       datosNuevos: actualizado,
       ipAddress: req.ip,
@@ -194,7 +196,8 @@ router.get('/historial', authMiddleware, async (req: Request, res: Response) => 
 // GET /api/dispensacion/stock/:medicamentoId
 router.get('/stock/:medicamentoId', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const stock = await obtenerStockMedicamento(req.params.medicamentoId);
+    const { medicamentoId } = req.params as { medicamentoId: string };
+    const stock = await obtenerStockMedicamento(medicamentoId);
     res.json(stock);
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Error al obtener stock' });
@@ -204,7 +207,8 @@ router.get('/stock/:medicamentoId', authMiddleware, async (req: Request, res: Re
 // GET /api/dispensacion/:id
 router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const dispensacion = await obtenerDispensacion(req.params.id);
+    const { id } = req.params as { id: string };
+    const dispensacion = await obtenerDispensacion(id);
     res.json(dispensacion);
   } catch (error: any) {
     const status = error.message?.includes('no encontrada') ? 404 : 500;
