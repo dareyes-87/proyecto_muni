@@ -298,11 +298,14 @@ farma-rh/
 - [x] Exportación a Excel (exceljs, headers + autofilter)
 - [x] Auditoría de cada exportación (`accion: 'CREAR'`, `entidad: 'reporte'`)
 
-**Estado actual:** Completo y verificado. `tsc` limpio en backend y frontend. Probados con curl los
-6 GET (incl. filtros reales) y las 6×2 combinaciones de exportación PDF/Excel — todas devuelven
-archivos válidos y no vacíos (verificado con `file`, `pdftotext` y lectura de `sharedStrings.xml`
-del xlsx). Confirmado 403 en `/exportar` para rol `ENCARGADO_BENEFICENCIA` (los 6 GET de solo
-lectura sí son accesibles para ambos roles, por diseño — solo exportar es ADMIN-only).
+**Estado actual:** Completo y verificado, incluyendo un ciclo de corrección post-entrega (ver
+sesión 2026-07-19 "fix pantalla en blanco + rediseño PDF/Excel" en el Historial). `tsc` limpio en
+backend y frontend. Probados con curl los 6 GET (incl. filtros reales) y las 6×2 combinaciones de
+exportación PDF/Excel — todas devuelven archivos válidos y no vacíos (verificado con `file`,
+`pdftotext`, `pdfinfo` y lectura de `sharedStrings.xml` del xlsx). Confirmado 403 en `/exportar`
+para rol `ENCARGADO_BENEFICENCIA` (los 6 GET de solo lectura sí son accesibles para ambos roles,
+por diseño — solo exportar es ADMIN-only). Los 6 tabs del frontend verificados con Playwright
+headless (login real + clic en cada tab + estrés de clics rápidos), sin errores de consola.
 
 **Notas de diseño:**
 - El reporte "Historial de beneficiario" de la spec 3.5 **no se implementó como endpoint nuevo**:
@@ -311,6 +314,16 @@ lectura sí son accesibles para ambos roles, por diseño — solo exportar es AD
   "cuándo se dio de baja" — el modelo `Lote` no tiene ese campo (el motivo de baja solo queda en
   el log de auditoría). Es la aproximación más razonable con el esquema actual.
 - Código de barras en reportes: texto/número plano, no imagen escaneable (decisión ya tomada).
+- El PDF tiene identidad institucional: logo en `backend/src/assets/logo-municipalidad.png` (ya
+  commiteado), color `#1E3F88` (= `primary-900` en `tailwind.config.js`), header con fondo de
+  color, zebra striping, alineación por tipo de dato, y footer con "Página X de Y". Si el logo
+  llegara a faltar en el filesystem, `pdf.ts` genera el PDF igual sin romperse (fallback con
+  `fs.existsSync`) — no asumir que el archivo siempre está presente al tocar ese código.
+- **Cuidado con pdfkit:** el truncado de texto largo requiere `height` acotado en las opciones de
+  `.text()`, no `lineBreak: false` (no dispara el mecanismo de ellipsis). Y cualquier texto
+  posicionado en `y >= page.height - margins.bottom` (fuera del área de contenido) hace que pdfkit
+  inserte páginas en blanco silenciosamente — el footer de paginación tiene que ir *dentro* del
+  margen inferior, no debajo de él.
 
 ---
 
@@ -358,9 +371,10 @@ Ninguna conocida a la fecha.
 
 ### Pendiente para el equipo
 
-- Verificación visual en navegador (click-through) de las páginas de Catálogos, Auditoría y
-  Reportes — ninguna sesión hasta ahora ha tenido herramienta de browser automation disponible.
-  Todo lo demás (backend, compilación, endpoints, exportación) está verificado con curl/tsc.
+- Verificación visual en navegador (click-through) de las páginas de Catálogos y Auditoría —
+  siguen sin probarse en un browser real. **Reportes ya se probó con Playwright headless**
+  (instalado ad hoc en la sesión del 2026-07-19, no queda como dependencia del proyecto) — fue así
+  como se encontró el bug de pantalla en blanco que el curl/tsc no detectaban.
 - Fuera de fase 1 (no bloqueante, ver sección 5 de la especificación técnica): módulo de ventas con
   tickets, devoluciones, alertas de tratamientos recurrentes, código de barras visual en PDFs,
   super admin multi-tienda, integración con sistema de trámites municipal.
@@ -562,3 +576,59 @@ nuevo porque ya existe (`GET /api/dispensacion/beneficiarios/:id`, módulo de Jo
 compilan limpio y fueron verificados end-to-end. Pendiente global: verificación visual en
 navegador de todas las páginas (ninguna sesión ha tenido herramienta de browser automation) y las
 funcionalidades explícitamente fuera de fase 1 según la spec (sección 5).
+
+### 2026-07-19 — Fix de pantalla en blanco en Reportes + rediseño institucional de PDF/Excel
+
+El usuario reportó dos problemas después de la entrega del módulo de Reportes: 4 de los 6 tabs
+(Inventario actual, Por vencer, Entradas por proveedor, Dados de baja) ponían la pantalla en
+blanco al seleccionarlos, y el PDF exportado se veía como texto plano sin identidad visual.
+
+**Diagnóstico del bug (crítico):** el `curl`/`tsc` de la sesión anterior no lo detectaban porque no
+era un problema de contrato API — verifiqué los 4 endpoints de nuevo y las formas de respuesta
+coincidían exactamente con lo que el frontend esperaba. Para ver el error real instalé Playwright +
+Chromium headless ad hoc en el entorno (no quedó como dependencia del proyecto) y reproduje el
+crash con login real + clic en cada tab, capturando el stack trace: `Cannot read properties of
+undefined (reading 'nombreGenerico')` en el `accessorFn` de una columna. Causa raíz: condición de
+carrera de React — al cambiar `tipo`, las columnas de TanStack se recalculan de inmediato vía
+`useMemo`, pero `filas` (estado async) todavía tiene los datos del tab anterior en el primer
+render posterior al clic. Con columnas nuevas + filas viejas en el mismo render, TanStack accede a
+un campo que no existe en la forma antigua (p. ej. `r.medicamento` en una fila de dispensaciones,
+que tiene `medicamentos` en plural) y truena sin error boundary → pantalla en blanco.
+
+**Fix:** en `Reportes.tsx`, se agregó `filasTipo` (con qué tipo de reporte corresponden las filas
+actuales en estado) y un `tipoRef` que se actualiza de forma síncrona en cada render. La tabla solo
+usa `filas` cuando `filasTipo === tipo`; si no coinciden, muestra "Cargando..." en vez de intentar
+renderizar datos con la forma equivocada. Además, `cargar()` ahora descarta respuestas que llegan
+después de que el usuario ya cambió de tab (comparando contra `tipoRef.current`), evitando que una
+petición lenta pise datos más nuevos. Verificado con Playwright: los 6 tabs cargan sin error de
+consola, y el flujo sobrevive 3 rondas de clics rápidos entre los 6 tabs sin crashear.
+
+**Rediseño de PDF (`backend/src/utils/pdf.ts`):** logo desde `backend/src/assets/logo-municipalidad.png`
+con fallback defensivo (`fs.existsSync`, nunca lanza 500 si falta — se verificó explícitamente
+renombrando el archivo temporalmente y confirmando que el PDF se genera igual, sin logo). Color
+institucional `#1E3F88` (= `primary-900` de `tailwind.config.js`). Header de tabla con fondo de
+color y texto blanco en negrita, zebra striping, alineación derecha en columnas numéricas vía un
+nuevo campo `alineacionesPdf` por tipo de reporte en `reportes.routes.ts`, footer con "Página X de
+Y" usando `bufferPages: true` + `switchToPage`. En el camino se encontraron y corrigieron dos bugs
+de pdfkit no obvios, detectados generando un PDF sintético de 60 filas para forzar salto de página:
+1. El truncado de texto largo (`ellipsis: true`) no funciona con `lineBreak: false` — pdfkit
+   necesita un `height` acotado para activar el mecanismo de truncado; sin eso el texto se
+   desbordaba envolviendo a una segunda línea fuera de la fila.
+2. El footer se había posicionado en `page.height - margins.bottom + 10` (por debajo del margen
+   inferior). pdfkit interpreta cualquier texto ahí como contenido desbordado y agrega páginas en
+   blanco silenciosamente — un reporte de 60 filas generaba 9-12 páginas en vez de 3. Corregido
+   posicionando el footer dentro del área de contenido (`- 14` en vez de `+ 10`).
+   También se ajustó que en saltos de página solo se repita el encabezado de columnas (no el
+   logo/nombre/franja completos), evitando desperdiciar ~165pt por página.
+
+**Excel (`backend/src/utils/excel.ts`):** freeze pane en la fila de encabezado, ancho de columna
+calculado según el contenido real (no un valor fijo), mismo color institucional en el header.
+
+**Verificación final:** `tsc` limpio en backend y frontend. Los 12 combos de exportación (6 tipos ×
+2 formatos) regenerados y confirmados válidos. Convertí varios PDFs a imagen (`pdftoppm`) para
+inspección visual real, no solo "el archivo no está vacío" — confirmé logo, colores, zebra
+striping, alineación, truncado con ellipsis y paginación correcta en las 3 páginas de la prueba
+sintética. Reporté el diagnóstico y las capturas al usuario antes de hacer commit, como pidió.
+
+**Commit:** `5f721e2`, pusheado a `origin/main`, incluye el logo real que el usuario ya había
+colocado en `backend/src/assets/logo-municipalidad.png`.
