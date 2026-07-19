@@ -165,3 +165,27 @@ export interface Usuario {
   ultimoAcceso: string | null;
   createdAt: string;
 }
+
+export type AccionAuditoria =
+  | 'CREAR'
+  | 'EDITAR'
+  | 'ELIMINAR'
+  | 'DISPENSAR'
+  | 'BAJA'
+  | 'LOGIN'
+  | 'LOGOUT'
+  | 'ACTIVAR'
+  | 'DESACTIVAR';
+
+export interface LogAuditoria {
+  id: string;
+  usuarioId: string;
+  accion: AccionAuditoria;
+  entidad: string;
+  entidadId: string | null;
+  datosAnteriores: unknown;
+  datosNuevos: unknown;
+  ipAddress: string | null;
+  createdAt: string;
+  usuario: { username: string; nombreCompleto: string } | null;
+}

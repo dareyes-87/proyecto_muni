@@ -8,6 +8,7 @@ import Beneficiarios from './pages/Beneficiarios';
 import Inventario from './pages/Inventario';
 import Entradas from './pages/Entradas';
 import Usuarios from './pages/Usuarios';
+import Auditoria from './pages/Auditoria';
 import Medicamentos from './pages/Catalogos/Medicamentos';
 import Categorias from './pages/Catalogos/Categorias';
 import Proveedores from './pages/Catalogos/Proveedores';
@@ -73,7 +74,7 @@ export default function App() {
 
         {/* === MÓDULO ADMIN (Daniel) === */}
         <Route path="usuarios" element={<AdminRoute><Usuarios /></AdminRoute>} />
-        {/* <Route path="auditoria" element={<Auditoria />} /> */}
+        <Route path="auditoria" element={<AdminRoute><Auditoria /></AdminRoute>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
