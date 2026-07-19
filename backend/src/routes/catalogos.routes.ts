@@ -75,7 +75,7 @@ router.get('/medicamentos/buscar', authMiddleware, async (req: Request, res: Res
 // GET /api/catalogos/medicamentos/barcode/:codigo
 router.get('/medicamentos/barcode/:codigo', authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { codigo } = req.params;
+    const { codigo } = req.params as { codigo: string };
 
     const codigoBarras = await prisma.codigoBarras.findUnique({
       where: { codigo },
@@ -199,7 +199,7 @@ const CAMPOS_EDITABLES_MEDICAMENTO = [
 
 router.put('/medicamentos/:id', authMiddleware, requireRole('ADMIN'), async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as { id: string };
 
     const existente = await prisma.medicamento.findUnique({ where: { id } });
     if (!existente) {
@@ -262,7 +262,7 @@ router.put('/medicamentos/:id', authMiddleware, requireRole('ADMIN'), async (req
 // POST /api/catalogos/medicamentos/:id/codigos
 router.post('/medicamentos/:id/codigos', authMiddleware, requireRole('ADMIN'), async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as { id: string };
     const { codigo, descripcion } = req.body;
 
     if (!codigo || typeof codigo !== 'string' || !codigo.trim()) {
@@ -305,7 +305,7 @@ router.post('/medicamentos/:id/codigos', authMiddleware, requireRole('ADMIN'), a
 // DELETE /api/catalogos/codigos/:id
 router.delete('/codigos/:id', authMiddleware, requireRole('ADMIN'), async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as { id: string };
 
     const codigoBarras = await prisma.codigoBarras.findUnique({ where: { id } });
     if (!codigoBarras) {
@@ -388,7 +388,7 @@ router.post('/categorias', authMiddleware, requireRole('ADMIN'), async (req: Req
 // PUT /api/catalogos/categorias/:id
 router.put('/categorias/:id', authMiddleware, requireRole('ADMIN'), async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as { id: string };
 
     const existente = await prisma.categoria.findUnique({ where: { id } });
     if (!existente) {
@@ -482,7 +482,7 @@ router.post('/proveedores', authMiddleware, requireRole('ADMIN'), async (req: Re
 // PUT /api/catalogos/proveedores/:id (incluye activar/desactivar)
 router.put('/proveedores/:id', authMiddleware, requireRole('ADMIN'), async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as { id: string };
 
     const existente = await prisma.proveedor.findUnique({ where: { id } });
     if (!existente) {
@@ -585,7 +585,7 @@ router.post('/ubicaciones', authMiddleware, requireRole('ADMIN'), async (req: Re
 // explícitamente ("Editar (solo ADMIN)"), así que se agrega aquí.
 router.put('/ubicaciones/:id', authMiddleware, requireRole('ADMIN'), async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as { id: string };
 
     const existente = await prisma.ubicacion.findUnique({ where: { id } });
     if (!existente) {

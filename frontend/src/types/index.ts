@@ -106,6 +106,12 @@ export interface Umbrales {
   amarillo: number;
 }
 
+export interface CodigoBarras {
+  id: string;
+  codigo: string;
+  descripcion: string | null;
+}
+
 export interface MedicamentoCatalogo {
   id: string;
   nombreGenerico: string;
@@ -113,19 +119,40 @@ export interface MedicamentoCatalogo {
   presentacion: string;
   concentracion: string | null;
   unidadMedida: string;
+  categoriaId?: string;
+  stockMinimo?: number;
+  activo?: boolean;
   categoria?: CategoriaRef;
+  codigosBarras?: CodigoBarras[];
 }
 
 export interface Proveedor {
   id: string;
   nombre: string;
   tipo: 'INSTITUCION' | 'PERSONA';
+  contacto?: string | null;
+  notas?: string | null;
+  activo?: boolean;
 }
 
 export interface Ubicacion {
   id: string;
   codigo: string;
   descripcion: string | null;
+}
+
+export interface Categoria {
+  id: string;
+  nombre: string;
+  descripcion: string | null;
+  activo: boolean;
+}
+
+export interface CatalogoPagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
 }
 
 export interface Usuario {

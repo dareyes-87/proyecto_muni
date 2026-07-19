@@ -8,6 +8,10 @@ import Beneficiarios from './pages/Beneficiarios';
 import Inventario from './pages/Inventario';
 import Entradas from './pages/Entradas';
 import Usuarios from './pages/Usuarios';
+import Medicamentos from './pages/Catalogos/Medicamentos';
+import Categorias from './pages/Catalogos/Categorias';
+import Proveedores from './pages/Catalogos/Proveedores';
+import Ubicaciones from './pages/Catalogos/Ubicaciones';
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const { usuario } = useAuth();
@@ -55,10 +59,10 @@ export default function App() {
         <Route path="entradas" element={<Entradas />} />
 
         {/* === MÓDULO CATÁLOGOS (Audias) === */}
-        {/* <Route path="medicamentos" element={<Medicamentos />} /> */}
-        {/* <Route path="categorias" element={<Categorias />} /> */}
-        {/* <Route path="proveedores" element={<Proveedores />} /> */}
-        {/* <Route path="ubicaciones" element={<Ubicaciones />} /> */}
+        <Route path="medicamentos" element={<Medicamentos />} />
+        <Route path="categorias" element={<Categorias />} />
+        <Route path="proveedores" element={<Proveedores />} />
+        <Route path="ubicaciones" element={<Ubicaciones />} />
 
         {/* === MÓDULO DISPENSACIÓN (Jorge) === */}
         <Route path="dispensacion" element={<Dispensacion />} />
