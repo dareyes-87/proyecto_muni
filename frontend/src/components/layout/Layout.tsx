@@ -48,21 +48,22 @@ export default function Layout() {
   );
 
   return (
-    <div className="min-h-screen flex">
+    <div className="h-screen flex overflow-hidden">
       {/* Sidebar */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-30 w-64 bg-primary-800 text-white transform transition-transform lg:translate-x-0 lg:static
+          fixed inset-y-0 left-0 z-30 w-64 bg-primary-800 text-white transform transition-transform lg:translate-x-0 lg:static flex flex-col
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >
-        <div className="flex items-center justify-between h-16 px-4 bg-primary-900">
+        <div className="flex items-center justify-between h-16 px-4 bg-primary-900 shrink-0">
           <h1 className="text-lg font-bold tracking-wide text-dorado-400">FarmaG</h1>
           <button className="lg:hidden" onClick={() => setSidebarOpen(false)}>
             <X size={20} />
           </button>
         </div>
 
+        <div className="flex-1 overflow-y-auto flex flex-col [scrollbar-width:thin] [scrollbar-color:#006eae_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-primary-600 [&::-webkit-scrollbar-thumb]:rounded-full">
         <nav className="mt-4 px-2 space-y-1">
           {filteredNav.map((item) => (
             <NavLink
@@ -84,7 +85,7 @@ export default function Layout() {
           ))}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-primary-700">
+        <div className="mt-auto p-4 border-t border-primary-700">
           <div className="text-sm text-primary-300 mb-2">
             <p className="font-medium text-white">{usuario?.nombreCompleto}</p>
             <span className="mt-1 inline-block rounded-full bg-dorado-500/15 px-2 py-0.5 text-xs font-medium text-dorado-300 ring-1 ring-dorado-500/40">
@@ -99,6 +100,7 @@ export default function Layout() {
             Cerrar sesión
           </button>
         </div>
+        </div>
       </aside>
 
       {/* Overlay mobile */}
@@ -111,7 +113,7 @@ export default function Layout() {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center px-4 lg:px-6">
+        <header className="h-16 shrink-0 bg-white border-b border-gray-200 flex items-center px-4 lg:px-6">
           <button className="lg:hidden mr-3" onClick={() => setSidebarOpen(true)}>
             <Menu size={24} className="text-gray-600" />
           </button>
