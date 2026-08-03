@@ -351,7 +351,7 @@ El sistema soporta 4 usuarios simultáneos. Para evitar inconsistencias de inven
 
 ## Estado al reanudar
 
-> Última actualización: 2026-07-19 — módulo de Reportes completo. **Proyecto funcionalmente completo según la especificación técnica v1.**
+> Última actualización: 2026-08-03 — merge de `feature/dispensacion` (pistola de códigos de barras + sidebar scroll). **Proyecto funcionalmente completo según la especificación técnica v1.**
 
 ### Lo que está en `main` y funciona HOY
 
@@ -750,3 +750,44 @@ reporte para confirmar que ninguno quedó con columnas desproporcionadas.
 
 **Commit:** `63b9be0`, pusheado a `origin/main` (además de `316a65b`, un commit manual del usuario
 que ya había renombrado el sidebar en `Layout.tsx` antes de esta sesión).
+
+### 2026-08-03 — Jorge Vargas — Merge de `feature/dispensacion` a `main`
+
+Integración de pistola de códigos de barras en 3 páginas del frontend + sidebar con scroll
+independiente. Auditoría de la rama realizada antes del merge.
+
+**Archivos modificados (4, todos frontend, ningún archivo de backend tocado):**
+- `frontend/src/pages/Catalogos/Medicamentos.tsx` (+103 −34)
+- `frontend/src/pages/Dispensacion.tsx` (+11 −4)
+- `frontend/src/pages/Entradas.tsx` (+78 −30)
+- `frontend/src/components/layout/Layout.tsx` (+7 −5)
+
+**Cambios:**
+1. **Escáner de código de barras en Catálogos (Medicamentos.tsx):** al abrir el modal de códigos de
+   barras, captura global de teclas (`document.addEventListener('keydown')`) redirige input de la
+   pistola al campo aunque no tenga foco. Inputs no controlados (lectura directa del DOM vía
+   `useRef`) para compatibilidad con la velocidad de la pistola. Re-focus automático tras cada
+   escaneo.
+2. **Escáner de código de barras en Dispensación (Dispensacion.tsx):** auto-focus al campo de código
+   de barras al seleccionar beneficiario. Re-focus tras cada escaneo. Banner visual con icono de
+   escáner. `autoComplete="off"` para evitar interferencias del navegador.
+3. **Escáner de código de barras en Registrar Entrada (Entradas.tsx):** campo de escaneo por lote que
+   busca medicamento vía `GET /catalogos/medicamentos/barcode/:codigo` y lo selecciona en el
+   dropdown. Etiqueta verde de confirmación visual. Compatible con selección manual.
+4. **Sidebar con scroll independiente (Layout.tsx):** contenedor `h-screen overflow-hidden`, sidebar
+   con `flex-col` y zona de módulos con `overflow-y-auto` independiente del contenido principal.
+   Header "FarmaG" y usuario/logout fijos.
+
+**Auditoría pre-merge:**
+- Rebase sobre `origin/main`: limpio (la rama ya estaba al día).
+- `docker compose up --build`: 3 contenedores sanos, API y web sin errores en logs.
+- `git diff origin/main..feature/dispensacion --name-only`: exactamente los 4 archivos esperados,
+  ningún archivo ajeno.
+- Endpoints verificados con curl (health, catálogos, inventario, dispensación, reportes): todos OK.
+- Merge simulado (`--no-commit --no-ff`): limpio, sin conflictos.
+
+**Merge:** `git merge --no-ff feature/dispensacion` → commit `6e53e17`, pusheado a `origin/main`.
+
+**Nota:** el commit `0c9648c` (el de la rama) salió con autor genérico (`Your Name <you@example.com>`)
+porque `git config` no estaba configurado al momento de hacerlo. A partir de este merge, los commits
+de Jorge salen como `jorgevargas83 <jvargaso3@miumg.edu.gt>`.
