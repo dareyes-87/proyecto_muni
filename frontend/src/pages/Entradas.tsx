@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { Plus, Trash2, Save } from 'lucide-react';
+import { Plus, Trash2, Save, Barcode, ScanBarcode } from 'lucide-react';
 import {
   registrarEntrada,
   listarEntradas,
   type LoteEntradaInput,
 } from '../api/inventario';
-import { listarMedicamentos, listarProveedores, listarUbicaciones } from '../api/catalogos';
+import { listarMedicamentos, listarProveedores, listarUbicaciones, buscarPorCodigoBarras } from '../api/catalogos';
 import type { MedicamentoCatalogo, Proveedor, Ubicacion, Origen } from '../types';
 
 interface LoteForm {
@@ -40,6 +40,8 @@ export default function Entradas() {
 
   const [entradas, setEntradas] = useState<any[]>([]);
 
+  const barcodeRefs = useRef<(HTMLInputElement | null)[]>([]);
+
   const cargarEntradas = async () => {
     try {
       const res = await listarEntradas();
@@ -66,6 +68,24 @@ export default function Entradas() {
   };
   const agregarLote = () => setLotes((prev) => [...prev, { ...loteVacio }]);
   const quitarLote = (i: number) => setLotes((prev) => prev.filter((_, idx) => idx !== i));
+
+  const escanearBarcode = useCallback(async (codigo: string, loteIndex: number) => {
+    if (!codigo.trim()) return;
+    try {
+      const med = await buscarPorCodigoBarras(codigo.trim());
+      if (med && med.id) {
+        setLotes((prev) => prev.map((l, idx) => (idx === loteIndex ? { ...l, medicamentoId: med.id } : l)));
+        toast.success(`${med.nombreGenerico} seleccionado`);
+        if (barcodeRefs.current[loteIndex]) {
+          barcodeRefs.current[loteIndex]!.value = '';
+        }
+      } else {
+        toast.error('No se encontró medicamento con ese código');
+      }
+    } catch {
+      toast.error('No se encontró medicamento con ese código de barras');
+    }
+  }, []);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,6 +132,11 @@ export default function Entradas() {
   const inputClass =
     'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500';
 
+  const getMedNombre = (id: string) => {
+    const m = medicamentos.find((med) => med.id === id);
+    return m ? `${m.nombreGenerico}${m.concentracion ? ` (${m.concentracion})` : ''}` : '';
+  };
+
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold text-gray-900">Registrar Entrada</h1>
@@ -150,51 +175,80 @@ export default function Entradas() {
 
           <div className="space-y-3">
             {lotes.map((l, i) => (
-              <div key={i} className="grid grid-cols-1 items-end gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3 sm:grid-cols-12">
-                <div className="sm:col-span-3">
-                  <label className="mb-1 block text-xs text-gray-500">Medicamento</label>
-                  <select value={l.medicamentoId} onChange={(e) => setLote(i, 'medicamentoId', e.target.value)} className={inputClass}>
-                    <option value="">Seleccione...</option>
-                    {medicamentos.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.nombreGenerico} {m.concentracion ? `(${m.concentracion})` : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="mb-1 block text-xs text-gray-500">N° lote</label>
-                  <input value={l.numeroLote} onChange={(e) => setLote(i, 'numeroLote', e.target.value)} className={inputClass} />
-                </div>
-                <div className="sm:col-span-1">
-                  <label className="mb-1 block text-xs text-gray-500">Cant.</label>
-                  <input type="number" min={1} value={l.cantidad} onChange={(e) => setLote(i, 'cantidad', e.target.value)} className={inputClass} />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="mb-1 block text-xs text-gray-500">Vence</label>
-                  <input type="date" value={l.fechaVencimiento} onChange={(e) => setLote(i, 'fechaVencimiento', e.target.value)} className={inputClass} />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="mb-1 block text-xs text-gray-500">Ubicación</label>
-                  <select value={l.ubicacionId} onChange={(e) => setLote(i, 'ubicacionId', e.target.value)} className={inputClass}>
-                    <option value="">—</option>
-                    {ubicaciones.map((u) => (
-                      <option key={u.id} value={u.id}>{u.codigo}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex items-center gap-2 sm:col-span-2">
-                  {origen === 'PRESUPUESTO_MUNICIPAL' && (
-                    <div className="flex-1">
-                      <label className="mb-1 block text-xs text-gray-500">Costo unit.</label>
-                      <input type="number" step="0.01" min={0} value={l.costoUnitario} onChange={(e) => setLote(i, 'costoUnitario', e.target.value)} className={inputClass} />
-                    </div>
+              <div key={i} className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                {/* Fila de escaneo */}
+                <div className="mb-3 flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Barcode size={16} className="absolute left-3 top-2.5 text-gray-400" />
+                    <input
+                      ref={(el) => { barcodeRefs.current[i] = el; }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const val = barcodeRefs.current[i]?.value;
+                          if (val) escanearBarcode(val, i);
+                        }
+                      }}
+                      className="w-full rounded-lg border border-blue-200 bg-blue-50 py-2 pl-10 pr-3 text-sm font-mono outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500"
+                      placeholder="Escanear código de barras del medicamento..."
+                      autoComplete="off"
+                    />
+                  </div>
+                  <ScanBarcode size={20} className="shrink-0 text-blue-500" />
+                  {l.medicamentoId && (
+                    <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
+                      {getMedNombre(l.medicamentoId)}
+                    </span>
                   )}
-                  {lotes.length > 1 && (
-                    <button type="button" onClick={() => quitarLote(i)} className="mb-0.5 rounded-md p-2 text-red-500 hover:bg-red-50">
-                      <Trash2 size={16} />
-                    </button>
-                  )}
+                </div>
+
+                {/* Fila de datos del lote */}
+                <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-12">
+                  <div className="sm:col-span-3">
+                    <label className="mb-1 block text-xs text-gray-500">Medicamento</label>
+                    <select value={l.medicamentoId} onChange={(e) => setLote(i, 'medicamentoId', e.target.value)} className={inputClass}>
+                      <option value="">Seleccione...</option>
+                      {medicamentos.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.nombreGenerico} {m.concentracion ? `(${m.concentracion})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="mb-1 block text-xs text-gray-500">N° lote</label>
+                    <input value={l.numeroLote} onChange={(e) => setLote(i, 'numeroLote', e.target.value)} className={inputClass} />
+                  </div>
+                  <div className="sm:col-span-1">
+                    <label className="mb-1 block text-xs text-gray-500">Cant.</label>
+                    <input type="number" min={1} value={l.cantidad} onChange={(e) => setLote(i, 'cantidad', e.target.value)} className={inputClass} />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="mb-1 block text-xs text-gray-500">Vence</label>
+                    <input type="date" value={l.fechaVencimiento} onChange={(e) => setLote(i, 'fechaVencimiento', e.target.value)} className={inputClass} />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="mb-1 block text-xs text-gray-500">Ubicación</label>
+                    <select value={l.ubicacionId} onChange={(e) => setLote(i, 'ubicacionId', e.target.value)} className={inputClass}>
+                      <option value="">—</option>
+                      {ubicaciones.map((u) => (
+                        <option key={u.id} value={u.id}>{u.codigo}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2 sm:col-span-2">
+                    {origen === 'PRESUPUESTO_MUNICIPAL' && (
+                      <div className="flex-1">
+                        <label className="mb-1 block text-xs text-gray-500">Costo unit.</label>
+                        <input type="number" step="0.01" min={0} value={l.costoUnitario} onChange={(e) => setLote(i, 'costoUnitario', e.target.value)} className={inputClass} />
+                      </div>
+                    )}
+                    {lotes.length > 1 && (
+                      <button type="button" onClick={() => quitarLote(i)} className="mb-0.5 rounded-md p-2 text-red-500 hover:bg-red-50">
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}

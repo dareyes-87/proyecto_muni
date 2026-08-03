@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import toast from 'react-hot-toast';
 import {
   useReactTable,
@@ -6,7 +6,7 @@ import {
   createColumnHelper,
   flexRender,
 } from '@tanstack/react-table';
-import { Search, Plus, Pencil, Barcode, Power, Trash2, AlertTriangle } from 'lucide-react';
+import { Search, Plus, Pencil, Barcode, Power, Trash2, AlertTriangle, ScanBarcode } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import {
   listarMedicamentosPaginado,
@@ -51,7 +51,7 @@ export default function Medicamentos() {
   const [duplicados, setDuplicados] = useState<{ mensaje: string; similares: MedicamentoCatalogo[] } | null>(null);
 
   const [codigosTarget, setCodigosTarget] = useState<MedicamentoCatalogo | null>(null);
-  const [nuevoCodigo, setNuevoCodigo] = useState({ codigo: '', descripcion: '' });
+  const codigoInputRef = useRef<HTMLInputElement>(null);
 
   const cargar = useCallback(async () => {
     setLoading(true);
@@ -156,27 +156,67 @@ export default function Medicamentos() {
     }
   };
 
+  const descripcionRef = useRef<HTMLInputElement>(null);
+
   const abrirCodigos = (m: MedicamentoCatalogo) => {
     setCodigosTarget(m);
-    setNuevoCodigo({ codigo: '', descripcion: '' });
+    setTimeout(() => {
+      if (codigoInputRef.current) {
+        codigoInputRef.current.value = '';
+      }
+      if (descripcionRef.current) {
+        descripcionRef.current.value = '';
+      }
+      codigoInputRef.current?.focus();
+    }, 150);
   };
 
-  const agregarCodigo = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!codigosTarget || !nuevoCodigo.codigo.trim()) return;
+  useEffect(() => {
+    if (!codigosTarget) return;
+    const handler = (e: KeyboardEvent) => {
+      const input = codigoInputRef.current;
+      if (!input) return;
+      if (document.activeElement === input || document.activeElement === descripcionRef.current) return;
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (input.value.trim()) agregarCodigo();
+        return;
+      }
+      if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        input.focus();
+        input.value += e.key;
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [codigosTarget]);
+
+  const agregarCodigo = async () => {
+    const codigoValue = codigoInputRef.current?.value?.trim();
+    if (!codigosTarget || !codigoValue) {
+      toast.error('Escanee o escriba un código de barras');
+      codigoInputRef.current?.focus();
+      return;
+    }
+    const descripcionValue = descripcionRef.current?.value?.trim() || null;
     try {
       const creado = await agregarCodigoBarras(codigosTarget.id, {
-        codigo: nuevoCodigo.codigo.trim(),
-        descripcion: nuevoCodigo.descripcion.trim() || null,
+        codigo: codigoValue,
+        descripcion: descripcionValue,
       });
       setCodigosTarget({
         ...codigosTarget,
         codigosBarras: [...(codigosTarget.codigosBarras ?? []), creado],
       });
-      setNuevoCodigo({ codigo: '', descripcion: '' });
+      if (codigoInputRef.current) codigoInputRef.current.value = '';
+      if (descripcionRef.current) descripcionRef.current.value = '';
+      toast.success('Código de barras registrado');
       cargar();
+      setTimeout(() => codigoInputRef.current?.focus(), 50);
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'No se pudo agregar el código');
+      setTimeout(() => codigoInputRef.current?.focus(), 50);
     }
   };
 
@@ -473,19 +513,40 @@ export default function Medicamentos() {
               )}
             </ul>
             {isAdmin && (
-              <form onSubmit={agregarCodigo} className="flex items-end gap-2 border-t border-gray-200 pt-4">
-                <div className="flex-1">
-                  <label className="mb-1 block text-xs text-gray-500">Nuevo código</label>
-                  <input value={nuevoCodigo.codigo} onChange={(e) => setNuevoCodigo({ ...nuevoCodigo, codigo: e.target.value })} className={inputClass} required />
+              <div className="border-t border-gray-200 pt-4">
+                <div className="mb-3 flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">
+                  <ScanBarcode size={18} className="shrink-0" />
+                  <span>Escanee con la pistola de códigos o escriba el código manualmente</span>
                 </div>
-                <div className="flex-1">
-                  <label className="mb-1 block text-xs text-gray-500">Descripción</label>
-                  <input value={nuevoCodigo.descripcion} onChange={(e) => setNuevoCodigo({ ...nuevoCodigo, descripcion: e.target.value })} className={inputClass} />
+                <div className="flex items-end gap-2">
+                  <div className="flex-1">
+                    <label className="mb-1 block text-xs text-gray-500">Código de barras</label>
+                    <div className="relative">
+                      <Barcode size={16} className="absolute left-3 top-2.5 text-gray-400" />
+                      <input
+                        ref={codigoInputRef}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            agregarCodigo();
+                          }
+                        }}
+                        className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 text-sm font-mono outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500"
+                        placeholder="Escanear o escribir código..."
+                        autoComplete="off"
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <label className="mb-1 block text-xs text-gray-500">Descripción (opcional)</label>
+                    <input ref={descripcionRef} className={inputClass} placeholder="Ej: Caja de 20 tabletas" />
+                  </div>
+                  <button type="button" onClick={() => agregarCodigo()} className="rounded-lg bg-primary-700 px-4 py-2 text-sm font-medium text-white hover:bg-primary-800">
+                    Agregar
+                  </button>
                 </div>
-                <button type="submit" className="rounded-lg bg-primary-700 px-4 py-2 text-sm font-medium text-white hover:bg-primary-800">
-                  Agregar
-                </button>
-              </form>
+              </div>
             )}
           </div>
         )}
