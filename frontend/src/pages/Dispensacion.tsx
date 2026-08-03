@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   HandHeart, Search, UserPlus, Trash2, X,
-  AlertCircle, CheckCircle, Package, Barcode,
+  AlertCircle, CheckCircle, Package, Barcode, ScanBarcode,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../api/client';
@@ -143,6 +143,7 @@ export default function Dispensacion() {
     } catch {
       setHistorialReciente([]);
     }
+    setTimeout(() => barcodeInputRef.current?.focus(), 100);
   }, []);
 
   // ============================================
@@ -191,6 +192,7 @@ export default function Dispensacion() {
       toast.error('No se encontró medicamento con ese código de barras');
     }
     setCodigoBarras('');
+    setTimeout(() => barcodeInputRef.current?.focus(), 50);
   };
 
   // ============================================
@@ -428,6 +430,10 @@ export default function Dispensacion() {
         </h2>
 
         {/* Escaneo de código de barras */}
+        <div className="mb-3 flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">
+          <ScanBarcode size={18} className="shrink-0" />
+          <span>Escanee con la pistola de códigos o busque manualmente abajo</span>
+        </div>
         <div className="flex gap-2 mb-3">
           <div className="relative flex-1">
             <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -443,7 +449,8 @@ export default function Dispensacion() {
                   buscarPorBarcode(codigoBarras);
                 }
               }}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm font-mono"
+              autoComplete="off"
             />
           </div>
         </div>
