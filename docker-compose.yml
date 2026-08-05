@@ -37,6 +37,7 @@ services:
     volumes:
       - ./backend/src:/app/src:z
       - ./backend/prisma:/app/prisma:z
+      - ./backend/uploads:/app/uploads:z
 
   web:
     build:
