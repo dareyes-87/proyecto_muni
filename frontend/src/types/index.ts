@@ -106,6 +106,19 @@ export interface Umbrales {
   amarillo: number;
 }
 
+export interface ResumenImportacionExcel {
+  totalFilas: number;
+  medicamentosCreados: number;
+  medicamentosExistentes: number;
+  categoriasCreadas: number;
+  proveedoresCreados: number;
+  ubicacionesCreadas: number;
+  codigosBarrasVinculados: number;
+  lotesRegistrados: number;
+  errores: { fila: number; error: string }[];
+  avisos: { fila: number; aviso: string }[];
+}
+
 export interface CodigoBarras {
   id: string;
   codigo: string;

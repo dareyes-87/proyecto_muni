@@ -5,6 +5,7 @@ import type {
   Alertas,
   Umbrales,
   Pagination,
+  ResumenImportacionExcel,
 } from '../types';
 
 export interface LoteEntradaInput {
@@ -65,5 +66,23 @@ export async function obtenerConfiguracion(): Promise<Umbrales> {
 
 export async function actualizarConfiguracion(umbrales: Umbrales): Promise<Umbrales> {
   const { data } = await api.put('/inventario/configuracion', umbrales);
+  return data.data;
+}
+
+// ============================================
+// IMPORTACIÓN MASIVA POR EXCEL
+// ============================================
+
+export async function descargarPlantillaExcel(): Promise<Blob> {
+  const { data } = await api.get('/inventario/plantilla-excel', { responseType: 'blob' });
+  return data;
+}
+
+export async function importarExcelInventario(archivo: File): Promise<ResumenImportacionExcel> {
+  const formData = new FormData();
+  formData.append('archivo', archivo);
+  const { data } = await api.post('/inventario/importar-excel', formData, {
+    headers: { 'Content-Type': undefined },
+  });
   return data.data;
 }

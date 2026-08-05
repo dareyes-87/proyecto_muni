@@ -1,13 +1,17 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { Plus, Trash2, Save, Barcode, ScanBarcode } from 'lucide-react';
+import { Plus, Trash2, Save, Barcode, ScanBarcode, FileSpreadsheet, Download, Upload } from 'lucide-react';
 import {
   registrarEntrada,
   listarEntradas,
+  descargarPlantillaExcel,
+  importarExcelInventario,
   type LoteEntradaInput,
 } from '../api/inventario';
 import { listarMedicamentos, listarProveedores, listarUbicaciones, buscarPorCodigoBarras } from '../api/catalogos';
-import type { MedicamentoCatalogo, Proveedor, Ubicacion, Origen } from '../types';
+import { useAuth } from '../context/AuthContext';
+import Modal from '../components/ui/Modal';
+import type { MedicamentoCatalogo, Proveedor, Ubicacion, Origen, ResumenImportacionExcel } from '../types';
 
 interface LoteForm {
   medicamentoId: string;
@@ -28,6 +32,7 @@ const loteVacio: LoteForm = {
 };
 
 export default function Entradas() {
+  const { isAdmin } = useAuth();
   const [medicamentos, setMedicamentos] = useState<MedicamentoCatalogo[]>([]);
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
@@ -41,6 +46,13 @@ export default function Entradas() {
   const [entradas, setEntradas] = useState<any[]>([]);
 
   const barcodeRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const [importOpen, setImportOpen] = useState(false);
+  const [archivoImport, setArchivoImport] = useState<File | null>(null);
+  const [importando, setImportando] = useState(false);
+  const [descargandoPlantilla, setDescargandoPlantilla] = useState(false);
+  const [resultadoImport, setResultadoImport] = useState<ResumenImportacionExcel | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const cargarEntradas = async () => {
     try {
@@ -129,6 +141,51 @@ export default function Entradas() {
     }
   };
 
+  const abrirImport = () => {
+    setArchivoImport(null);
+    setResultadoImport(null);
+    setImportOpen(true);
+  };
+
+  const descargarPlantilla = async () => {
+    setDescargandoPlantilla(true);
+    try {
+      const blob = await descargarPlantillaExcel();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'plantilla-importacion-medicamentos.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error('No se pudo descargar la plantilla');
+    } finally {
+      setDescargandoPlantilla(false);
+    }
+  };
+
+  const subirExcel = async () => {
+    if (!archivoImport) return toast.error('Seleccione un archivo .xlsx');
+    setImportando(true);
+    try {
+      const resultado = await importarExcelInventario(archivoImport);
+      setResultadoImport(resultado);
+      if (resultado.lotesRegistrados > 0) {
+        toast.success(`${resultado.lotesRegistrados} lote(s) importado(s) correctamente`);
+        cargarEntradas();
+      }
+      if (resultado.errores.length > 0) {
+        toast.error(`${resultado.errores.length} fila(s) con errores`);
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'No se pudo importar el archivo');
+    } finally {
+      setImportando(false);
+    }
+  };
+
   const inputClass =
     'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500';
 
@@ -139,7 +196,17 @@ export default function Entradas() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold text-gray-900">Registrar Entrada</h1>
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-900">Registrar Entrada</h1>
+        {isAdmin && (
+          <button
+            onClick={abrirImport}
+            className="inline-flex items-center gap-2 rounded-lg border border-primary-700 px-4 py-2 font-medium text-primary-700 hover:bg-primary-50"
+          >
+            <FileSpreadsheet size={18} /> Importar desde Excel
+          </button>
+        )}
+      </div>
 
       <form onSubmit={submit} className="mb-8 rounded-xl border border-gray-200 bg-white p-6">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -296,6 +363,98 @@ export default function Entradas() {
           </tbody>
         </table>
       </div>
+
+      {/* Modal de importación masiva por Excel */}
+      <Modal open={importOpen} onClose={() => setImportOpen(false)} title="Importar desde Excel" maxWidth="max-w-2xl">
+        <div className="space-y-5">
+          <div>
+            <p className="mb-2 text-sm text-gray-600">
+              Descargue la plantilla, complétela con sus medicamentos y lotes, y súbala aquí. Cada fila
+              representa un lote de un medicamento.
+            </p>
+            <button
+              type="button"
+              onClick={descargarPlantilla}
+              disabled={descargandoPlantilla}
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            >
+              <Download size={16} /> {descargandoPlantilla ? 'Descargando...' : 'Descargar plantilla Excel'}
+            </button>
+          </div>
+
+          <div className="border-t border-gray-200 pt-4">
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Archivo completado (.xlsx)</label>
+            <div className="flex items-center gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx"
+                onChange={(e) => setArchivoImport(e.target.files?.[0] ?? null)}
+                className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-primary-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-primary-700 hover:file:bg-primary-100"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={subirExcel}
+              disabled={!archivoImport || importando}
+              className="mt-3 inline-flex items-center gap-2 rounded-lg bg-primary-700 px-4 py-2 text-sm font-medium text-white hover:bg-primary-800 disabled:opacity-50"
+            >
+              <Upload size={16} /> {importando ? 'Importando...' : 'Importar'}
+            </button>
+          </div>
+
+          {resultadoImport && (
+            <div className="border-t border-gray-200 pt-4">
+              <h3 className="mb-2 text-sm font-semibold text-gray-800">Resultado</h3>
+              <div className="mb-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+                <div className="rounded-lg bg-gray-50 p-2 text-center">
+                  <div className="text-lg font-bold text-gray-900">{resultadoImport.totalFilas}</div>
+                  <div className="text-xs text-gray-500">Filas leídas</div>
+                </div>
+                <div className="rounded-lg bg-emerald-50 p-2 text-center">
+                  <div className="text-lg font-bold text-emerald-700">{resultadoImport.lotesRegistrados}</div>
+                  <div className="text-xs text-emerald-600">Lotes registrados</div>
+                </div>
+                <div className="rounded-lg bg-blue-50 p-2 text-center">
+                  <div className="text-lg font-bold text-blue-700">{resultadoImport.medicamentosCreados}</div>
+                  <div className="text-xs text-blue-600">Medicamentos nuevos</div>
+                </div>
+                <div className="rounded-lg bg-red-50 p-2 text-center">
+                  <div className="text-lg font-bold text-red-700">{resultadoImport.errores.length}</div>
+                  <div className="text-xs text-red-600">Filas con error</div>
+                </div>
+              </div>
+              <p className="mb-3 text-xs text-gray-500">
+                {resultadoImport.medicamentosExistentes} medicamento(s) ya existían · {resultadoImport.categoriasCreadas}{' '}
+                categoría(s) nueva(s) · {resultadoImport.proveedoresCreados} proveedor(es) nuevo(s) ·{' '}
+                {resultadoImport.ubicacionesCreadas} ubicación(es) nueva(s) · {resultadoImport.codigosBarrasVinculados}{' '}
+                código(s) de barras vinculado(s)
+              </p>
+
+              {resultadoImport.errores.length > 0 && (
+                <div className="mb-3">
+                  <h4 className="mb-1 text-xs font-semibold uppercase text-red-600">Errores por fila</h4>
+                  <ul className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-red-200 bg-red-50 p-2 text-xs text-red-800">
+                    {resultadoImport.errores.map((e, i) => (
+                      <li key={i}><strong>Fila {e.fila}:</strong> {e.error}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {resultadoImport.avisos.length > 0 && (
+                <div>
+                  <h4 className="mb-1 text-xs font-semibold uppercase text-amber-600">Avisos</h4>
+                  <ul className="max-h-32 space-y-1 overflow-y-auto rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800">
+                    {resultadoImport.avisos.map((a, i) => (
+                      <li key={i}><strong>Fila {a.fila}:</strong> {a.aviso}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }
