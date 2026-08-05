@@ -1,6 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 import { authMiddleware, requireRole } from '../middleware/auth';
 import { registrarAuditoria } from '../middleware/audit';
 
@@ -103,6 +106,109 @@ router.get('/medicamentos/barcode/:codigo', authMiddleware, async (req: Request,
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
+
+// ============================================
+// GET /api/catalogos/medicamentos/lookup-fda/:codigoBarras
+// Consulta de referencia en OpenFDA para auto-llenar el formulario de "Nuevo medicamento"
+// cuando el código de barras no existe localmente. No requiere rol específico.
+// ============================================
+
+/**
+ * Extrae el NDC-10 (10 dígitos, sin guiones) de un GTIN-14/EAN-13/UPC-A de un envase
+ * farmacéutico de EE.UU. Estructura estándar del GTIN de un NDC:
+ * [2 dígitos de relleno][1 dígito indicador][NDC-10 (10 dígitos)][1 dígito verificador] = 14 dígitos.
+ */
+function gtinToNdc10(codigoBarras: string): string | null {
+  const digitos = codigoBarras.replace(/\D/g, '');
+  if (!digitos) return null;
+  const gtin14 = digitos.padStart(14, '0');
+  if (gtin14.length !== 14) return null;
+  const sinDigitoVerificador = gtin14.slice(0, 13); // quita el último dígito (verificador)
+  const ndc10 = sinDigitoVerificador.slice(3); // quita relleno(2) + indicador(1)
+  return ndc10.length === 10 ? ndc10 : null;
+}
+
+/** El formato de guiones del NDC (4-4-2, 5-3-2 o 5-4-1) depende del labeler; se prueban los tres. */
+function candidatosNdc(ndc10: string): string[] {
+  return [
+    `${ndc10.slice(0, 4)}-${ndc10.slice(4, 8)}-${ndc10.slice(8, 10)}`,
+    `${ndc10.slice(0, 5)}-${ndc10.slice(5, 8)}-${ndc10.slice(8, 10)}`,
+    `${ndc10.slice(0, 5)}-${ndc10.slice(5, 9)}-${ndc10.slice(9, 10)}`,
+  ];
+}
+
+function capitalizar(texto: string): string {
+  return texto
+    .toLowerCase()
+    .split(' ')
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
+    .join(' ');
+}
+
+async function fetchConTimeout(url: string, ms = 5000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), ms);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+router.get(
+  '/medicamentos/lookup-fda/:codigoBarras',
+  authMiddleware,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { codigoBarras } = req.params as { codigoBarras: string };
+      const ndc10 = gtinToNdc10(codigoBarras);
+      if (!ndc10) {
+        res.json({ found: false });
+        return;
+      }
+
+      for (const candidato of candidatosNdc(ndc10)) {
+        let respuesta;
+        try {
+          respuesta = await fetchConTimeout(
+            `https://api.fda.gov/drug/label.json?search=openfda.package_ndc:"${candidato}"&limit=1`
+          );
+        } catch {
+          continue; // timeout o error de red: probar el siguiente formato de NDC
+        }
+        if (!respuesta.ok) continue;
+
+        const json = (await respuesta.json()) as { results?: any[] };
+        const resultado = json?.results?.[0];
+        if (!resultado) continue;
+
+        const openfda = resultado.openfda || {};
+        const nombreGenerico = openfda.generic_name?.[0] || null;
+        const nombreComercial = openfda.brand_name?.[0] || null;
+        const presentacion = openfda.dosage_form?.[0] || null;
+        const activo = Array.isArray(resultado.active_ingredient) ? resultado.active_ingredient[0] : null;
+        const categoriaSugerida = openfda.pharm_class_epc?.[0] || openfda.pharm_class_moa?.[0] || null;
+
+        res.json({
+          found: true,
+          ndcConsultado: candidato,
+          nombreGenerico: nombreGenerico ? capitalizar(nombreGenerico) : null,
+          nombreComercial: nombreComercial ? capitalizar(nombreComercial) : null,
+          presentacion: presentacion ? capitalizar(presentacion) : null,
+          concentracion: typeof activo === 'string' ? activo.slice(0, 100) : null,
+          unidadMedida: presentacion ? capitalizar(presentacion) : null,
+          categoriaSugerida: categoriaSugerida ? capitalizar(categoriaSugerida) : null,
+        });
+        return;
+      }
+
+      res.json({ found: false });
+    } catch (error) {
+      console.error('Error consultando OpenFDA:', error);
+      res.json({ found: false });
+    }
+  }
+);
 
 const medicamentoSchema = z.object({
   nombreGenerico: z.string().min(2, 'El nombre genérico es requerido'),
@@ -616,5 +722,87 @@ router.put('/ubicaciones/:id', authMiddleware, requireRole('ADMIN'), async (req:
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
+
+// ============================================
+// FOTO DE MEDICAMENTO
+// ============================================
+
+const UPLOADS_DIR = path.join(__dirname, '..', '..', 'uploads', 'medicamentos');
+const EXT_POR_MIME: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+};
+
+const uploadImagen = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter: (_req, file, cb) => {
+    if (!EXT_POR_MIME[file.mimetype]) {
+      cb(new Error('Formato de imagen no permitido. Use JPG, PNG o WEBP'));
+      return;
+    }
+    cb(null, true);
+  },
+});
+
+// POST /api/catalogos/medicamentos/:id/imagen
+router.post(
+  '/medicamentos/:id/imagen',
+  authMiddleware,
+  requireRole('ADMIN'),
+  uploadImagen.single('imagen'),
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params as { id: string };
+      if (!req.file) {
+        res.status(400).json({ error: 'Debe adjuntar una imagen en el campo "imagen"' });
+        return;
+      }
+
+      const medicamento = await prisma.medicamento.findUnique({ where: { id } });
+      if (!medicamento) {
+        res.status(404).json({ error: 'Medicamento no encontrado' });
+        return;
+      }
+
+      const ext = EXT_POR_MIME[req.file.mimetype];
+
+      fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
+      // Limpiar imágenes previas de este medicamento (posiblemente con otra extensión).
+      const archivosExistentes = fs
+        .readdirSync(UPLOADS_DIR)
+        .filter((f) => f.startsWith(`${id}.`));
+      for (const archivo of archivosExistentes) {
+        fs.unlinkSync(path.join(UPLOADS_DIR, archivo));
+      }
+
+      const nombreArchivo = `${id}.${ext}`;
+      fs.writeFileSync(path.join(UPLOADS_DIR, nombreArchivo), req.file.buffer);
+
+      const imagenUrl = `/uploads/medicamentos/${nombreArchivo}`;
+      const actualizado = await prisma.medicamento.update({
+        where: { id },
+        data: { imagenUrl },
+      });
+
+      await registrarAuditoria({
+        usuarioId: req.user!.userId,
+        accion: 'EDITAR',
+        entidad: 'medicamento',
+        entidadId: id,
+        datosAnteriores: { imagenUrl: medicamento.imagenUrl },
+        datosNuevos: { imagenUrl },
+        ipAddress: req.ip,
+      });
+
+      res.json({ data: actualizado });
+    } catch (error) {
+      console.error('Error subiendo imagen de medicamento:', error);
+      res.status(500).json({ error: 'Error interno del servidor' });
+    }
+  }
+);
 
 export default router;

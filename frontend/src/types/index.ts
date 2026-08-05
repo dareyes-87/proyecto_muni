@@ -134,6 +134,7 @@ export interface MedicamentoCatalogo {
   unidadMedida: string;
   categoriaId?: string;
   stockMinimo?: number;
+  imagenUrl?: string | null;
   activo?: boolean;
   categoria?: CategoriaRef;
   codigosBarras?: CodigoBarras[];

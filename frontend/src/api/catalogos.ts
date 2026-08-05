@@ -59,6 +59,30 @@ export async function buscarPorCodigoBarras(
   return data.data;
 }
 
+export interface LookupFdaResultado {
+  found: boolean;
+  nombreGenerico?: string | null;
+  nombreComercial?: string | null;
+  presentacion?: string | null;
+  concentracion?: string | null;
+  unidadMedida?: string | null;
+  categoriaSugerida?: string | null;
+}
+
+export async function lookupFda(codigo: string): Promise<LookupFdaResultado> {
+  const { data } = await api.get(`/catalogos/medicamentos/lookup-fda/${encodeURIComponent(codigo)}`);
+  return data;
+}
+
+export async function subirImagenMedicamento(id: string, archivo: File): Promise<MedicamentoCatalogo> {
+  const formData = new FormData();
+  formData.append('imagen', archivo);
+  const { data } = await api.post(`/catalogos/medicamentos/${id}/imagen`, formData, {
+    headers: { 'Content-Type': undefined },
+  });
+  return data.data;
+}
+
 export interface MedicamentoInput {
   nombreGenerico: string;
   nombreComercial?: string | null;

@@ -6,7 +6,7 @@ import {
   createColumnHelper,
   flexRender,
 } from '@tanstack/react-table';
-import { Search, Plus, Pencil, Barcode, Power, Trash2, AlertTriangle, ScanBarcode } from 'lucide-react';
+import { Search, Plus, Pencil, Barcode, Power, Trash2, AlertTriangle, ScanBarcode, Wand2, ImagePlus, Pill } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import {
   listarMedicamentosPaginado,
@@ -15,6 +15,9 @@ import {
   agregarCodigoBarras,
   eliminarCodigoBarras,
   listarCategorias,
+  buscarPorCodigoBarras,
+  lookupFda,
+  subirImagenMedicamento,
   type MedicamentoInput,
 } from '../../api/catalogos';
 import type { MedicamentoCatalogo, CategoriaRef } from '../../types';
@@ -53,6 +56,12 @@ export default function Medicamentos() {
   const [codigosTarget, setCodigosTarget] = useState<MedicamentoCatalogo | null>(null);
   const codigoInputRef = useRef<HTMLInputElement>(null);
 
+  const [scanLoading, setScanLoading] = useState(false);
+  const [fdaSugerido, setFdaSugerido] = useState(false);
+  const scanNuevoRef = useRef<HTMLInputElement>(null);
+
+  const [imagenSubiendo, setImagenSubiendo] = useState(false);
+
   const cargar = useCallback(async () => {
     setLoading(true);
     try {
@@ -84,7 +93,49 @@ export default function Medicamentos() {
   const abrirNuevo = () => {
     setEditando(null);
     setForm(formVacio);
+    setFdaSugerido(false);
     setFormOpen(true);
+  };
+
+  const escanearParaNuevo = async (codigo: string) => {
+    const val = codigo.trim();
+    if (!val) return;
+    setScanLoading(true);
+    setFdaSugerido(false);
+    try {
+      let existeLocal = false;
+      try {
+        const local = await buscarPorCodigoBarras(val);
+        if (local?.id) {
+          existeLocal = true;
+          toast.error(`Este medicamento ya está registrado: ${local.nombreGenerico}`);
+        }
+      } catch {
+        // No existe localmente: seguir a la consulta de OpenFDA.
+      }
+      if (existeLocal) return;
+
+      const fda = await lookupFda(val);
+      if (fda.found) {
+        setForm((f) => ({
+          ...f,
+          nombreGenerico: fda.nombreGenerico || f.nombreGenerico,
+          nombreComercial: fda.nombreComercial || f.nombreComercial,
+          presentacion: fda.presentacion || f.presentacion,
+          concentracion: fda.concentracion || f.concentracion,
+          unidadMedida: fda.unidadMedida || f.unidadMedida,
+        }));
+        setFdaSugerido(true);
+        toast.success('Datos sugeridos por OpenFDA — verifique antes de guardar');
+      } else {
+        toast('No se encontraron datos en OpenFDA para este código. Complete el formulario manualmente.');
+      }
+    } catch {
+      toast.error('No se pudo consultar OpenFDA');
+    } finally {
+      setScanLoading(false);
+      if (scanNuevoRef.current) scanNuevoRef.current.value = '';
+    }
   };
 
   const abrirEditar = (m: MedicamentoCatalogo) => {
@@ -98,7 +149,23 @@ export default function Medicamentos() {
       categoriaId: m.categoria?.id ?? m.categoriaId ?? '',
       stockMinimo: m.stockMinimo ?? 10,
     });
+    setFdaSugerido(false);
     setFormOpen(true);
+  };
+
+  const subirFoto = async (file: File) => {
+    if (!editando) return;
+    setImagenSubiendo(true);
+    try {
+      const actualizado = await subirImagenMedicamento(editando.id, file);
+      setEditando(actualizado);
+      setRows((prev) => prev.map((r) => (r.id === actualizado.id ? actualizado : r)));
+      toast.success('Foto actualizada');
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'No se pudo subir la foto');
+    } finally {
+      setImagenSubiendo(false);
+    }
   };
 
   const guardar = async (e: React.FormEvent, forzarCreacion = false) => {
@@ -404,6 +471,64 @@ export default function Medicamentos() {
       {/* Modal crear/editar */}
       <Modal open={formOpen} onClose={() => setFormOpen(false)} title={editando ? 'Editar medicamento' : 'Nuevo medicamento'}>
         <form onSubmit={(e) => guardar(e)} className="space-y-4">
+          {editando && (
+            <div className="flex items-center gap-4 rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-white">
+                {editando.imagenUrl ? (
+                  <img src={editando.imagenUrl} alt={editando.nombreGenerico} className="h-full w-full object-cover" />
+                ) : (
+                  <Pill size={28} className="text-gray-300" />
+                )}
+              </div>
+              <div>
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">
+                  <ImagePlus size={16} />
+                  {imagenSubiendo ? 'Subiendo...' : 'Subir foto'}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    disabled={imagenSubiendo}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) subirFoto(file);
+                      e.target.value = '';
+                    }}
+                  />
+                </label>
+                <p className="mt-1 text-xs text-gray-500">JPG, PNG o WEBP. Máx. 5MB.</p>
+              </div>
+            </div>
+          )}
+          {!editando && (
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+              <label className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-blue-800">
+                <ScanBarcode size={16} /> Escanear código de barras (opcional)
+              </label>
+              <input
+                ref={scanNuevoRef}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    escanearParaNuevo(e.currentTarget.value);
+                  }
+                }}
+                disabled={scanLoading}
+                className="w-full rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm font-mono outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
+                placeholder={scanLoading ? 'Consultando...' : 'Escanee o escriba el código y presione Enter'}
+                autoComplete="off"
+              />
+              <p className="mt-1 text-xs text-blue-700">
+                Se busca primero en el sistema; si no existe, se consulta OpenFDA para auto-completar el formulario.
+              </p>
+            </div>
+          )}
+          {fdaSugerido && (
+            <div className="flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              <Wand2 size={16} className="shrink-0" />
+              <span>Datos sugeridos por OpenFDA — verifique antes de guardar</span>
+            </div>
+          )}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">Nombre genérico</label>
