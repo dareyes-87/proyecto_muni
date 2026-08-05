@@ -194,7 +194,8 @@ farma-rh/
 - [x] Dashboard con alertas reales conectadas al backend
 - [x] Página de gestión de usuarios (CRUD, editar, reset password, activar/desactivar)
 - [x] Cron job de vencimiento (verificado, sin cambios)
-- [ ] Escáner de código de barras en el formulario de entradas (pendiente, depende de Catálogos)
+- [x] Escáner de código de barras en el formulario de entradas (agregado por Jorge, sesión 2026-08-03)
+- [x] Importación masiva de inventario desde Excel (sesión 2026-08-04, ver Historial)
 
 **Estado actual:** Módulo de Inventario y Admin (Usuarios) completos y verificados end-to-end.
 
@@ -271,6 +272,8 @@ farma-rh/
 - [x] Página de Proveedores (tabla + formulario, filtro INSTITUCION/PERSONA)
 - [x] Página de Ubicaciones (tabla + formulario)
 - [x] Merge de `feature/catalogos` a `main` — completado 2026-07-19 tras auditoría independiente (ver Historial de Sesiones).
+- [x] Endpoint de consulta OpenFDA por código de barras + autocompletado en el modal de Medicamentos (sesión 2026-08-04, ver Historial)
+- [x] Campo de foto en medicamentos (subida + preview) (sesión 2026-08-04, ver Historial)
 
 **Estado actual (2026-07-19):** Módulo de Catálogos completo y **mergeado a `main`**. Backend (CRUD medicamentos con duplicados, categorías, proveedores, ubicaciones, códigos de barras) y las 4 páginas frontend verificados de forma independiente (no solo con el resumen de Audias): diff de archivos, contenido íntegro de `catalogos.routes.ts`, checkout real de la rama + `docker compose up --build`, y pruebas en vivo con curl de los 4 GET más el flujo completo de barcode (creación de código de prueba → `GET /barcode/:codigo` devolviendo `stockActual` → limpieza del dato de prueba). **Pendiente:** verificación visual en navegador (click-through) de las 4 páginas — no se hizo en ninguna sesión hasta ahora por falta de herramienta de browser automation.
 
@@ -351,7 +354,11 @@ El sistema soporta 4 usuarios simultáneos. Para evitar inconsistencias de inven
 
 ## Estado al reanudar
 
-> Última actualización: 2026-08-03 — merge de `feature/dispensacion` (pistola de códigos de barras + sidebar scroll). **Proyecto funcionalmente completo según la especificación técnica v1.**
+> Última actualización: 2026-08-04 — 3 mejoras urgentes para agilizar el registro en campo:
+> importación masiva de inventario por Excel, autocompletado de medicamentos vía OpenFDA al
+> escanear código de barras, y foto de medicamentos. Deadline del proyecto: 2026-08-29.
+> **Proyecto funcionalmente completo según la especificación técnica v1**, ahora con mejoras de
+> productividad sobre ese alcance base.
 
 ### Lo que está en `main` y funciona HOY
 
@@ -370,7 +377,15 @@ El sistema soporta 4 usuarios simultáneos. Para evitar inconsistencias de inven
 
 ### Deuda técnica pendiente
 
-Ninguna conocida a la fecha.
+- Los proveedores creados automáticamente por la importación de Excel quedan con `tipo:
+  INSTITUCION` por defecto (el Excel no trae esa columna) — revisar/corregir manualmente en
+  Catálogos > Proveedores si en realidad es una PERSONA.
+- La conversión GTIN→NDC del lookup de OpenFDA asume que el NDC-11 usa alguno de los tres formatos
+  de guion más comunes (4-4-2, 5-3-2, 5-4-1); no cubre todos los labelers registrados en la FDA.
+- `frontend/nginx.conf` (proxy de `/uploads/` para el build de producción) no se probó en runtime
+  en esta sesión — el `docker-compose.yml` de este proyecto usa `FRONTEND_TARGET=development` por
+  defecto (Vite en :5173), que sí se verificó funcionando. Antes de desplegar a producción con
+  `FRONTEND_TARGET=production`, confirmar que las fotos cargan a través de nginx.
 
 ### Pendiente para el equipo
 
@@ -381,6 +396,10 @@ Ninguna conocida a la fecha.
 - Fuera de fase 1 (no bloqueante, ver sección 5 de la especificación técnica): módulo de ventas con
   tickets, devoluciones, alertas de tratamientos recurrentes, código de barras visual en PDFs,
   super admin multi-tienda, integración con sistema de trámites municipal.
+- Si se cambia `docker-compose.yml` o `.env` con datos reales de producción, recordar que
+  `backend/uploads/medicamentos/` ahora es un volumen bind-mount — no se pierde entre reinicios,
+  pero si se hace `docker compose down -v` **no se borra** (no está en el volumen nombrado
+  `pgdata`), es una carpeta del host.
 
 ### Primer paso cuando se reanude la sesión
 
@@ -791,3 +810,90 @@ independiente. Auditoría de la rama realizada antes del merge.
 **Nota:** el commit `0c9648c` (el de la rama) salió con autor genérico (`Your Name <you@example.com>`)
 porque `git config` no estaba configurado al momento de hacerlo. A partir de este merge, los commits
 de Jorge salen como `jorgevargas83 <jvargaso3@miumg.edu.gt>`.
+
+### 2026-08-04 — Daniel Reyes — 3 mejoras urgentes de productividad (deadline 2026-08-29)
+
+Se detectó en campo que registrar medicamentos uno por uno en el formulario es demasiado lento
+cuando hay estantes llenos de decenas de productos distintos, con 25 días para la entrega final.
+Se implementaron 3 mejoras directamente sobre `main` (sin rama feature, sesión única).
+
+**1. Importación masiva de inventario por Excel (prioridad máxima):**
+- `POST /api/inventario/importar-excel` (`backend/src/routes/inventario.routes.ts`): `multer`
+  (memoria) + `exceljs`. Lee la hoja por **nombre de columna** (no por posición, tolera columnas
+  reordenadas), matchea/crea medicamento (por nombreGenerico+presentacion+concentracion, igual
+  criterio que la detección de duplicados de Catálogos pero exacto en vez de "contains"),
+  categoría (por nombre), proveedor (por nombre — **los nuevos se crean como `INSTITUCION` por
+  defecto**, el Excel no trae columna de tipo; deuda técnica documentada arriba) y ubicación (por
+  código), vincula código de barras si no está ya tomado por otro medicamento. Cada fila corre en
+  su propia transacción Prisma y se procesan **secuencialmente** (no en paralelo) para que una fila
+  pueda reutilizar la categoría/proveedor/medicamento creado por una fila anterior del mismo
+  archivo. Una fila con error (falta un campo obligatorio, fecha inválida, cantidad inválida, etc.)
+  se reporta pero no aborta las demás. Auditoría granular: un registro por cada
+  medicamento/categoría/proveedor/ubicación creado + uno por cada entrada, igual que los endpoints
+  interactivos existentes. Solo ADMIN.
+- `GET /api/inventario/plantilla-excel`: genera el `.xlsx` con las 13 columnas, una fila de
+  ejemplo y una hoja "Instrucciones". Solo ADMIN.
+- Modal en `Entradas.tsx` (botón "Importar desde Excel", visible solo para ADMIN): descargar
+  plantilla, subir archivo, ver resumen (medicamentos creados/existentes, lotes registrados,
+  categorías/proveedores/ubicaciones creados, códigos vinculados) y la lista de errores/avisos por
+  fila.
+- Probado con un Excel de 4 filas (2 lotes del mismo medicamento nuevo para confirmar reutilización,
+  1 medicamento distinto, 1 fila con `cantidad` vacía a propósito): la fila inválida se reportó sin
+  afectar las otras 3, que se importaron correctamente con sus entidades relacionadas.
+
+**2. Autocompletado de medicamentos vía OpenFDA:**
+- `GET /api/catalogos/medicamentos/lookup-fda/:codigoBarras` (`catalogos.routes.ts`,
+  `authMiddleware` sin rol específico): convierte el GTIN/UPC-A/EAN-13 a NDC-10 (la estructura
+  estándar de un GTIN de empaque farmacéutico es `[relleno(2)][indicador(1)][NDC-10(10)][dígito
+  verificador(1)]` = 14 dígitos), y como el formato de guiones del NDC (4-4-2, 5-3-2 o 5-4-1)
+  depende del labeler y no es inferible del código de barras, se prueban los tres contra
+  `api.fda.gov/drug/label.json?search=openfda.package_ndc:"..."` hasta obtener resultado. Devuelve
+  `{ found: false }` (no 404) si no hay match. Verificado con el GTIN de ejemplo del Sucralfato
+  (`00303789205353` → NDC `0378-9205-35`, confirmado con curl y visualmente en el navegador).
+- En el modal "Nuevo medicamento" (`Medicamentos.tsx`): campo de escaneo arriba del formulario, solo
+  visible al crear (no al editar). Al presionar Enter busca primero localmente
+  (`/barcode/:codigo`); si no existe, consulta OpenFDA y auto-llena nombre genérico, comercial,
+  presentación, concentración y unidad de medida (los campos que OpenFDA no trae para ese registro
+  quedan en blanco para llenado manual — no todos los labels de la FDA tienen todos los campos).
+  Banner "Datos sugeridos por OpenFDA — verifique antes de guardar".
+- **Bug encontrado y corregido durante la verificación con Playwright:** el banner de "sugerido por
+  OpenFDA" quedaba visible también al abrir "Editar" en un medicamento sin relación, porque
+  `abrirEditar()` no reseteaba el estado `fdaSugerido` heredado de un uso previo del escaneo en
+  "Nuevo". Corregido agregando `setFdaSugerido(false)` en `abrirEditar()`.
+
+**3. Foto de medicamentos:**
+- Campo `imagenUrl String?` en `Medicamento` (`schema.prisma`, aplicado con `prisma db push`).
+- `POST /api/catalogos/medicamentos/:id/imagen` (`multer` en memoria, límite 5MB, solo
+  jpg/png/webp): guarda en `backend/uploads/medicamentos/<id>.<ext>`, borrando primero cualquier
+  archivo previo del mismo medicamento (incluso con otra extensión) para no dejar huérfanos.
+  `express.static('/uploads', ...)` en `server.ts`. Solo ADMIN.
+- Volumen nuevo `./backend/uploads:/app/uploads:z` en `docker-compose.yml` — sin este volumen las
+  fotos se pierden en cada `docker compose up --build` porque `backend/uploads` no estaba montado
+  (a diferencia de `src` y `prisma`, que sí lo estaban).
+- Proxy de `/uploads` agregado en `vite.config.ts` (dev) y `nginx.conf` (build de producción, sin
+  probar en runtime esta sesión — ver deuda técnica arriba).
+- En el modal de "Editar medicamento": preview de la imagen actual (o un ícono placeholder si no
+  tiene) + botón "Subir foto".
+
+**Verificación:** `tsc` limpio en backend y frontend en todo momento (se corrigió sobre la marcha un
+error de tipos en la validación de fecha del importador Excel). Verificación funcional con curl:
+plantilla Excel descargada y válida, importación de 4 filas con 1 error intencional aislado
+correctamente, lookup-fda contra el GTIN real del Sucralfato, subida de imagen con verificación de
+que el archivo se sirve vía `/uploads/...` tanto directo al API (3000) como a través del proxy de
+Vite (5173). Se instaló Playwright + Chromium headless ad hoc (no queda como dependencia del
+proyecto, mismo patrón que sesiones anteriores) para clic-through real de los 3 flujos nuevos con
+capturas de pantalla, que fue como se encontró y corrigió el bug del banner de OpenFDA persistente
+descrito arriba. `docker compose up --build` corrido para `api` y `web` (ambos tenían cambios en
+archivos no montados como volumen: `package.json` del backend y `vite.config.ts`/`nginx.conf` del
+frontend).
+
+**Datos de prueba dejados en la base de datos de desarrollo** (no se limpiaron, son claramente
+identificables): medicamentos "Loratadina" y "Omeprazol", proveedor "Farmacéutica de Prueba SA",
+categoría "Antihistamínico", ubicación "B-2", lotes con `numeroLote` `TEST-00x`, y una imagen de
+prueba (1×1 rojo) subida a "Loratadina". Limpiar manualmente si se quiere una BD de demo prolija
+antes de mostrar el sistema a terceros.
+
+**Commits:** 3 commits separados en `main` (sin rama feature): importación Excel, OpenFDA + foto de
+medicamentos (agrupados porque comparten los mismos archivos en Catálogos), e infraestructura de
+fotos (schema, volumen, proxy). Pendiente `git push origin main` — confirmar con el equipo antes de
+publicar.
