@@ -203,8 +203,48 @@ model Dispensacion {
   beneficiario Beneficiario @relation(fields: [beneficiarioId], references: [id])
   usuario      Usuario      @relation(fields: [usuarioId], references: [id])
   detalles     DetalleDispensacion[]
+  fotos        FotoDispensacion[]
+  tokenCaptura TokenCaptura?
 
   @@map("dispensaciones")
+}
+
+// Evidencia fotográfica de la dispensación (receta y entrega), capturada desde
+// el celular vía la pantalla pública /captura/:token.
+enum TipoFoto {
+  RECETA
+  EVIDENCIA_ENTREGA
+}
+
+model FotoDispensacion {
+  id             String   @id @default(uuid())
+  dispensacionId String   @map("dispensacion_id")
+  tipo           TipoFoto
+  imagenUrl      String   @map("imagen_url")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  // Relaciones
+  dispensacion Dispensacion @relation(fields: [dispensacionId], references: [id])
+
+  // Una sola foto vigente por tipo: subir de nuevo el mismo tipo reemplaza la anterior.
+  @@unique([dispensacionId, tipo])
+  @@map("fotos_dispensacion")
+}
+
+// Token de un solo uso que autoriza la subida de fotos SIN sesión iniciada.
+// Es la credencial que viaja en el QR, por eso debe ser aleatorio y de vida corta.
+model TokenCaptura {
+  id             String   @id @default(uuid())
+  dispensacionId String   @unique @map("dispensacion_id")
+  token          String   @unique
+  usado          Boolean  @default(false)
+  expiraEn       DateTime @map("expira_en")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  // Relaciones
+  dispensacion Dispensacion @relation(fields: [dispensacionId], references: [id])
+
+  @@map("tokens_captura")
 }
 
 model DetalleDispensacion {

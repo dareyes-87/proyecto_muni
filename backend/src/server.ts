@@ -11,6 +11,7 @@ import usuariosRoutes from './routes/usuarios.routes';
 import catalogosRoutes from './routes/catalogos.routes';
 import inventarioRoutes from './routes/inventario.routes';
 import dispensacionRoutes from './routes/dispensacion.routes';
+import capturaRoutes from './routes/captura.routes';
 import reportesRoutes from './routes/reportes.routes';
 import auditoriaRoutes from './routes/auditoria.routes';
 
@@ -27,6 +28,8 @@ app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/catalogos', catalogosRoutes);
 app.use('/api/inventario', inventarioRoutes);
 app.use('/api/dispensacion', dispensacionRoutes);
+// Público a propósito (captura de evidencia desde el celular vía QR) — ver captura.routes.ts
+app.use('/api/captura', capturaRoutes);
 app.use('/api/reportes', reportesRoutes);
 app.use('/api/auditoria', auditoriaRoutes);
 

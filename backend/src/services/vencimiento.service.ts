@@ -1,5 +1,6 @@
 import cron from 'node-cron';
 import { PrismaClient } from '@prisma/client';
+import { limpiarTokensExpirados } from './dispensacion.service';
 
 const prisma = new PrismaClient();
 
@@ -31,6 +32,17 @@ export function iniciarCronVencimiento(): void {
       }
     } catch (error) {
       console.error('❌ Error en cron de vencimiento:', error);
+    }
+
+    // Limpieza de tokens de captura vencidos (independiente de lo anterior:
+    // si falla el marcado de lotes, igual queremos purgar los tokens).
+    try {
+      const tokensBorrados = await limpiarTokensExpirados();
+      if (tokensBorrados > 0) {
+        console.log(`🧹 ${tokensBorrados} token(s) de captura expirado(s) eliminado(s)`);
+      }
+    } catch (error) {
+      console.error('❌ Error limpiando tokens de captura:', error);
     }
   });
 

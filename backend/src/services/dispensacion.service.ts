@@ -1,4 +1,7 @@
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient, Prisma, TipoFoto } from '@prisma/client';
+import { nanoid } from 'nanoid';
+import path from 'path';
+import fs from 'fs';
 
 const prisma = new PrismaClient();
 
@@ -72,6 +75,7 @@ export async function obtenerBeneficiario(id: string) {
         orderBy: { createdAt: 'desc' },
         include: {
           usuario: { select: { nombreCompleto: true } },
+          fotos: { select: { id: true, tipo: true, imagenUrl: true } },
           detalles: {
             select: {
               cantidad: true,
@@ -311,6 +315,7 @@ export async function obtenerHistorial(filtros: {
       include: {
         beneficiario: { select: { nombreCompleto: true, dpi: true } },
         usuario: { select: { nombreCompleto: true } },
+        fotos: { select: { id: true, tipo: true, imagenUrl: true } },
         detalles: {
           select: {
             cantidad: true,
@@ -341,6 +346,7 @@ export async function obtenerDispensacion(id: string) {
     include: {
       beneficiario: true,
       usuario: { select: { nombreCompleto: true } },
+      fotos: { select: { id: true, tipo: true, imagenUrl: true, createdAt: true } },
       detalles: {
         include: {
           lote: { select: { numeroLote: true, fechaVencimiento: true } },
@@ -355,6 +361,180 @@ export async function obtenerDispensacion(id: string) {
   }
 
   return dispensacion;
+}
+
+// ============================================
+// EVIDENCIA FOTOGRÁFICA (captura desde celular vía QR)
+// ============================================
+
+/** Minutos de vida de un token de captura. */
+const TOKEN_VIGENCIA_MIN = 30;
+
+/** Directorio raíz donde se guardan las fotos de dispensaciones. */
+export const UPLOADS_DISPENSACIONES = path.join(
+  __dirname,
+  '..',
+  '..',
+  'uploads',
+  'dispensaciones'
+);
+
+/**
+ * Devuelve el token de captura vigente de una dispensación, o crea uno nuevo.
+ * `dispensacionId` es único en TokenCaptura, así que si ya hay una fila pero el
+ * token venció o ya se usó, se reemplaza el valor en vez de insertar otra.
+ */
+export async function generarTokenCaptura(dispensacionId: string) {
+  const dispensacion = await prisma.dispensacion.findUnique({
+    where: { id: dispensacionId },
+    select: { id: true },
+  });
+  if (!dispensacion) {
+    throw new Error('Dispensación no encontrada');
+  }
+
+  const ahora = new Date();
+  const existente = await prisma.tokenCaptura.findUnique({
+    where: { dispensacionId },
+  });
+
+  if (existente && !existente.usado && existente.expiraEn > ahora) {
+    return {
+      token: existente.token,
+      url: `/captura/${existente.token}`,
+      expiraEn: existente.expiraEn,
+    };
+  }
+
+  const token = nanoid(10);
+  const expiraEn = new Date(ahora.getTime() + TOKEN_VIGENCIA_MIN * 60_000);
+
+  const registro = await prisma.tokenCaptura.upsert({
+    where: { dispensacionId },
+    update: { token, expiraEn, usado: false },
+    create: { dispensacionId, token, expiraEn },
+  });
+
+  return {
+    token: registro.token,
+    url: `/captura/${registro.token}`,
+    expiraEn: registro.expiraEn,
+  };
+}
+
+export async function obtenerFotos(dispensacionId: string) {
+  return prisma.fotoDispensacion.findMany({
+    where: { dispensacionId },
+    orderBy: { createdAt: 'asc' },
+    select: { id: true, tipo: true, imagenUrl: true, createdAt: true },
+  });
+}
+
+/**
+ * Valida un token de captura y devuelve el contexto mínimo que necesita la
+ * pantalla móvil. Lanza si el token no existe, ya se usó o expiró — desde el
+ * punto de vista del cliente los tres casos son indistinguibles (404), para no
+ * filtrar si un token existió alguna vez.
+ */
+export async function obtenerCapturaPorToken(token: string) {
+  const registro = await prisma.tokenCaptura.findUnique({
+    where: { token },
+    include: {
+      dispensacion: {
+        select: {
+          id: true,
+          createdAt: true,
+          beneficiario: { select: { nombreCompleto: true } },
+          fotos: { select: { tipo: true } },
+        },
+      },
+    },
+  });
+
+  if (!registro || registro.usado || registro.expiraEn <= new Date()) {
+    throw new Error('Enlace inválido o expirado');
+  }
+
+  return {
+    dispensacionId: registro.dispensacion.id,
+    beneficiario: registro.dispensacion.beneficiario.nombreCompleto,
+    fecha: registro.dispensacion.createdAt,
+    expiraEn: registro.expiraEn,
+    fotosSubidas: registro.dispensacion.fotos.map((f) => f.tipo),
+  };
+}
+
+const EXT_POR_MIME: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+};
+
+export function extensionDeMime(mimetype: string): string | null {
+  return EXT_POR_MIME[mimetype] ?? null;
+}
+
+/**
+ * Guarda (o reemplaza) la foto de un tipo para la dispensación asociada al token.
+ * Cuando ya están las dos, marca el token como usado para que el enlace deje de
+ * servir — es lo que impide que un QR fotografiado siga aceptando subidas.
+ */
+export async function registrarFotoCaptura(
+  token: string,
+  tipo: TipoFoto,
+  archivo: { buffer: Buffer; mimetype: string }
+) {
+  const contexto = await obtenerCapturaPorToken(token);
+  const ext = extensionDeMime(archivo.mimetype);
+  if (!ext) {
+    throw new Error('Formato de imagen no permitido. Use JPG, PNG o WEBP');
+  }
+
+  const dispensacionId = contexto.dispensacionId;
+  const carpeta = path.join(UPLOADS_DISPENSACIONES, dispensacionId);
+  fs.mkdirSync(carpeta, { recursive: true });
+
+  // Borrar cualquier archivo previo del mismo tipo (puede tener otra extensión).
+  for (const archivoPrevio of fs.readdirSync(carpeta)) {
+    if (archivoPrevio.startsWith(`${tipo}.`)) {
+      fs.unlinkSync(path.join(carpeta, archivoPrevio));
+    }
+  }
+
+  const nombreArchivo = `${tipo}.${ext}`;
+  fs.writeFileSync(path.join(carpeta, nombreArchivo), archivo.buffer);
+  const imagenUrl = `/uploads/dispensaciones/${dispensacionId}/${nombreArchivo}`;
+
+  await prisma.fotoDispensacion.upsert({
+    where: { dispensacionId_tipo: { dispensacionId, tipo } },
+    update: { imagenUrl, createdAt: new Date() },
+    create: { dispensacionId, tipo, imagenUrl },
+  });
+
+  const fotos = await prisma.fotoDispensacion.findMany({
+    where: { dispensacionId },
+    select: { tipo: true },
+  });
+  const fotosSubidas = fotos.map((f) => f.tipo);
+
+  const completo =
+    fotosSubidas.includes('RECETA') && fotosSubidas.includes('EVIDENCIA_ENTREGA');
+  if (completo) {
+    await prisma.tokenCaptura.update({
+      where: { token },
+      data: { usado: true },
+    });
+  }
+
+  return { dispensacionId, fotosSubidas, completo };
+}
+
+/** Borra los tokens ya vencidos. Lo llama el cron diario. */
+export async function limpiarTokensExpirados(): Promise<number> {
+  const { count } = await prisma.tokenCaptura.deleteMany({
+    where: { expiraEn: { lt: new Date() } },
+  });
+  return count;
 }
 
 // ============================================

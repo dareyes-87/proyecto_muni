@@ -10,6 +10,8 @@ import {
   obtenerHistorial,
   obtenerDispensacion,
   obtenerStockMedicamento,
+  generarTokenCaptura,
+  obtenerFotos,
 } from '../services/dispensacion.service';
 
 const router = Router();
@@ -201,6 +203,44 @@ router.get('/stock/:medicamentoId', authMiddleware, async (req: Request, res: Re
     res.json(stock);
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Error al obtener stock' });
+  }
+});
+
+// ============================================
+// EVIDENCIA FOTOGRÁFICA (lado escritorio)
+// ============================================
+
+// POST /api/dispensacion/:id/generar-token
+// Genera (o reutiliza) el token que va dentro del QR para capturar desde el celular.
+router.post('/:id/generar-token', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params as { id: string };
+    const resultado = await generarTokenCaptura(id);
+
+    await registrarAuditoria({
+      usuarioId: req.user!.userId,
+      accion: 'CREAR',
+      entidad: 'TokenCaptura',
+      entidadId: id,
+      datosNuevos: { dispensacionId: id, expiraEn: resultado.expiraEn },
+      ipAddress: req.ip,
+    });
+
+    res.json(resultado);
+  } catch (error: any) {
+    const status = error.message?.includes('no encontrada') ? 404 : 500;
+    res.status(status).json({ error: error.message || 'Error al generar el token de captura' });
+  }
+});
+
+// GET /api/dispensacion/:id/fotos
+router.get('/:id/fotos', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params as { id: string };
+    const fotos = await obtenerFotos(id);
+    res.json({ data: fotos });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Error al obtener las fotos' });
   }
 });
 
