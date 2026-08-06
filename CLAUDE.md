@@ -1007,10 +1007,56 @@ desarrollo.
 `capture="environment"` abre la cámara trasera. Requiere hardware real. Pasos para que el equipo lo
 pruebe en la farmacia: ver "Prueba pendiente con celular real (captura por QR)" más arriba.
 
-**Datos de prueba dejados en la BD de desarrollo:** beneficiaria "María López Pérez" (DPI
-1234567890123) con 4 dispensaciones de Loratadina en distintos estados de evidencia (2 completas,
-1 parcial, 1 sin fotos), usadas para verificar los 3 badges. Consumieron 8 unidades del stock de
-prueba de Loratadina. No se limpiaron porque revertir dispensaciones implica restaurar
-`cantidad_actual` de los lotes a mano, y son datos claramente identificables.
+**Datos de prueba:** se generaron 5 dispensaciones de Loratadina a la beneficiaria de prueba
+"María López Pérez" (DPI 1234567890123) en distintos estados de evidencia, para verificar los 3
+badges. **Ya se limpiaron** — ver la sesión de limpieza más abajo.
 
 **Commits:** `f4ff51d` (backend) y `a2b4a36` (frontend), pusheados a `origin/main`.
+
+### 2026-08-06 — Limpieza de dispensaciones de prueba y restauración de stock
+
+Limpieza de los datos que dejó la sesión anterior, sin ajustes de stock a ojo.
+
+**Corrección de un dato mal reportado:** la sesión anterior dijo "4 dispensaciones / 8 unidades".
+Al inspeccionar la BD resultaron ser **5 dispensaciones y 9 unidades** — faltaba contar la que
+generó la prueba del botón "Omitir fotos". Es un recordatorio de que el conteo de datos de prueba
+hay que sacarlo de la BD, no de la memoria de lo que uno cree que ejecutó.
+
+**Método (importante si hay que repetirlo):** la atribución por lote se leyó de
+`DetalleDispensacion`, que guarda el `loteId` exacto que se descontó en cada línea. No se repartió
+el total a ojo. Resultó que el FIFO había partido las 9 unidades entre dos lotes de forma no
+uniforme:
+- `TEST-001`: 5 + 1 + 1 = **7 unidades**
+- `TEST-002`: 1 + 1 = **2 unidades**
+
+El reparto desigual se explica porque ambos lotes tienen **la misma `fechaVencimiento`**
+(2027-06-30, vienen de la misma importación de Excel), así que el `ORDER BY fecha_vencimiento ASC`
+del FIFO no los desempata de forma determinista y Postgres los devolvió en distinto orden entre
+llamadas. No es un bug — con fechas iguales cualquier orden es igual de válido — pero conviene
+saberlo: **no se puede asumir que el FIFO agota un lote antes de tocar el siguiente cuando hay
+empates de fecha.**
+
+**Ejecución:** todo en una transacción Prisma, borrando en orden de FK (`FotoDispensacion` y
+`TokenCaptura` → `DetalleDispensacion` → `Dispensacion`) y devolviendo `cantidadActual` lote por
+lote. La lógica incluye revertir `AGOTADO → DISPONIBLE` si un lote se hubiera vaciado por la
+dispensación (no aplicó en este caso, ninguno llegó a 0), y deja intactos `VENCIDO`/`DADO_DE_BAJA`,
+que son decisiones aparte. Antes de borrar se volcó un respaldo JSON de todo lo eliminado.
+
+**Verificación:** `GET /api/inventario/medicamento/:id` devuelve **250 unidades**, que es
+exactamente la suma de las `cantidad` originales de los dos lotes (200 + 50). El invariante fuerte
+que se comprobó es `cantidad_actual == cantidad` en todos los lotes, posible porque antes se
+confirmó que **ningún `DetalleDispensacion` ajeno tocaba esos lotes** (0 resultados) — sin esa
+comprobación previa, esa igualdad no sería una verificación válida. También: 0 dispensaciones en el
+sistema, 0 registros en `FotoDispensacion` y `TokenCaptura`, y `uploads/dispensaciones/` vacío
+salvo el `.gitkeep` (sin archivos huérfanos).
+
+**Lo que NO se borró, a propósito:**
+- **Los 11 registros de `LogAuditoria`** de esas dispensaciones. Es un registro de auditoría: su
+  valor está en ser inmutable, y borrarlo para maquillar una BD de demo sería justamente lo que la
+  auditoría debe impedir. Quedan como constancia de que esas operaciones ocurrieron y se
+  revirtieron.
+- **La beneficiaria "María López Pérez"**, que sigue en el catálogo sin dispensaciones asociadas.
+  La instrucción fue borrar las dispensaciones; borrarla a ella es un paso aparte y trivial si se
+  quiere.
+- Los medicamentos, lotes, categorías y proveedores de prueba de la sesión del 2026-08-04 (los
+  `TEST-00x`), que siguen ahí.
