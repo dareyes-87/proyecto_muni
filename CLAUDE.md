@@ -230,6 +230,7 @@ farma-rh/
 - [x] Página de Beneficiarios (listado, búsqueda, historial)
 - [x] Componente de escaneo de código de barras para dispensación
 - [x] Lógica de concurrencia: SELECT FOR UPDATE + transacción Serializable
+- [x] Evidencia fotográfica con flujo de dos dispositivos (QR + captura desde celular) (sesión 2026-08-06, ver Historial)
 
 **Estado actual:** Módulo completo — backend y frontend implementados. Mergeado a `main` el 2026-06-27; correcciones finales (cast de `req.params`, modal de confirmación, import sin usar) mergeadas el 2026-07-19 tras verificación integral con los tres módulos.
 
@@ -354,9 +355,9 @@ El sistema soporta 4 usuarios simultáneos. Para evitar inconsistencias de inven
 
 ## Estado al reanudar
 
-> Última actualización: 2026-08-04 — 3 mejoras urgentes para agilizar el registro en campo:
-> importación masiva de inventario por Excel, autocompletado de medicamentos vía OpenFDA al
-> escanear código de barras, y foto de medicamentos. Deadline del proyecto: 2026-08-29.
+> Última actualización: 2026-08-06 — evidencia fotográfica de dispensación con flujo de dos
+> dispositivos: la encargada registra en la computadora y toma las fotos desde su celular
+> escaneando un QR, sin transferir archivos. Deadline del proyecto: 2026-08-29.
 > **Proyecto funcionalmente completo según la especificación técnica v1**, ahora con mejoras de
 > productividad sobre ese alcance base.
 
@@ -365,7 +366,8 @@ El sistema soporta 4 usuarios simultáneos. Para evitar inconsistencias de inven
 | Módulo | Rutas activas | Estado |
 |--------|--------------|--------|
 | Inventario (Daniel) | `/inventario`, `/entradas` | ✅ Completo |
-| Dispensación (Jorge) | `/dispensacion`, `/beneficiarios` | ✅ Completo, verificado integrado con Catálogos e Inventario |
+| Dispensación (Jorge) | `/dispensacion`, `/beneficiarios` | ✅ Completo, con evidencia fotográfica vía QR |
+| Captura móvil | `/captura/:token` (**pública, sin login**) | ✅ Completa, ver sesión 2026-08-06 |
 | Admin / Usuarios (Daniel) | `/usuarios` (solo ADMIN) | ✅ Completo |
 | Auditoría | `/auditoria` (solo ADMIN) | ✅ Completo |
 | Dashboard | `/` | ✅ Con alertas reales |
@@ -386,6 +388,12 @@ El sistema soporta 4 usuarios simultáneos. Para evitar inconsistencias de inven
   en esta sesión — el `docker-compose.yml` de este proyecto usa `FRONTEND_TARGET=development` por
   defecto (Vite en :5173), que sí se verificó funcionando. Antes de desplegar a producción con
   `FRONTEND_TARGET=production`, confirmar que las fotos cargan a través de nginx.
+- **El flujo de captura por QR no se probó con un celular físico** (no hay forma de escanear un QR
+  real ni de abrir la cámara desde el entorno de desarrollo). Sí se verificó todo lo demás
+  end-to-end en navegador. Ver "Prueba pendiente con celular real" abajo.
+- Las fotos de dispensación no se borran nunca: al dar de baja o corregir una dispensación, los
+  archivos en `backend/uploads/dispensaciones/<id>/` quedan. No es un problema con el volumen
+  actual, pero conviene tenerlo presente si el sistema corre por años.
 
 ### Pendiente para el equipo
 
@@ -397,9 +405,29 @@ El sistema soporta 4 usuarios simultáneos. Para evitar inconsistencias de inven
   tickets, devoluciones, alertas de tratamientos recurrentes, código de barras visual en PDFs,
   super admin multi-tienda, integración con sistema de trámites municipal.
 - Si se cambia `docker-compose.yml` o `.env` con datos reales de producción, recordar que
-  `backend/uploads/medicamentos/` ahora es un volumen bind-mount — no se pierde entre reinicios,
-  pero si se hace `docker compose down -v` **no se borra** (no está en el volumen nombrado
-  `pgdata`), es una carpeta del host.
+  `backend/uploads/medicamentos/` y `backend/uploads/dispensaciones/` son volúmenes bind-mount —
+  no se pierden entre reinicios, pero si se hace `docker compose down -v` **no se borran** (no
+  están en el volumen nombrado `pgdata`), son carpetas del host.
+
+### Prueba pendiente con celular real (captura por QR)
+
+Todo el flujo se verificó en navegador, pero **nadie lo ha probado escaneando el QR con un celular
+de verdad**. Para hacerlo en la farmacia:
+
+1. Averiguar la IP del equipo de escritorio en la red local: `ip addr | grep "inet 192"`.
+2. Acceder al sistema desde esa IP, **no** desde `localhost`: `http://192.168.x.x:5173`. El QR se
+   arma con `window.location.origin`, así que si la encargada entró por `localhost` el QR dirá
+   `localhost` y el celular no podrá abrirlo. Este es el error más probable en la primera prueba.
+3. Confirmar que el celular está en la misma red WiFi que el equipo.
+4. Si el celular no carga la página, revisar el firewall del host:
+   `sudo firewall-cmd --add-port=5173/tcp --add-port=3000/tcp` (agregar `--permanent` para que
+   sobreviva a reinicios).
+5. Escanear el QR y confirmar que los botones abren la **cámara trasera** directamente.
+
+> No hace falta HTTPS: `<input type="file" capture="environment">` abre la app de cámara nativa y
+> no usa `getUserMedia`, así que no requiere contexto seguro. Si en el futuro se cambiara a captura
+> con vista previa en vivo dentro del navegador, ahí sí haría falta HTTPS y esto dejaría de
+> funcionar sobre IP de red local.
 
 ### Primer paso cuando se reanude la sesión
 
@@ -897,3 +925,92 @@ antes de mostrar el sistema a terceros.
 medicamentos (agrupados porque comparten los mismos archivos en Catálogos), e infraestructura de
 fotos (schema, volumen, proxy). Pendiente `git push origin main` — confirmar con el equipo antes de
 publicar.
+
+### 2026-08-06 — Evidencia fotográfica de dispensación con flujo de dos dispositivos
+
+La encargada registra la dispensación en la computadora de escritorio y toma las fotos (receta y
+entrega) desde su celular escaneando un código QR, sin transferir archivos entre dispositivos.
+
+**Backend:**
+- Modelos nuevos en `schema.prisma`: `FotoDispensacion` (con enum `TipoFoto`:
+  `RECETA`/`EVIDENCIA_ENTREGA`) y `TokenCaptura`, más las relaciones inversas en `Dispensacion`.
+  Aplicado con `prisma db push`.
+- `POST /api/dispensacion/:id/generar-token` (autenticado): token `nanoid` de 10 chars, 30 minutos
+  de vigencia. Si ya hay uno vigente lo devuelve en vez de crear otro. Como `dispensacionId` es
+  `@unique` en `TokenCaptura`, la regeneración es un `upsert` sobre la misma fila (no se acumulan
+  filas por dispensación).
+- `GET /api/dispensacion/:id/fotos` (autenticado): lo consume el sondeo de la pantalla de escritorio.
+- `backend/src/routes/captura.routes.ts` (**nuevo, público, montado en `/api/captura`**):
+  `GET /:token/info` y `POST /:token/foto`. No llevan `authMiddleware` a propósito — el celular no
+  tiene sesión y la credencial es el token del QR.
+- Limpieza de tokens vencidos agregada al cron diario ya existente (`vencimiento.service.ts`), en
+  su propio `try/catch` para que un fallo al marcar lotes vencidos no impida purgar los tokens.
+- Las fotos se guardan en `backend/uploads/dispensaciones/<dispensacionId>/<TIPO>.<ext>`. **No hizo
+  falta agregar un `express.static` nuevo**: el de `/uploads` que ya existía desde la sesión del
+  2026-08-04 las sirve. Sí se agregó el volumen y la regla de `.gitignore` correspondientes.
+
+**Sobre la seguridad de los endpoints públicos** (leer antes de tocarlos): que no lleven auth es
+deliberado, pero el token está acotado por varios lados a la vez, y quitar cualquiera de estos
+límites amplía la superficie de forma no obvia:
+- Es aleatorio (`nanoid`, 10 chars) y vive 30 minutos.
+- Sirve para **una sola** dispensación, la suya.
+- Solo acepta los 2 tipos de foto del enum; cualquier otro valor es 400.
+- Solo jpg/png/webp y máximo 5MB.
+- Se agregó `@@unique([dispensacionId, tipo])` en `FotoDispensacion` (**esto no estaba en la
+  especificación original de la tarea**): volver a subir el mismo tipo *reemplaza* la foto y borra
+  el archivo anterior, en vez de acumular. Sin esa restricción, un endpoint público permitiría
+  llenar el disco con un solo token válido, y el conteo de "2 fotos = evidencia completa" sería
+  incorrecto al haber duplicados del mismo tipo.
+- Se marca como `usado` en cuanto están las dos fotos, así que un QR fotografiado por un tercero
+  deja de servir.
+- Token inexistente, vencido y ya usado devuelven **el mismo 404**, sin distinguir cuál — para no
+  filtrar si un token existió alguna vez.
+
+**Frontend:**
+- `Dispensacion.tsx`: tras despachar se guarda el id de la dispensación, se pide el token y se
+  muestra el QR (`react-qr-code`) con indicadores de receta/entrega que se actualizan por sondeo
+  cada 3 s, más "Omitir fotos" (no bloquea el flujo) y "Siguiente dispensación". Si falla generar
+  el token se avisa pero no se interrumpe: la dispensación ya quedó registrada.
+- `Captura.tsx` (**nuevo**): página standalone mobile-first (`max-w-[420px]`, botones de 60px de
+  alto) en la ruta `/captura/:token`, declarada **fuera** de `ProtectedRoute` y sin `Layout`.
+- `api/captura.ts` (**nuevo**): las llamadas del celular usan una **instancia limpia de axios**, no
+  el `client.ts` compartido. Ese cliente inyecta el JWT y, ante un 401, limpia el storage y
+  redirige a `/login` — en el celular eso sacaría al usuario de la pantalla de captura.
+- `EvidenciaBadge.tsx` (**nuevo**) + thumbnails ampliables en el historial del detalle de
+  beneficiario. El historial vive en `Beneficiarios.tsx`, no en una página propia (no existe una
+  tabla de historial independiente en el sistema).
+
+**Decisión de diseño — URL del QR:** se arma con `window.location.origin`, no con el puerto 5173
+hardcodeado. En desarrollo da exactamente lo mismo (la encargada ya entra por `http://IP:5173`),
+pero así el QR no apunta a un puerto muerto si algún día se despliega con
+`FRONTEND_TARGET=production` (nginx en :80). Consecuencia práctica a recordar: **si la encargada
+entra por `localhost`, el QR dirá `localhost` y el celular no podrá abrirlo** — tiene que entrar
+por la IP de red local. Está documentado en "Prueba pendiente con celular real".
+
+**Verificación:** `tsc` limpio en backend y frontend, y además `vite build` (build de producción
+real, no solo chequeo de tipos). `docker compose up --build` de los 3 servicios sin errores en
+logs. Con curl: generación de token e idempotencia (segundo POST devuelve el mismo token), info y
+subida sin cabecera de auth, tipo inválido → 400, las 2 fotos → `completo: true`, y token ya usado
+→ 404 tanto en info como en subida. Token expirado probado forzando `expira_en` al pasado en la BD:
+404 en ambos endpoints. La limpieza del cron se ejecutó a mano y borró exactamente el token vencido
+(4 → 3). Con Playwright (instalado ad hoc, no queda como dependencia): flujo completo con **dos
+contextos de navegador separados** para simular escritorio y celular de verdad — se confirmó que el
+contexto móvil tiene el `localStorage` vacío y aun así carga la página, que la subida funciona,
+que el escritorio se actualiza solo por el sondeo, y que el badge verde aparece en el historial.
+También los 3 estados de badge (completa/parcial/sin evidencia), el visor de foto ampliada, el
+botón "Omitir fotos", y la pantalla de enlace inválido tanto con token falso como con token
+realmente vencido. Viewport 375×812 (`isMobile: true`). Cero errores de consola; los únicos 404 que
+aparecen son los de la prueba intencional de token inválido, duplicados por `React.StrictMode` en
+desarrollo.
+
+**Lo que NO se pudo verificar:** escanear el QR con la cámara de un celular físico y confirmar que
+`capture="environment"` abre la cámara trasera. Requiere hardware real. Pasos para que el equipo lo
+pruebe en la farmacia: ver "Prueba pendiente con celular real (captura por QR)" más arriba.
+
+**Datos de prueba dejados en la BD de desarrollo:** beneficiaria "María López Pérez" (DPI
+1234567890123) con 4 dispensaciones de Loratadina en distintos estados de evidencia (2 completas,
+1 parcial, 1 sin fotos), usadas para verificar los 3 badges. Consumieron 8 unidades del stock de
+prueba de Loratadina. No se limpiaron porque revertir dispensaciones implica restaurar
+`cantidad_actual` de los lotes a mano, y son datos claramente identificables.
+
+**Commits:** `f4ff51d` (backend) y `a2b4a36` (frontend), pusheados a `origin/main`.
