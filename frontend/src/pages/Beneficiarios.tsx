@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { Search, UserPlus, Users, Eye, Edit2, X, ChevronLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../api/client';
+import EvidenciaBadge from '../components/ui/EvidenciaBadge';
+import type { FotoDispensacion } from '../api/captura';
 
 // ============================================
 // TIPOS
@@ -23,6 +25,7 @@ interface BeneficiarioDetalle extends Beneficiario {
     createdAt: string;
     observaciones: string | null;
     usuario: { nombreCompleto: string };
+    fotos?: FotoDispensacion[];
     detalles: Array<{
       cantidad: number;
       nombreMedicamentoSnapshot: string;
@@ -43,6 +46,7 @@ export default function Beneficiarios() {
   const [showModal, setShowModal] = useState(false);
   const [editando, setEditando] = useState<Beneficiario | null>(null);
   const [detalle, setDetalle] = useState<BeneficiarioDetalle | null>(null);
+  const [fotoAmpliada, setFotoAmpliada] = useState<FotoDispensacion | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   // ============================================
@@ -140,15 +144,18 @@ export default function Beneficiarios() {
             <div className="space-y-3">
               {detalle.dispensaciones.map((disp) => (
                 <div key={disp.id} className="border border-gray-100 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-medium text-gray-700">
-                      {new Date(disp.createdAt).toLocaleDateString('es-GT', {
-                        weekday: 'long',
-                        day: '2-digit',
-                        month: 'long',
-                        year: 'numeric',
-                      })}
-                    </p>
+                  <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-medium text-gray-700">
+                        {new Date(disp.createdAt).toLocaleDateString('es-GT', {
+                          weekday: 'long',
+                          day: '2-digit',
+                          month: 'long',
+                          year: 'numeric',
+                        })}
+                      </p>
+                      <EvidenciaBadge fotos={disp.fotos} />
+                    </div>
                     <p className="text-xs text-gray-400">
                       Atendido por: {disp.usuario.nombreCompleto}
                     </p>
@@ -166,6 +173,28 @@ export default function Beneficiarios() {
 
                   {disp.observaciones && (
                     <p className="text-sm text-gray-400 italic mt-2">{disp.observaciones}</p>
+                  )}
+
+                  {disp.fotos && disp.fotos.length > 0 && (
+                    <div className="mt-3 flex gap-2">
+                      {disp.fotos.map((foto) => (
+                        <button
+                          key={foto.id}
+                          onClick={() => setFotoAmpliada(foto)}
+                          title={foto.tipo === 'RECETA' ? 'Receta' : 'Evidencia de entrega'}
+                          className="group relative h-16 w-16 overflow-hidden rounded-lg border border-gray-200 hover:border-primary-500"
+                        >
+                          <img
+                            src={foto.imagenUrl}
+                            alt={foto.tipo === 'RECETA' ? 'Receta' : 'Evidencia de entrega'}
+                            className="h-full w-full object-cover"
+                          />
+                          <span className="absolute inset-x-0 bottom-0 bg-black/60 text-[9px] text-white text-center py-0.5">
+                            {foto.tipo === 'RECETA' ? 'Receta' : 'Entrega'}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
                   )}
                 </div>
               ))}
@@ -185,6 +214,32 @@ export default function Beneficiarios() {
               buscar(query);
             }}
           />
+        )}
+
+        {/* Visor de foto ampliada */}
+        {fotoAmpliada && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+            onClick={() => setFotoAmpliada(null)}
+          >
+            <button
+              onClick={() => setFotoAmpliada(null)}
+              className="absolute top-4 right-4 text-white/80 hover:text-white"
+              aria-label="Cerrar"
+            >
+              <X size={28} />
+            </button>
+            <figure className="max-h-full" onClick={(e) => e.stopPropagation()}>
+              <img
+                src={fotoAmpliada.imagenUrl}
+                alt={fotoAmpliada.tipo === 'RECETA' ? 'Receta' : 'Evidencia de entrega'}
+                className="max-h-[80vh] max-w-full rounded-lg object-contain"
+              />
+              <figcaption className="mt-3 text-center text-sm text-white">
+                {fotoAmpliada.tipo === 'RECETA' ? 'Receta' : 'Evidencia de entrega'}
+              </figcaption>
+            </figure>
+          </div>
         )}
       </div>
     );

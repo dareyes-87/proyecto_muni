@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import Layout from './components/layout/Layout';
 import Login from './pages/Login';
+import Captura from './pages/Captura';
 import Dashboard from './pages/Dashboard';
 import Dispensacion from './pages/Dispensacion';
 import Beneficiarios from './pages/Beneficiarios';
@@ -45,6 +46,10 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+
+      {/* Captura de evidencia desde el celular: pública a propósito y fuera del
+          Layout — se abre escaneando el QR, sin sesión iniciada. */}
+      <Route path="/captura/:token" element={<Captura />} />
 
       <Route
         path="/"

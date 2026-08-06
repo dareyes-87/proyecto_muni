@@ -2,9 +2,16 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   HandHeart, Search, UserPlus, Trash2, X,
   AlertCircle, CheckCircle, Package, Barcode, ScanBarcode,
+  Smartphone, Circle, Loader2,
 } from 'lucide-react';
+import QRCode from 'react-qr-code';
 import toast from 'react-hot-toast';
 import api from '../api/client';
+import {
+  generarTokenCaptura,
+  obtenerFotosDispensacion,
+  type TipoFoto,
+} from '../api/captura';
 
 // ============================================
 // TIPOS
@@ -76,6 +83,22 @@ function SemaforoBadge({ fecha }: { fecha: string | null }) {
   );
 }
 
+/** Indicador de una foto pendiente/recibida en la pantalla de éxito. */
+function EstadoFoto({ subida, etiqueta }: { subida: boolean; etiqueta: string }) {
+  return (
+    <div className="flex items-center gap-2 text-sm">
+      {subida ? (
+        <CheckCircle size={18} className="text-emerald-500 shrink-0" />
+      ) : (
+        <Circle size={18} className="text-gray-300 shrink-0" />
+      )}
+      <span className={subida ? 'text-emerald-700 font-medium' : 'text-gray-500'}>
+        {etiqueta}: {subida ? 'recibida' : 'pendiente'}
+      </span>
+    </div>
+  );
+}
+
 // ============================================
 // COMPONENTE PRINCIPAL
 // ============================================
@@ -89,6 +112,12 @@ export default function Dispensacion() {
   const [despachando, setDespachando] = useState(false);
   const [exitoso, setExitoso] = useState(false);
   const [showConfirmacion, setShowConfirmacion] = useState(false);
+
+  // --- Evidencia fotográfica (QR + captura desde el celular) ---
+  const [dispensacionId, setDispensacionId] = useState<string | null>(null);
+  const [capturaToken, setCapturaToken] = useState<string | null>(null);
+  const [fotosSubidas, setFotosSubidas] = useState<TipoFoto[]>([]);
+  const [omitirFotos, setOmitirFotos] = useState(false);
 
   // --- Búsqueda de beneficiario ---
   const [queryBenef, setQueryBenef] = useState('');
@@ -251,7 +280,7 @@ export default function Dispensacion() {
 
     setDespachando(true);
     try {
-      await api.post('/dispensacion/despachar', {
+      const { data } = await api.post('/dispensacion/despachar', {
         beneficiarioId: beneficiario.id,
         observaciones: observaciones || null,
         items: carrito.map((i) => ({
@@ -260,8 +289,19 @@ export default function Dispensacion() {
         })),
       });
 
+      const nuevaId: string = data.dispensacion.id;
+      setDispensacionId(nuevaId);
       toast.success('Dispensación registrada correctamente');
       setExitoso(true);
+
+      // El QR es un extra: si falla generar el token, la dispensación ya quedó
+      // registrada y no hay que bloquear a la encargada por eso.
+      try {
+        const { token } = await generarTokenCaptura(nuevaId);
+        setCapturaToken(token);
+      } catch {
+        toast.error('No se pudo generar el código QR para las fotos');
+      }
     } catch (error: any) {
       const msg = error.response?.data?.error || 'Error al registrar dispensación';
       toast.error(msg);
@@ -270,6 +310,24 @@ export default function Dispensacion() {
     }
   };
 
+  // Polling del estado de las fotos mientras la pantalla de éxito está visible.
+  // Se detiene solo cuando ya están las dos o si la encargada omite las fotos.
+  useEffect(() => {
+    if (!exitoso || !dispensacionId || omitirFotos) return;
+    if (fotosSubidas.length >= 2) return;
+
+    const intervalo = setInterval(async () => {
+      try {
+        const fotos = await obtenerFotosDispensacion(dispensacionId);
+        setFotosSubidas(fotos.map((f) => f.tipo));
+      } catch {
+        /* silencioso: es un sondeo de fondo, no vale la pena alarmar */
+      }
+    }, 3000);
+
+    return () => clearInterval(intervalo);
+  }, [exitoso, dispensacionId, omitirFotos, fotosSubidas.length]);
+
   const nuevaDispensacion = () => {
     setBeneficiario(null);
     setHistorialReciente([]);
@@ -277,6 +335,10 @@ export default function Dispensacion() {
     setObservaciones('');
     setExitoso(false);
     setQueryBenef('');
+    setDispensacionId(null);
+    setCapturaToken(null);
+    setFotosSubidas([]);
+    setOmitirFotos(false);
   };
 
   // ============================================
@@ -284,20 +346,81 @@ export default function Dispensacion() {
   // ============================================
 
   if (exitoso) {
+    const tieneReceta = fotosSubidas.includes('RECETA');
+    const tieneEntrega = fotosSubidas.includes('EVIDENCIA_ENTREGA');
+    const evidenciaCompleta = tieneReceta && tieneEntrega;
+
+    // window.location.origin (y no un puerto fijo) para que el QR apunte a la IP
+    // real de la red local tanto en desarrollo (:5173) como en producción (:80).
+    const urlCaptura = capturaToken ? `${window.location.origin}/captura/${capturaToken}` : null;
+
     return (
-      <div className="max-w-lg mx-auto mt-12 text-center space-y-4">
-        <CheckCircle size={64} className="mx-auto text-green-500" />
-        <h2 className="text-2xl font-bold text-gray-900">Dispensación registrada</h2>
-        <p className="text-gray-500">
-          Se entregaron {carrito.length} medicamento(s) a{' '}
-          <span className="font-medium">{beneficiario?.nombreCompleto}</span>
-        </p>
-        <button
-          onClick={nuevaDispensacion}
-          className="px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-        >
-          Nueva dispensación
-        </button>
+      <div className="max-w-lg mx-auto mt-10 space-y-6">
+        <div className="text-center space-y-2">
+          <CheckCircle size={56} className="mx-auto text-green-500" />
+          <h2 className="text-2xl font-bold text-gray-900">Dispensación registrada</h2>
+          <p className="text-gray-500">
+            Se entregaron {carrito.length} medicamento(s) a{' '}
+            <span className="font-medium">{beneficiario?.nombreCompleto}</span>
+          </p>
+        </div>
+
+        {!omitirFotos && (
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            {evidenciaCompleta ? (
+              <div className="flex flex-col items-center gap-2 py-4 text-center">
+                <CheckCircle size={48} className="text-emerald-500" />
+                <p className="text-lg font-semibold text-emerald-700">Evidencia completa</p>
+                <p className="text-sm text-gray-500">Se recibieron las dos fotos.</p>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-center gap-2 text-sm font-medium text-primary-700 mb-4">
+                  <Smartphone size={18} />
+                  Escanee con el celular para tomar las fotos
+                </div>
+
+                <div className="flex justify-center">
+                  {urlCaptura ? (
+                    <div className="bg-white p-4 rounded-lg border border-gray-200">
+                      <QRCode value={urlCaptura} size={220} />
+                    </div>
+                  ) : (
+                    <div className="flex h-[252px] w-[252px] items-center justify-center rounded-lg border border-dashed border-gray-300 text-gray-400">
+                      <Loader2 className="animate-spin" size={28} />
+                    </div>
+                  )}
+                </div>
+
+                {urlCaptura && (
+                  <p className="mt-3 text-center text-xs text-gray-400 break-all">{urlCaptura}</p>
+                )}
+              </>
+            )}
+
+            <div className="mt-5 space-y-2 border-t border-gray-100 pt-4">
+              <EstadoFoto subida={tieneReceta} etiqueta="Foto de receta" />
+              <EstadoFoto subida={tieneEntrega} etiqueta="Foto de entrega" />
+            </div>
+          </div>
+        )}
+
+        <div className="flex gap-3">
+          {!omitirFotos && !evidenciaCompleta && (
+            <button
+              onClick={() => setOmitirFotos(true)}
+              className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50"
+            >
+              Omitir fotos
+            </button>
+          )}
+          <button
+            onClick={nuevaDispensacion}
+            className="flex-1 px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+          >
+            {evidenciaCompleta || omitirFotos ? 'Siguiente dispensación' : 'Nueva dispensación'}
+          </button>
+        </div>
       </div>
     );
   }
