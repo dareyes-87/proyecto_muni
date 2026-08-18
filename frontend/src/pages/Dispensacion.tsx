@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   HandHeart, Search, UserPlus, Trash2, X,
   AlertCircle, CheckCircle, Package, Barcode, ScanBarcode,
-  Smartphone, Circle, Loader2,
+  Smartphone, Circle, Loader2, Monitor, Upload,
 } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import toast from 'react-hot-toast';
@@ -10,6 +10,7 @@ import api from '../api/client';
 import {
   generarTokenCaptura,
   obtenerFotosDispensacion,
+  subirFotoCaptura,
   type TipoFoto,
 } from '../api/captura';
 
@@ -83,6 +84,91 @@ function SemaforoBadge({ fecha }: { fecha: string | null }) {
   );
 }
 
+// ============================================
+// SUBIDA DE FOTOS DESDE LA PC
+// ============================================
+// Alternativa al QR: permite subir fotos directamente desde la computadora
+// (útil cuando la red no permite comunicación entre dispositivos).
+
+function BotonSubidaPC({
+  tipo,
+  etiqueta,
+  token,
+  yaSubida,
+  onSubida,
+}: {
+  tipo: TipoFoto;
+  etiqueta: string;
+  token: string;
+  yaSubida: boolean;
+  onSubida: (fotosSubidas: TipoFoto[]) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [subiendo, setSubiendo] = useState(false);
+  const [preview, setPreview] = useState<string | null>(null);
+
+  useEffect(() => {
+    return () => { if (preview) URL.revokeObjectURL(preview); };
+  }, [preview]);
+
+  const manejarArchivo = async (file: File | undefined) => {
+    if (!file) return;
+    setPreview((ant) => { if (ant) URL.revokeObjectURL(ant); return URL.createObjectURL(file); });
+    setSubiendo(true);
+    try {
+      const resultado = await subirFotoCaptura(token, tipo, file);
+      onSubida(resultado.fotosSubidas);
+      toast.success(`Foto de ${etiqueta.toLowerCase()} subida`);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || `No se pudo subir la foto de ${etiqueta.toLowerCase()}`);
+      setPreview(null);
+    } finally {
+      setSubiendo(false);
+      if (inputRef.current) inputRef.current.value = '';
+    }
+  };
+
+  if (yaSubida) {
+    return (
+      <div className="flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2.5 text-sm font-medium text-emerald-700">
+        <CheckCircle size={18} />
+        {etiqueta} subida
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => manejarArchivo(e.target.files?.[0])}
+      />
+      {preview ? (
+        <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-2">
+          <img src={preview} alt={etiqueta} className="h-12 w-12 rounded object-cover" />
+          <span className="flex-1 text-sm text-gray-600">
+            {subiendo ? 'Subiendo...' : etiqueta}
+          </span>
+          {subiendo && <Loader2 className="animate-spin text-primary-500" size={18} />}
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={subiendo}
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+        >
+          <Upload size={16} />
+          Subir foto de {etiqueta.toLowerCase()}
+        </button>
+      )}
+    </div>
+  );
+}
+
 /** Indicador de una foto pendiente/recibida en la pantalla de éxito. */
 function EstadoFoto({ subida, etiqueta }: { subida: boolean; etiqueta: string }) {
   return (
@@ -113,11 +199,12 @@ export default function Dispensacion() {
   const [exitoso, setExitoso] = useState(false);
   const [showConfirmacion, setShowConfirmacion] = useState(false);
 
-  // --- Evidencia fotográfica (QR + captura desde el celular) ---
+  // --- Evidencia fotográfica (QR + captura desde el celular / subida desde PC) ---
   const [dispensacionId, setDispensacionId] = useState<string | null>(null);
   const [capturaToken, setCapturaToken] = useState<string | null>(null);
   const [fotosSubidas, setFotosSubidas] = useState<TipoFoto[]>([]);
   const [omitirFotos, setOmitirFotos] = useState(false);
+  const [modoEvidencia, setModoEvidencia] = useState<'qr' | 'pc'>('qr');
 
   // --- Búsqueda de beneficiario ---
   const [queryBenef, setQueryBenef] = useState('');
@@ -339,6 +426,7 @@ export default function Dispensacion() {
     setCapturaToken(null);
     setFotosSubidas([]);
     setOmitirFotos(false);
+    setModoEvidencia('qr');
   };
 
   // ============================================
@@ -350,9 +438,17 @@ export default function Dispensacion() {
     const tieneEntrega = fotosSubidas.includes('EVIDENCIA_ENTREGA');
     const evidenciaCompleta = tieneReceta && tieneEntrega;
 
-    // window.location.origin (y no un puerto fijo) para que el QR apunte a la IP
-    // real de la red local tanto en desarrollo (:5173) como en producción (:80).
-    const urlCaptura = capturaToken ? `${window.location.origin}/captura/${capturaToken}` : null;
+    // Si VITE_LAN_IP está configurada y estamos accediendo desde localhost,
+    // usar la IP de la LAN para que el celular pueda escanear el QR.
+    const origenQr = (() => {
+      const lanIp = import.meta.env.VITE_LAN_IP;
+      const host = window.location.hostname;
+      if (lanIp && (host === 'localhost' || host === '127.0.0.1')) {
+        return `http://${lanIp}:${window.location.port}`;
+      }
+      return window.location.origin;
+    })();
+    const urlCaptura = capturaToken ? `${origenQr}/captura/${capturaToken}` : null;
 
     return (
       <div className="max-w-lg mx-auto mt-10 space-y-6">
@@ -375,25 +471,86 @@ export default function Dispensacion() {
               </div>
             ) : (
               <>
-                <div className="flex items-center justify-center gap-2 text-sm font-medium text-primary-700 mb-4">
-                  <Smartphone size={18} />
-                  Escanee con el celular para tomar las fotos
+                {/* Tabs: QR celular / Subir desde PC */}
+                <div className="flex rounded-lg border border-gray-200 mb-4">
+                  <button
+                    type="button"
+                    onClick={() => setModoEvidencia('qr')}
+                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-l-lg transition-colors ${
+                      modoEvidencia === 'qr'
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Smartphone size={16} />
+                    QR Celular
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setModoEvidencia('pc')}
+                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-r-lg transition-colors ${
+                      modoEvidencia === 'pc'
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Monitor size={16} />
+                    Subir desde PC
+                  </button>
                 </div>
 
-                <div className="flex justify-center">
-                  {urlCaptura ? (
-                    <div className="bg-white p-4 rounded-lg border border-gray-200">
-                      <QRCode value={urlCaptura} size={220} />
+                {modoEvidencia === 'qr' ? (
+                  <>
+                    <div className="flex items-center justify-center gap-2 text-sm font-medium text-primary-700 mb-4">
+                      <Smartphone size={18} />
+                      Escanee con el celular para tomar las fotos
                     </div>
-                  ) : (
-                    <div className="flex h-[252px] w-[252px] items-center justify-center rounded-lg border border-dashed border-gray-300 text-gray-400">
-                      <Loader2 className="animate-spin" size={28} />
-                    </div>
-                  )}
-                </div>
 
-                {urlCaptura && (
-                  <p className="mt-3 text-center text-xs text-gray-400 break-all">{urlCaptura}</p>
+                    <div className="flex justify-center">
+                      {urlCaptura ? (
+                        <div className="bg-white p-4 rounded-lg border border-gray-200">
+                          <QRCode value={urlCaptura} size={220} />
+                        </div>
+                      ) : (
+                        <div className="flex h-[252px] w-[252px] items-center justify-center rounded-lg border border-dashed border-gray-300 text-gray-400">
+                          <Loader2 className="animate-spin" size={28} />
+                        </div>
+                      )}
+                    </div>
+
+                    {urlCaptura && (
+                      <p className="mt-3 text-center text-xs text-gray-400 break-all">{urlCaptura}</p>
+                    )}
+                  </>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-500 text-center mb-3">
+                      Seleccione las fotos desde esta computadora
+                    </p>
+                    {capturaToken ? (
+                      <>
+                        <BotonSubidaPC
+                          tipo="RECETA"
+                          etiqueta="Receta"
+                          token={capturaToken}
+                          yaSubida={tieneReceta}
+                          onSubida={(fotos) => setFotosSubidas(fotos)}
+                        />
+                        <BotonSubidaPC
+                          tipo="EVIDENCIA_ENTREGA"
+                          etiqueta="Entrega"
+                          token={capturaToken}
+                          yaSubida={tieneEntrega}
+                          onSubida={(fotos) => setFotosSubidas(fotos)}
+                        />
+                      </>
+                    ) : (
+                      <div className="flex items-center justify-center gap-2 py-4 text-gray-400">
+                        <Loader2 className="animate-spin" size={18} />
+                        <span className="text-sm">Generando token...</span>
+                      </div>
+                    )}
+                  </div>
                 )}
               </>
             )}

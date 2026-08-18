@@ -46,6 +46,8 @@ services:
       target: ${FRONTEND_TARGET:-development}
     container_name: farmag_web
     restart: unless-stopped
+    environment:
+      VITE_LAN_IP: ${LAN_IP:-}
     ports:
       - "80:80"
       - "5173:5173"
