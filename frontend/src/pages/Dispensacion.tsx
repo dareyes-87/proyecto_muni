@@ -444,7 +444,8 @@ export default function Dispensacion() {
       const lanIp = import.meta.env.VITE_LAN_IP;
       const host = window.location.hostname;
       if (lanIp && (host === 'localhost' || host === '127.0.0.1')) {
-        return `http://${lanIp}:${window.location.port}`;
+        const port = window.location.port;
+        return port ? `http://${lanIp}:${port}` : `http://${lanIp}`;
       }
       return window.location.origin;
     })();
