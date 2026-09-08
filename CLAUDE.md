@@ -355,11 +355,16 @@ El sistema soporta 4 usuarios simultáneos. Para evitar inconsistencias de inven
 
 ## Estado al reanudar
 
-> Última actualización: 2026-08-06 — evidencia fotográfica de dispensación con flujo de dos
-> dispositivos: la encargada registra en la computadora y toma las fotos desde su celular
-> escaneando un QR, sin transferir archivos. Deadline del proyecto: 2026-08-29.
-> **Proyecto funcionalmente completo según la especificación técnica v1**, ahora con mejoras de
-> productividad sobre ese alcance base.
+> Última actualización: 2026-09-07 — **rediseño de UI, sidebar colapsable y eliminación completa
+> del módulo de proveedores/procedencia** (frontend, backend y esquema). Este trabajo vive en la
+> rama `feature/dispensacion-evidencia-pc` (commit `194f8fb`), **sin push y sin merge a `main`
+> todavía** — la tabla "funciona HOY" de abajo describe `main`, que aún NO incluye estos cambios.
+> Ver la sesión 2026-09-07 en el Historial para el detalle. **Requiere `docker compose up --build`**
+> para aplicar el nuevo esquema (elimina la tabla `proveedores` y las columnas
+> `proveedor_id`/`origen` de `entradas`).
+>
+> Contexto previo (2026-08-06): evidencia fotográfica de dispensación con flujo de dos dispositivos
+> (QR + celular). **Proyecto funcionalmente completo según la especificación técnica v1.**
 
 ### Lo que está en `main` y funciona HOY
 
@@ -379,9 +384,10 @@ El sistema soporta 4 usuarios simultáneos. Para evitar inconsistencias de inven
 
 ### Deuda técnica pendiente
 
-- Los proveedores creados automáticamente por la importación de Excel quedan con `tipo:
-  INSTITUCION` por defecto (el Excel no trae esa columna) — revisar/corregir manualmente en
-  Catálogos > Proveedores si en realidad es una PERSONA.
+- ~~Proveedores creados por la importación de Excel con `tipo: INSTITUCION` por defecto~~ —
+  **obsoleto:** el módulo de proveedores/procedencia se eliminó por completo en la rama
+  `feature/dispensacion-evidencia-pc` (sesión 2026-09-07). Ya no se pide proveedor ni origen en
+  ninguna parte. (Sigue vigente en `main` hasta que se mergee esa rama.)
 - La conversión GTIN→NDC del lookup de OpenFDA asume que el NDC-11 usa alguno de los tres formatos
   de guion más comunes (4-4-2, 5-3-2, 5-4-1); no cubre todos los labelers registrados en la FDA.
 - `frontend/nginx.conf` (proxy de `/uploads/` para el build de producción) no se probó en runtime
@@ -1060,3 +1066,67 @@ salvo el `.gitkeep` (sin archivos huérfanos).
   quiere.
 - Los medicamentos, lotes, categorías y proveedores de prueba de la sesión del 2026-08-04 (los
   `TEST-00x`), que siguen ahí.
+
+### 2026-09-07 — Jorge Vargas — Rediseño de UI, sidebar colapsable y eliminación de proveedores
+
+Trabajo hecho sobre la rama `feature/dispensacion-evidencia-pc`, en un solo commit `194f8fb`
+(37 archivos, +1822 −2009). **Sin push y sin merge a `main`.** Se conservó la paleta e identidad
+visual en todo momento. `tsc` y `build` limpios en backend y frontend; esquema Prisma válido;
+verificación visual en navegador (Vite dev + sesión inyectada, la API no corría en el entorno).
+
+**1. Eliminación completa de proveedores / procedencia (frontend + backend + esquema):**
+- `schema.prisma`: se quitaron el modelo `Proveedor`, el enum `TipoProveedor`, el enum
+  `OrigenEntrada` y los campos `proveedorId`/`origen` de `Entrada`. **Se conservó
+  `Lote.costoUnitario`** (el costo no es procedencia y alimenta el reporte de mermas; ahora es un
+  campo siempre opcional en el formulario de entrada, ya no gateado por `origen`).
+- Backend: se borraron los endpoints CRUD de proveedores (`catalogos.routes.ts`); el registro de
+  entradas y la importación por Excel ya no piden/crean proveedor ni origen (plantilla e
+  instrucciones actualizadas); el reporte "Entradas por proveedor" pasó a **"Entradas"**
+  (`reporteEntradasProveedor`→`reporteEntradas`, ruta `/reportes/entradas-proveedor`→`/entradas`);
+  se limpiaron columnas/filtros de proveedor y origen en los reportes de inventario y de bajas;
+  seed sin proveedor de ejemplo.
+- Frontend: eliminada la página/pestaña de Proveedores, el selector de proveedor/origen en
+  Registrar entrada, los filtros/columnas en Reportes, la columna del historial de entradas y todos
+  los tipos/API relacionados (`Proveedor`, `Origen`, `TipoProveedor`, `proveedoresCreados`, etc.).
+- **Impacto operativo:** requiere `docker compose up --build` (el Dockerfile corre
+  `prisma db push --accept-data-loss`), que elimina la tabla `proveedores` y las columnas
+  `proveedor_id`/`origen` de `entradas`. Los lotes/entradas se conservan (solo se pierden esas
+  columnas). No hace falta `down -v`.
+
+**2. Librería de componentes reutilizables + limpieza de UI:** se creó `frontend/src/components/ui/`
+(`Button`, `Card`, `PageHeader`, `Field`/`TextInput`/`Select`, `Badge`/`StatusBadge`, `DataTable`,
+`SearchInput`, `EmptyState`, `ConfirmDialog`) y `utils/cn.ts`. Se eliminó el markup duplicado y el
+`inputClass` que estaba repetido idéntico en 6+ páginas; las fechas usan `utils/formatDate` en todas
+partes. Se unificaron modales, botones, inputs, badges y tablas en todas las páginas (incluidos
+Beneficiarios y Dispensación, que usaban otro estilo con `bg-primary-600`, modales propios y
+esquinas distintas). `window.confirm` de la baja de lote se reemplazó por `ConfirmDialog`.
+
+**3. Navegación agrupada + sidebar colapsable:** el sidebar plano de 12 items pasó a 7 entradas con
+grupos colapsables (Inventario, Administración). Se agregó un **botón para colapsar el sidebar en
+escritorio** a un riel de solo iconos (con tooltips; al hacer clic en un grupo desde el riel se
+expande); la preferencia se recuerda en `localStorage['farmag_sidebar_collapsed']`. El menú móvil
+(overlay + hamburguesa) sigue igual.
+
+**4. Catálogos unificado en pestañas:** las 4 páginas separadas (Medicamentos, Categorías,
+Proveedores, Ubicaciones) se consolidaron en una sola ruta `/catalogos` con pestañas internas
+(ahora 3 pestañas, sin Proveedores). Las rutas viejas (`/medicamentos`, etc.) redirigen. Un solo
+item de menú.
+
+**5. Dashboard rediseñado:** encabezado sobrio (saludo + fecha larga en español), banner de estado
+("Todo en orden" / "N asuntos requieren atención"), y secciones con jerarquía consistente y
+etiquetas en mayúsculas: **Acciones rápidas** (Dispensar / Registrar entrada), **Resumen** (KPIs de
+inventario: Medicamentos, Stock bajo, Por vencer, Dispensaciones hoy), **Requiere atención** (3
+paneles de alertas) y **Entradas recientes**. Ritmo vertical uniforme (`space-y-8`).
+
+**6. "Nuevo medicamento" movido a Registrar entrada:** se extrajo el formulario de crear/editar
+medicamento a un componente reutilizable `components/MedicamentoFormModal.tsx` (con escaneo +
+autocompletado OpenFDA y detección de duplicados), compartido entre Catálogos (editar) y Registrar
+entrada (crear). En Registrar entrada es un **botón secundario real "Nuevo medicamento"** junto al
+campo de escaneo de cada lote (antes era un enlace pequeño); al crear, autoselecciona el medicamento
+en ese lote. Se quitó el botón "Nuevo medicamento" del catálogo (queda una nota que remite a
+Registrar entrada); el catálogo conserva la edición.
+
+**Pendiente:** `git push origin feature/dispensacion-evidencia-pc` y merge a `main` (con el
+`docker compose up --build` correspondiente). Verificación visual con un browser real de las páginas
+que aún no se han click-through en navegador de forma exhaustiva (Catálogos/Auditoría) sigue
+pendiente como antes.
