@@ -1,13 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, UserPlus, Users, Eye, Edit2, X, ChevronLeft } from 'lucide-react';
+import { UserPlus, Users, Eye, Pencil, X, ChevronLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../api/client';
 import EvidenciaBadge from '../components/ui/EvidenciaBadge';
 import type { FotoDispensacion } from '../api/captura';
-
-// ============================================
-// TIPOS
-// ============================================
+import PageHeader from '../components/ui/PageHeader';
+import Button from '../components/ui/Button';
+import SearchInput from '../components/ui/SearchInput';
+import Card from '../components/ui/Card';
+import Modal from '../components/ui/Modal';
+import DataTable, { type Column } from '../components/ui/DataTable';
+import { Field, TextInput, inputClass } from '../components/ui/Field';
+import { formatFecha, formatFechaHora } from '../utils/formatDate';
 
 interface Beneficiario {
   id: string;
@@ -35,10 +39,6 @@ interface BeneficiarioDetalle extends Beneficiario {
   }>;
 }
 
-// ============================================
-// COMPONENTE PRINCIPAL
-// ============================================
-
 export default function Beneficiarios() {
   const [beneficiarios, setBeneficiarios] = useState<Beneficiario[]>([]);
   const [loading, setLoading] = useState(false);
@@ -49,20 +49,14 @@ export default function Beneficiarios() {
   const [fotoAmpliada, setFotoAmpliada] = useState<FotoDispensacion | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
-  // ============================================
-  // CARGAR / BUSCAR BENEFICIARIOS
-  // ============================================
-
   const buscar = async (texto: string) => {
     setLoading(true);
     try {
       const q = texto.trim() || '';
-      // Si hay query, buscar; si no, traer los más recientes
       if (q.length >= 2) {
         const { data } = await api.get(`/dispensacion/beneficiarios/buscar?q=${encodeURIComponent(q)}`);
         setBeneficiarios(data.data || []);
       } else if (q.length === 0) {
-        // Sin query, traer todos (el endpoint maneja vacío)
         const { data } = await api.get('/dispensacion/beneficiarios/buscar?q=');
         setBeneficiarios(data.data || []);
       }
@@ -83,10 +77,6 @@ export default function Beneficiarios() {
     return () => clearTimeout(debounceRef.current);
   }, [query]);
 
-  // ============================================
-  // VER DETALLE
-  // ============================================
-
   const verDetalle = async (id: string) => {
     try {
       const { data } = await api.get(`/dispensacion/beneficiarios/${id}`);
@@ -97,9 +87,8 @@ export default function Beneficiarios() {
   };
 
   // ============================================
-  // RENDER — VISTA DETALLE
+  // VISTA DETALLE
   // ============================================
-
   if (detalle) {
     return (
       <div className="space-y-6">
@@ -110,7 +99,7 @@ export default function Beneficiarios() {
           <ChevronLeft size={16} /> Volver al listado
         </button>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-5">
+        <Card>
           <div className="flex items-start justify-between">
             <div>
               <h1 className="text-xl font-bold text-gray-900">{detalle.nombreCompleto}</h1>
@@ -121,44 +110,36 @@ export default function Beneficiarios() {
                 {detalle.observaciones && <p className="italic text-gray-400">{detalle.observaciones}</p>}
               </div>
             </div>
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => {
                 setEditando(detalle);
                 setShowModal(true);
               }}
-              className="flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700"
             >
-              <Edit2 size={16} /> Editar
-            </button>
+              <Pencil size={16} /> Editar
+            </Button>
           </div>
-        </div>
+        </Card>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-5">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+        <Card>
+          <h2 className="mb-4 text-lg font-semibold text-gray-900">
             Historial de dispensaciones ({detalle.dispensaciones.length})
           </h2>
 
           {detalle.dispensaciones.length === 0 ? (
-            <p className="text-gray-400 text-center py-6">No hay dispensaciones registradas</p>
+            <p className="py-6 text-center text-gray-400">No hay dispensaciones registradas</p>
           ) : (
             <div className="space-y-3">
               {detalle.dispensaciones.map((disp) => (
-                <div key={disp.id} className="border border-gray-100 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-medium text-gray-700">
-                        {new Date(disp.createdAt).toLocaleDateString('es-GT', {
-                          weekday: 'long',
-                          day: '2-digit',
-                          month: 'long',
-                          year: 'numeric',
-                        })}
-                      </p>
+                <div key={disp.id} className="rounded-lg border border-gray-100 p-4">
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-medium text-gray-700">{formatFechaHora(disp.createdAt)}</p>
                       <EvidenciaBadge fotos={disp.fotos} />
                     </div>
-                    <p className="text-xs text-gray-400">
-                      Atendido por: {disp.usuario.nombreCompleto}
-                    </p>
+                    <p className="text-xs text-gray-400">Atendido por: {disp.usuario.nombreCompleto}</p>
                   </div>
 
                   <div className="space-y-1">
@@ -166,14 +147,13 @@ export default function Beneficiarios() {
                       <p key={i} className="text-sm text-gray-600">
                         • {det.nombreMedicamentoSnapshot} {det.presentacionSnapshot}
                         {det.concentracionSnapshot ? ` ${det.concentracionSnapshot}` : ''}
-                        {' — '}<span className="font-medium">{det.cantidad} unid.</span>
+                        {' — '}
+                        <span className="font-medium">{det.cantidad} unid.</span>
                       </p>
                     ))}
                   </div>
 
-                  {disp.observaciones && (
-                    <p className="text-sm text-gray-400 italic mt-2">{disp.observaciones}</p>
-                  )}
+                  {disp.observaciones && <p className="mt-2 text-sm italic text-gray-400">{disp.observaciones}</p>}
 
                   {disp.fotos && disp.fotos.length > 0 && (
                     <div className="mt-3 flex gap-2">
@@ -189,7 +169,7 @@ export default function Beneficiarios() {
                             alt={foto.tipo === 'RECETA' ? 'Receta' : 'Evidencia de entrega'}
                             className="h-full w-full object-cover"
                           />
-                          <span className="absolute inset-x-0 bottom-0 bg-black/60 text-[9px] text-white text-center py-0.5">
+                          <span className="absolute inset-x-0 bottom-0 bg-black/60 py-0.5 text-center text-[9px] text-white">
                             {foto.tipo === 'RECETA' ? 'Receta' : 'Entrega'}
                           </span>
                         </button>
@@ -200,13 +180,15 @@ export default function Beneficiarios() {
               ))}
             </div>
           )}
-        </div>
+        </Card>
 
-        {/* Modal de edición reutilizado */}
         {showModal && editando && (
           <ModalBeneficiario
             beneficiario={editando}
-            onClose={() => { setShowModal(false); setEditando(null); }}
+            onClose={() => {
+              setShowModal(false);
+              setEditando(null);
+            }}
             onGuardado={async () => {
               setShowModal(false);
               setEditando(null);
@@ -216,15 +198,11 @@ export default function Beneficiarios() {
           />
         )}
 
-        {/* Visor de foto ampliada */}
         {fotoAmpliada && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
-            onClick={() => setFotoAmpliada(null)}
-          >
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setFotoAmpliada(null)}>
             <button
               onClick={() => setFotoAmpliada(null)}
-              className="absolute top-4 right-4 text-white/80 hover:text-white"
+              className="absolute right-4 top-4 text-white/80 hover:text-white"
               aria-label="Cerrar"
             >
               <X size={28} />
@@ -246,100 +224,58 @@ export default function Beneficiarios() {
   }
 
   // ============================================
-  // RENDER — LISTADO PRINCIPAL
+  // LISTADO PRINCIPAL
   // ============================================
+  const columns: Column<Beneficiario>[] = [
+    { header: 'Nombre', cell: (b) => <span className="font-medium text-gray-900">{b.nombreCompleto}</span> },
+    { header: 'DPI', cell: (b) => <span className="text-gray-600">{b.dpi || '—'}</span> },
+    { header: 'Teléfono', className: 'hidden sm:table-cell', cell: (b) => <span className="text-gray-600">{b.telefono || '—'}</span> },
+    { header: 'Registrado', className: 'hidden md:table-cell', cell: (b) => <span className="text-gray-500">{b.createdAt ? formatFecha(b.createdAt) : '—'}</span> },
+    {
+      header: 'Acciones',
+      align: 'right',
+      cell: (b) => (
+        <div className="flex items-center justify-end gap-1">
+          <button onClick={() => verDetalle(b.id)} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100" title="Ver detalle">
+            <Eye size={16} />
+          </button>
+          <button onClick={() => { setEditando(b); setShowModal(true); }} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100" title="Editar">
+            <Pencil size={16} />
+          </button>
+        </div>
+      ),
+    },
+  ];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Users className="text-primary-600" size={28} />
-            Beneficiarios
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">Gestión de personas atendidas</p>
-        </div>
-        <button
-          onClick={() => { setEditando(null); setShowModal(true); }}
-          className="flex items-center gap-1.5 px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-        >
-          <UserPlus size={18} />
-          Nuevo beneficiario
-        </button>
+    <div>
+      <PageHeader
+        title="Beneficiarios"
+        subtitle="Gestión de personas atendidas"
+        actions={
+          <Button onClick={() => { setEditando(null); setShowModal(true); }}>
+            <UserPlus size={18} /> Nuevo beneficiario
+          </Button>
+        }
+      />
+
+      <div className="mb-4">
+        <SearchInput placeholder="Buscar por nombre o DPI..." value={query} onChange={(e) => setQuery(e.target.value)} />
       </div>
 
-      {/* Búsqueda */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-        <input
-          type="text"
-          placeholder="Buscar por nombre o DPI..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
-        />
-      </div>
+      <DataTable
+        columns={columns}
+        rows={beneficiarios}
+        keyFn={(b) => b.id}
+        loading={loading}
+        empty={
+          <span className="flex flex-col items-center text-gray-400">
+            <Users size={40} className="mb-2 opacity-50" />
+            {query ? 'No se encontraron resultados' : 'No hay beneficiarios registrados'}
+          </span>
+        }
+      />
 
-      {/* Tabla */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : beneficiarios.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
-            <Users size={40} className="mx-auto mb-2 opacity-50" />
-            <p>{query ? 'No se encontraron resultados' : 'No hay beneficiarios registrados'}</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Nombre</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600">DPI</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600 hidden sm:table-cell">Teléfono</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600 hidden md:table-cell">Registrado</th>
-                  <th className="text-right px-4 py-3 font-semibold text-gray-600">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {beneficiarios.map((b) => (
-                  <tr key={b.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-900">{b.nombreCompleto}</td>
-                    <td className="px-4 py-3 text-gray-600">{b.dpi || '—'}</td>
-                    <td className="px-4 py-3 text-gray-600 hidden sm:table-cell">{b.telefono || '—'}</td>
-                    <td className="px-4 py-3 text-gray-500 hidden md:table-cell">
-                      {b.createdAt ? new Date(b.createdAt).toLocaleDateString('es-GT') : '—'}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => verDetalle(b.id)}
-                          className="p-1.5 text-gray-400 hover:text-primary-600 rounded"
-                          title="Ver detalle"
-                        >
-                          <Eye size={16} />
-                        </button>
-                        <button
-                          onClick={() => { setEditando(b); setShowModal(true); }}
-                          className="p-1.5 text-gray-400 hover:text-primary-600 rounded"
-                          title="Editar"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* Modal crear/editar */}
       {showModal && (
         <ModalBeneficiario
           beneficiario={editando}
@@ -358,7 +294,6 @@ export default function Beneficiarios() {
 // ============================================
 // MODAL: CREAR / EDITAR BENEFICIARIO
 // ============================================
-
 function ModalBeneficiario({
   beneficiario,
   onClose,
@@ -378,12 +313,12 @@ function ModalBeneficiario({
   });
   const [guardando, setGuardando] = useState(false);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!form.nombreCompleto.trim() || form.nombreCompleto.trim().length < 3) {
       toast.error('El nombre debe tener al menos 3 caracteres');
       return;
     }
-
     if (form.dpi && !/^\d{13}$/.test(form.dpi)) {
       toast.error('El DPI debe tener exactamente 13 dígitos');
       return;
@@ -398,7 +333,6 @@ function ModalBeneficiario({
         direccion: form.direccion || null,
         observaciones: form.observaciones || null,
       };
-
       if (esEdicion) {
         await api.put(`/dispensacion/beneficiarios/${beneficiario!.id}`, payload);
         toast.success('Beneficiario actualizado');
@@ -406,7 +340,6 @@ function ModalBeneficiario({
         await api.post('/dispensacion/beneficiarios', payload);
         toast.success('Beneficiario registrado');
       }
-
       onGuardado();
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Error al guardar');
@@ -416,98 +349,40 @@ function ModalBeneficiario({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
-      <div
-        className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">
-            {esEdicion ? 'Editar beneficiario' : 'Nuevo beneficiario'}
-          </h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <X size={20} />
-          </button>
+    <Modal open onClose={onClose} title={esEdicion ? 'Editar beneficiario' : 'Nuevo beneficiario'}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Field label="Nombre completo" required>
+          <TextInput value={form.nombreCompleto} onChange={(e) => setForm({ ...form, nombreCompleto: e.target.value })} autoFocus />
+        </Field>
+        <Field label="DPI" hint="Opcional. 13 dígitos.">
+          <TextInput
+            maxLength={13}
+            value={form.dpi}
+            onChange={(e) => setForm({ ...form, dpi: e.target.value.replace(/\D/g, '') })}
+            placeholder="0000000000000"
+          />
+        </Field>
+        <Field label="Teléfono">
+          <TextInput type="tel" value={form.telefono} onChange={(e) => setForm({ ...form, telefono: e.target.value })} />
+        </Field>
+        <Field label="Dirección">
+          <TextInput value={form.direccion} onChange={(e) => setForm({ ...form, direccion: e.target.value })} />
+        </Field>
+        <Field label="Observaciones">
+          <textarea
+            value={form.observaciones}
+            onChange={(e) => setForm({ ...form, observaciones: e.target.value })}
+            rows={2}
+            className={inputClass}
+          />
+        </Field>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="secondary" onClick={onClose}>Cancelar</Button>
+          <Button type="submit" disabled={guardando}>
+            {guardando ? 'Guardando...' : esEdicion ? 'Guardar cambios' : 'Registrar'}
+          </Button>
         </div>
-
-        <div className="space-y-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nombre completo <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={form.nombreCompleto}
-              onChange={(e) => setForm({ ...form, nombreCompleto: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-              autoFocus
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              DPI <span className="text-gray-400 text-xs">(opcional)</span>
-            </label>
-            <input
-              type="text"
-              maxLength={13}
-              value={form.dpi}
-              onChange={(e) => setForm({ ...form, dpi: e.target.value.replace(/\D/g, '') })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-              placeholder="0000000000000"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-            <input
-              type="tel"
-              value={form.telefono}
-              onChange={(e) => setForm({ ...form, telefono: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
-            <input
-              type="text"
-              value={form.direccion}
-              onChange={(e) => setForm({ ...form, direccion: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Observaciones</label>
-            <textarea
-              value={form.observaciones}
-              onChange={(e) => setForm({ ...form, observaciones: e.target.value })}
-              rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-        </div>
-
-        <div className="flex gap-3 mt-5">
-          <button
-            onClick={onClose}
-            className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={guardando}
-            className="flex-1 px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {guardando && (
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            )}
-            {esEdicion ? 'Guardar cambios' : 'Registrar'}
-          </button>
-        </div>
-      </div>
-    </div>
+      </form>
+    </Modal>
   );
 }

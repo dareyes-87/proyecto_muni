@@ -10,14 +10,17 @@ import {
 } from '../api/usuarios';
 import type { Usuario, Rol } from '../types';
 import Modal from '../components/ui/Modal';
+import PageHeader from '../components/ui/PageHeader';
+import Button from '../components/ui/Button';
+import DataTable, { type Column } from '../components/ui/DataTable';
+import { StatusBadge } from '../components/ui/Badge';
+import { Field, TextInput, Select } from '../components/ui/Field';
+import { formatFechaHora } from '../utils/formatDate';
 
 const ROLES: { value: Rol; label: string }[] = [
   { value: 'ENCARGADO_BENEFICENCIA', label: 'Encargado de Beneficencia' },
   { value: 'ADMIN', label: 'Administrador' },
 ];
-
-const inputClass =
-  'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500';
 
 export default function Usuarios() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
@@ -116,109 +119,81 @@ export default function Usuarios() {
     }
   };
 
+  const columns: Column<Usuario>[] = [
+    { header: 'Usuario', cell: (u) => <span className="font-medium text-gray-900">{u.username}</span> },
+    { header: 'Nombre', cell: (u) => <span className="text-gray-700">{u.nombreCompleto}</span> },
+    { header: 'Rol', cell: (u) => <span className="text-gray-600">{u.rol === 'ADMIN' ? 'Administrador' : 'Enc. Beneficencia'}</span> },
+    { header: 'Estado', cell: (u) => <StatusBadge activo={u.activo} /> },
+    { header: 'Último acceso', cell: (u) => <span className="text-gray-500">{u.ultimoAcceso ? formatFechaHora(u.ultimoAcceso) : 'Nunca'}</span> },
+    {
+      header: 'Acciones',
+      align: 'right',
+      cell: (u) => (
+        <div className="flex justify-end gap-1">
+          <button onClick={() => abrirEditar(u)} title="Editar" className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100">
+            <Pencil size={16} />
+          </button>
+          <button onClick={() => setPwTarget(u)} title="Restablecer contraseña" className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100">
+            <KeyRound size={16} />
+          </button>
+          <button
+            onClick={() => handleToggle(u)}
+            title={u.activo ? 'Desactivar' : 'Activar'}
+            className={`rounded-md p-1.5 hover:bg-gray-100 ${u.activo ? 'text-red-500' : 'text-emerald-600'}`}
+          >
+            <Power size={16} />
+          </button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Usuarios</h1>
-        <button onClick={abrirNuevo} className="inline-flex items-center gap-2 rounded-lg bg-primary-700 px-4 py-2 font-medium text-white hover:bg-primary-800">
-          <UserPlus size={18} /> Nuevo usuario
-        </button>
-      </div>
+      <PageHeader
+        title="Usuarios"
+        subtitle="Gestión de acceso al sistema"
+        actions={
+          <Button onClick={abrirNuevo}>
+            <UserPlus size={18} /> Nuevo usuario
+          </Button>
+        }
+      />
 
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
-        <table className="min-w-full divide-y divide-gray-200 text-sm">
-          <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
-            <tr>
-              <th className="px-4 py-3">Usuario</th>
-              <th className="px-4 py-3">Nombre</th>
-              <th className="px-4 py-3">Rol</th>
-              <th className="px-4 py-3">Estado</th>
-              <th className="px-4 py-3">Último acceso</th>
-              <th className="px-4 py-3 text-right">Acciones</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {loading ? (
-              <tr><td colSpan={6} className="px-4 py-10 text-center text-gray-400">Cargando...</td></tr>
-            ) : (
-              usuarios.map((u) => (
-                <tr key={u.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-900">{u.username}</td>
-                  <td className="px-4 py-3 text-gray-700">{u.nombreCompleto}</td>
-                  <td className="px-4 py-3 text-gray-600">{u.rol === 'ADMIN' ? 'Administrador' : 'Enc. Beneficencia'}</td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${u.activo ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-600'}`}>
-                      {u.activo ? 'Activo' : 'Inactivo'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-500">
-                    {u.ultimoAcceso ? new Date(u.ultimoAcceso).toLocaleString('es-GT') : 'Nunca'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex justify-end gap-1">
-                      <button onClick={() => abrirEditar(u)} title="Editar" className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100">
-                        <Pencil size={16} />
-                      </button>
-                      <button onClick={() => setPwTarget(u)} title="Restablecer contraseña" className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100">
-                        <KeyRound size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleToggle(u)}
-                        title={u.activo ? 'Desactivar' : 'Activar'}
-                        className={`rounded-md p-1.5 hover:bg-gray-100 ${u.activo ? 'text-red-500' : 'text-emerald-600'}`}
-                      >
-                        <Power size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <DataTable columns={columns} rows={usuarios} keyFn={(u) => u.id} loading={loading} emptyMessage="Sin usuarios" />
 
       {/* Modal crear/editar */}
       <Modal open={formOpen} onClose={() => setFormOpen(false)} title={editando ? 'Editar usuario' : 'Nuevo usuario'}>
         <form onSubmit={guardar} className="space-y-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Usuario</label>
-            <input
+          <Field label="Usuario" required hint={editando ? 'El nombre de usuario no se puede cambiar.' : undefined}>
+            <TextInput
               value={form.username}
               onChange={(e) => setForm({ ...form, username: e.target.value })}
-              className={inputClass}
               required
               disabled={!!editando}
             />
-            {editando && <p className="mt-1 text-xs text-gray-400">El nombre de usuario no se puede cambiar.</p>}
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Nombre completo</label>
-            <input value={form.nombreCompleto} onChange={(e) => setForm({ ...form, nombreCompleto: e.target.value })} className={inputClass} required />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Email</label>
-            <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className={inputClass} />
-          </div>
+          </Field>
+          <Field label="Nombre completo" required>
+            <TextInput value={form.nombreCompleto} onChange={(e) => setForm({ ...form, nombreCompleto: e.target.value })} required />
+          </Field>
+          <Field label="Email">
+            <TextInput type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          </Field>
           {!editando && (
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Contraseña</label>
-              <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className={inputClass} required />
-            </div>
+            <Field label="Contraseña" required hint="Mínimo 6 caracteres.">
+              <TextInput type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required />
+            </Field>
           )}
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Rol</label>
-            <select value={form.rol} onChange={(e) => setForm({ ...form, rol: e.target.value as Rol })} className={inputClass}>
+          <Field label="Rol">
+            <Select value={form.rol} onChange={(e) => setForm({ ...form, rol: e.target.value as Rol })}>
               {ROLES.map((r) => (
                 <option key={r.value} value={r.value}>{r.label}</option>
               ))}
-            </select>
-          </div>
+            </Select>
+          </Field>
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={() => setFormOpen(false)} className="rounded-lg px-4 py-2 text-gray-600 hover:bg-gray-100">Cancelar</button>
-            <button type="submit" disabled={saving} className="rounded-lg bg-primary-700 px-4 py-2 font-medium text-white hover:bg-primary-800 disabled:opacity-50">
-              {saving ? 'Guardando...' : 'Guardar'}
-            </button>
+            <Button variant="secondary" onClick={() => setFormOpen(false)}>Cancelar</Button>
+            <Button type="submit" disabled={saving}>{saving ? 'Guardando...' : 'Guardar'}</Button>
           </div>
         </form>
       </Modal>
@@ -226,13 +201,12 @@ export default function Usuarios() {
       {/* Modal reset password */}
       <Modal open={!!pwTarget} onClose={() => setPwTarget(null)} title={`Restablecer contraseña — ${pwTarget?.username ?? ''}`}>
         <form onSubmit={guardarPassword} className="space-y-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Nueva contraseña</label>
-            <input type="password" value={nuevaPw} onChange={(e) => setNuevaPw(e.target.value)} className={inputClass} required />
-          </div>
+          <Field label="Nueva contraseña" required hint="Mínimo 6 caracteres.">
+            <TextInput type="password" value={nuevaPw} onChange={(e) => setNuevaPw(e.target.value)} required />
+          </Field>
           <div className="flex justify-end gap-2">
-            <button type="button" onClick={() => setPwTarget(null)} className="rounded-lg px-4 py-2 text-gray-600 hover:bg-gray-100">Cancelar</button>
-            <button type="submit" className="rounded-lg bg-primary-700 px-4 py-2 font-medium text-white hover:bg-primary-800">Actualizar</button>
+            <Button variant="secondary" onClick={() => setPwTarget(null)}>Cancelar</Button>
+            <Button type="submit">Actualizar</Button>
           </div>
         </form>
       </Modal>

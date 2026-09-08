@@ -1,7 +1,6 @@
 import api from './client';
 import type {
   MedicamentoCatalogo,
-  Proveedor,
   Ubicacion,
   CategoriaRef,
   Categoria,
@@ -11,11 +10,6 @@ import type {
 
 export async function listarMedicamentos(q?: string): Promise<MedicamentoCatalogo[]> {
   const { data } = await api.get('/catalogos/medicamentos', { params: q ? { q } : {} });
-  return data.data;
-}
-
-export async function listarProveedores(): Promise<Proveedor[]> {
-  const { data } = await api.get('/catalogos/proveedores');
   return data.data;
 }
 
@@ -137,39 +131,6 @@ export async function editarCategoria(
   payload: { nombre?: string; descripcion?: string | null; activo?: boolean }
 ): Promise<Categoria> {
   const { data } = await api.put(`/catalogos/categorias/${id}`, payload);
-  return data.data;
-}
-
-// ============================================
-// PROVEEDORES / DONANTES (CRUD completo)
-// ============================================
-
-export async function listarProveedoresPorTipo(tipo?: 'INSTITUCION' | 'PERSONA'): Promise<Proveedor[]> {
-  const { data } = await api.get('/catalogos/proveedores', { params: tipo ? { tipo } : {} });
-  return data.data;
-}
-
-export async function crearProveedor(payload: {
-  nombre: string;
-  tipo: 'INSTITUCION' | 'PERSONA';
-  contacto?: string | null;
-  notas?: string | null;
-}): Promise<Proveedor> {
-  const { data } = await api.post('/catalogos/proveedores', payload);
-  return data.data;
-}
-
-export async function editarProveedor(
-  id: string,
-  payload: {
-    nombre?: string;
-    tipo?: 'INSTITUCION' | 'PERSONA';
-    contacto?: string | null;
-    notas?: string | null;
-    activo?: boolean;
-  }
-): Promise<Proveedor> {
-  const { data } = await api.put(`/catalogos/proveedores/${id}`, payload);
   return data.data;
 }
 

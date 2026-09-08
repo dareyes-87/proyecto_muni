@@ -1,6 +1,5 @@
 export type Semaforo = 'VERDE' | 'AMARILLO' | 'ROJO' | 'VENCIDO';
 export type EstadoLote = 'DISPONIBLE' | 'AGOTADO' | 'VENCIDO' | 'DADO_DE_BAJA';
-export type Origen = 'DONACION' | 'PRESUPUESTO_MUNICIPAL';
 export type Rol = 'ADMIN' | 'ENCARGADO_BENEFICENCIA';
 
 export interface Pagination {
@@ -45,9 +44,7 @@ export interface LoteDetalle {
   ubicacion: { id: string; codigo: string; descripcion: string | null } | null;
   entrada: {
     id: string;
-    origen: Origen;
     createdAt: string;
-    proveedor: { id: string; nombre: string };
   };
 }
 
@@ -111,7 +108,6 @@ export interface ResumenImportacionExcel {
   medicamentosCreados: number;
   medicamentosExistentes: number;
   categoriasCreadas: number;
-  proveedoresCreados: number;
   ubicacionesCreadas: number;
   codigosBarrasVinculados: number;
   lotesRegistrados: number;
@@ -138,15 +134,6 @@ export interface MedicamentoCatalogo {
   activo?: boolean;
   categoria?: CategoriaRef;
   codigosBarras?: CodigoBarras[];
-}
-
-export interface Proveedor {
-  id: string;
-  nombre: string;
-  tipo: 'INSTITUCION' | 'PERSONA';
-  contacto?: string | null;
-  notas?: string | null;
-  activo?: boolean;
 }
 
 export interface Ubicacion {
@@ -250,8 +237,6 @@ export interface ReporteInventarioRow {
   semaforo: Semaforo;
   estado: EstadoLote;
   ubicacion: { codigo: string; descripcion: string | null } | null;
-  origen: Origen;
-  proveedor: string;
 }
 
 export interface ReportePorVencerRow {
@@ -269,8 +254,6 @@ export interface ReportePorVencerRow {
 export interface ReporteEntradaRow {
   id: string;
   createdAt: string;
-  origen: Origen;
-  proveedor: string;
   usuario: string;
   totalLotes: number;
   totalUnidades: number;
@@ -293,5 +276,4 @@ export interface ReporteBajaRow {
   cantidadPerdida: number;
   costoUnitario: string | null;
   costoEstimado: number | null;
-  proveedor: string;
 }

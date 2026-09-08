@@ -18,8 +18,6 @@ export interface LoteEntradaInput {
 }
 
 export interface EntradaInput {
-  proveedorId: string;
-  origen: 'DONACION' | 'PRESUPUESTO_MUNICIPAL';
   observaciones?: string | null;
   lotes: LoteEntradaInput[];
 }

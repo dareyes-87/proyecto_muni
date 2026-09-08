@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  HandHeart, Search, UserPlus, Trash2, X,
+  Search, UserPlus, Trash2,
   AlertCircle, CheckCircle, Package, Barcode, ScanBarcode,
   Smartphone, Circle, Loader2, Monitor, Upload,
 } from 'lucide-react';
@@ -13,6 +13,11 @@ import {
   subirFotoCaptura,
   type TipoFoto,
 } from '../api/captura';
+import PageHeader from '../components/ui/PageHeader';
+import Button from '../components/ui/Button';
+import Modal from '../components/ui/Modal';
+import { Field, TextInput, inputClass } from '../components/ui/Field';
+import { formatFecha } from '../utils/formatDate';
 
 // ============================================
 // TIPOS
@@ -479,7 +484,7 @@ export default function Dispensacion() {
                     onClick={() => setModoEvidencia('qr')}
                     className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-l-lg transition-colors ${
                       modoEvidencia === 'qr'
-                        ? 'bg-primary-600 text-white'
+                        ? 'bg-primary-700 text-white'
                         : 'bg-white text-gray-600 hover:bg-gray-50'
                     }`}
                   >
@@ -491,7 +496,7 @@ export default function Dispensacion() {
                     onClick={() => setModoEvidencia('pc')}
                     className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-r-lg transition-colors ${
                       modoEvidencia === 'pc'
-                        ? 'bg-primary-600 text-white'
+                        ? 'bg-primary-700 text-white'
                         : 'bg-white text-gray-600 hover:bg-gray-50'
                     }`}
                   >
@@ -565,19 +570,13 @@ export default function Dispensacion() {
 
         <div className="flex gap-3">
           {!omitirFotos && !evidenciaCompleta && (
-            <button
-              onClick={() => setOmitirFotos(true)}
-              className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50"
-            >
+            <Button variant="secondary" onClick={() => setOmitirFotos(true)} className="flex-1">
               Omitir fotos
-            </button>
+            </Button>
           )}
-          <button
-            onClick={nuevaDispensacion}
-            className="flex-1 px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-          >
+          <Button onClick={nuevaDispensacion} className="flex-1">
             {evidenciaCompleta || omitirFotos ? 'Siguiente dispensación' : 'Nueva dispensación'}
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -589,19 +588,12 @@ export default function Dispensacion() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <HandHeart className="text-primary-600" size={28} />
-          Dispensación
-        </h1>
-        <p className="text-sm text-gray-500 mt-1">Entrega de medicamentos a beneficiarios</p>
-      </div>
+      <PageHeader title="Dispensación" subtitle="Entrega de medicamentos a beneficiarios" />
 
       {/* ================================================ */}
       {/* PASO 1: SELECCIONAR BENEFICIARIO */}
       {/* ================================================ */}
-      <div className="bg-white rounded-lg border border-gray-200 p-5">
+      <div className="rounded-xl border border-gray-200 bg-white p-5">
         <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">
           1. Beneficiario
         </h2>
@@ -615,12 +607,9 @@ export default function Dispensacion() {
                 {beneficiario.telefono ? ` | Tel: ${beneficiario.telefono}` : ''}
               </p>
             </div>
-            <button
-              onClick={() => { setBeneficiario(null); setHistorialReciente([]); }}
-              className="text-sm text-primary-600 hover:text-primary-700"
-            >
+            <Button variant="ghost" size="sm" onClick={() => { setBeneficiario(null); setHistorialReciente([]); }}>
               Cambiar
-            </button>
+            </Button>
           </div>
         ) : (
           <div className="relative">
@@ -666,14 +655,10 @@ export default function Dispensacion() {
                 )}
               </div>
 
-              <button
-                onClick={() => setShowModalBenef(true)}
-                className="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 flex items-center gap-1.5"
-                title="Registrar nuevo"
-              >
+              <Button variant="secondary" onClick={() => setShowModalBenef(true)} title="Registrar nuevo" className="shrink-0">
                 <UserPlus size={18} />
                 <span className="hidden sm:inline">Nuevo</span>
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -687,9 +672,7 @@ export default function Dispensacion() {
             <div className="space-y-1.5">
               {historialReciente.map((d) => (
                 <div key={d.id} className="flex items-start gap-2 text-xs text-gray-600 bg-gray-50 rounded px-3 py-2">
-                  <span className="text-gray-400 shrink-0">
-                    {new Date(d.createdAt).toLocaleDateString('es-GT')}
-                  </span>
+                  <span className="text-gray-400 shrink-0">{formatFecha(d.createdAt)}</span>
                   <span>
                     {d.detalles.map((det) =>
                       `${det.nombreMedicamentoSnapshot} x${det.cantidad}`
@@ -705,7 +688,7 @@ export default function Dispensacion() {
       {/* ================================================ */}
       {/* PASO 2: AGREGAR MEDICAMENTOS */}
       {/* ================================================ */}
-      <div className="bg-white rounded-lg border border-gray-200 p-5">
+      <div className="rounded-xl border border-gray-200 bg-white p-5">
         <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">
           2. Medicamentos
         </h2>
@@ -855,22 +838,21 @@ export default function Dispensacion() {
       {/* ================================================ */}
       {/* PASO 3: OBSERVACIONES Y CONFIRMAR */}
       {/* ================================================ */}
-      <div className="bg-white rounded-lg border border-gray-200 p-5">
+      <div className="rounded-xl border border-gray-200 bg-white p-5">
         <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">
           3. Confirmar
         </h2>
 
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Observaciones <span className="text-gray-400 text-xs">(opcional)</span>
-          </label>
-          <textarea
-            value={observaciones}
-            onChange={(e) => setObservaciones(e.target.value)}
-            rows={2}
-            placeholder="Ej: Receta Dr. García, tratamiento hipertensión..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
-          />
+          <Field label="Observaciones" hint="Opcional.">
+            <textarea
+              value={observaciones}
+              onChange={(e) => setObservaciones(e.target.value)}
+              rows={2}
+              placeholder="Ej: Receta Dr. García, tratamiento hipertensión..."
+              className={inputClass}
+            />
+          </Field>
         </div>
 
         {/* Resumen */}
@@ -895,41 +877,32 @@ export default function Dispensacion() {
           </div>
         )}
 
-        <button
+        <Button
+          size="lg"
           onClick={() => setShowConfirmacion(true)}
           disabled={!beneficiario || carrito.length === 0 || despachando}
-          className="w-full py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium"
+          className="w-full"
         >
           <CheckCircle size={20} />
           Confirmar dispensación
-        </button>
+        </Button>
       </div>
 
       {/* ================================================ */}
       {/* MODAL: CONFIRMACIÓN DE DISPENSACIÓN */}
       {/* ================================================ */}
-      {showConfirmacion && beneficiario && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowConfirmacion(false)}>
-          <div
-            className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Confirmar dispensación</h3>
-              <button onClick={() => setShowConfirmacion(false)} className="text-gray-400 hover:text-gray-600">
-                <X size={20} />
-              </button>
-            </div>
-
+      <Modal open={showConfirmacion && !!beneficiario} onClose={() => setShowConfirmacion(false)} title="Confirmar dispensación">
+        {beneficiario && (
+          <>
             <div className="space-y-3 text-sm">
-              <div className="bg-gray-50 rounded-lg p-3">
-                <p className="text-gray-500 text-xs uppercase font-medium mb-1">Beneficiario</p>
+              <div className="rounded-lg bg-gray-50 p-3">
+                <p className="mb-1 text-xs font-medium uppercase text-gray-500">Beneficiario</p>
                 <p className="font-medium text-gray-900">{beneficiario.nombreCompleto}</p>
-                {beneficiario.dpi && <p className="text-gray-500 text-xs">DPI: {beneficiario.dpi}</p>}
+                {beneficiario.dpi && <p className="text-xs text-gray-500">DPI: {beneficiario.dpi}</p>}
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-3">
-                <p className="text-gray-500 text-xs uppercase font-medium mb-1">Medicamentos ({carrito.length})</p>
+              <div className="rounded-lg bg-gray-50 p-3">
+                <p className="mb-1 text-xs font-medium uppercase text-gray-500">Medicamentos ({carrito.length})</p>
                 {carrito.map((item) => (
                   <p key={item.medicamento.id} className="text-gray-700">
                     {item.medicamento.nombreGenerico} {item.medicamento.presentacion}
@@ -940,36 +913,23 @@ export default function Dispensacion() {
               </div>
 
               {observaciones && (
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-gray-500 text-xs uppercase font-medium mb-1">Observaciones</p>
+                <div className="rounded-lg bg-gray-50 p-3">
+                  <p className="mb-1 text-xs font-medium uppercase text-gray-500">Observaciones</p>
                   <p className="text-gray-700">{observaciones}</p>
                 </div>
               )}
             </div>
 
-            <div className="flex gap-3 mt-5">
-              <button
-                onClick={() => setShowConfirmacion(false)}
-                className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => { setShowConfirmacion(false); confirmarDispensacion(); }}
-                disabled={despachando}
-                className="flex-1 px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {despachando ? (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <CheckCircle size={18} />
-                )}
-                Dispensar
-              </button>
+            <div className="mt-5 flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setShowConfirmacion(false)}>Cancelar</Button>
+              <Button onClick={() => { setShowConfirmacion(false); confirmarDispensacion(); }} disabled={despachando}>
+                <CheckCircle size={18} />
+                {despachando ? 'Dispensando...' : 'Dispensar'}
+              </Button>
             </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
 
       {/* ================================================ */}
       {/* MODAL: CREAR BENEFICIARIO RÁPIDO */}
@@ -1007,7 +967,8 @@ function ModalNuevoBeneficiario({
   });
   const [guardando, setGuardando] = useState(false);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!form.nombreCompleto.trim() || form.nombreCompleto.trim().length < 3) {
       toast.error('El nombre debe tener al menos 3 caracteres');
       return;
@@ -1036,83 +997,30 @@ function ModalNuevoBeneficiario({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
-      <div
-        className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Nuevo beneficiario</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <X size={20} />
-          </button>
+    <Modal open onClose={onClose} title="Nuevo beneficiario">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Field label="Nombre completo" required>
+          <TextInput value={form.nombreCompleto} onChange={(e) => setForm({ ...form, nombreCompleto: e.target.value })} autoFocus />
+        </Field>
+        <Field label="DPI" hint="Opcional. 13 dígitos.">
+          <TextInput
+            maxLength={13}
+            value={form.dpi}
+            onChange={(e) => setForm({ ...form, dpi: e.target.value.replace(/\D/g, '') })}
+            placeholder="0000000000000"
+          />
+        </Field>
+        <Field label="Teléfono">
+          <TextInput type="tel" value={form.telefono} onChange={(e) => setForm({ ...form, telefono: e.target.value })} />
+        </Field>
+        <Field label="Dirección">
+          <TextInput value={form.direccion} onChange={(e) => setForm({ ...form, direccion: e.target.value })} />
+        </Field>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="secondary" onClick={onClose}>Cancelar</Button>
+          <Button type="submit" disabled={guardando}>{guardando ? 'Guardando...' : 'Registrar'}</Button>
         </div>
-
-        <div className="space-y-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nombre completo <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={form.nombreCompleto}
-              onChange={(e) => setForm({ ...form, nombreCompleto: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-              autoFocus
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              DPI <span className="text-gray-400 text-xs">(opcional)</span>
-            </label>
-            <input
-              type="text"
-              maxLength={13}
-              value={form.dpi}
-              onChange={(e) => setForm({ ...form, dpi: e.target.value.replace(/\D/g, '') })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-              placeholder="0000000000000"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-            <input
-              type="tel"
-              value={form.telefono}
-              onChange={(e) => setForm({ ...form, telefono: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
-            <input
-              type="text"
-              value={form.direccion}
-              onChange={(e) => setForm({ ...form, direccion: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-        </div>
-
-        <div className="flex gap-3 mt-5">
-          <button
-            onClick={onClose}
-            className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={guardando}
-            className="flex-1 px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {guardando && (
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            )}
-            Registrar
-          </button>
-        </div>
-      </div>
-    </div>
+      </form>
+    </Modal>
   );
 }

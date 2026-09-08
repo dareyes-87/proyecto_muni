@@ -6,14 +6,14 @@ import {
   createColumnHelper,
   flexRender,
 } from '@tanstack/react-table';
-import { ChevronDown, ChevronRight, Shield } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { listarAuditoria } from '../api/auditoria';
 import { listarUsuarios } from '../api/usuarios';
 import { formatFechaHora } from '../utils/formatDate';
+import PageHeader from '../components/ui/PageHeader';
+import Button from '../components/ui/Button';
+import { inputClass } from '../components/ui/Field';
 import type { LogAuditoria, Usuario, AccionAuditoria } from '../types';
-
-const inputClass =
-  'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500';
 
 const ACCIONES: AccionAuditoria[] = [
   'CREAR',
@@ -36,7 +36,6 @@ const ENTIDADES = [
   'entrada',
   'lote',
   'medicamento',
-  'proveedor',
   'ubicacion',
   'usuario',
 ];
@@ -180,10 +179,7 @@ export default function Auditoria() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center gap-2">
-        <Shield size={22} className="text-primary-700" />
-        <h1 className="text-2xl font-bold text-gray-900">Auditoría</h1>
-      </div>
+      <PageHeader title="Auditoría" subtitle="Registro de todas las acciones realizadas en el sistema" />
 
       <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-5">
         <div>
@@ -250,12 +246,9 @@ export default function Auditoria() {
           />
         </div>
         <div className="sm:col-span-2 lg:col-span-5">
-          <button
-            onClick={limpiarFiltros}
-            className="rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
-          >
+          <Button variant="ghost" size="sm" onClick={limpiarFiltros}>
             Limpiar filtros
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -336,23 +329,15 @@ export default function Auditoria() {
         <span>{total} registro{total === 1 ? '' : 's'}</span>
         {totalPages > 1 && (
           <div className="flex items-center gap-3">
-            <button
-              disabled={page <= 1}
-              onClick={() => setPage((p) => p - 1)}
-              className="rounded-lg border border-gray-300 px-3 py-1.5 disabled:opacity-40"
-            >
+            <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
               Anterior
-            </button>
+            </Button>
             <span>
               Página {page} de {totalPages}
             </span>
-            <button
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => p + 1)}
-              className="rounded-lg border border-gray-300 px-3 py-1.5 disabled:opacity-40"
-            >
+            <Button variant="secondary" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
               Siguiente
-            </button>
+            </Button>
           </div>
         )}
       </div>

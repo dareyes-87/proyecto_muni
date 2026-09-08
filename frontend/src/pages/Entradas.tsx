@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { Plus, Trash2, Save, Barcode, ScanBarcode, FileSpreadsheet, Download, Upload } from 'lucide-react';
+import { Plus, Trash2, Save, Barcode, FileSpreadsheet, Download, Upload } from 'lucide-react';
 import {
   registrarEntrada,
   listarEntradas,
@@ -8,10 +8,15 @@ import {
   importarExcelInventario,
   type LoteEntradaInput,
 } from '../api/inventario';
-import { listarMedicamentos, listarProveedores, listarUbicaciones, buscarPorCodigoBarras } from '../api/catalogos';
+import { listarMedicamentos, listarUbicaciones, listarCategorias, buscarPorCodigoBarras } from '../api/catalogos';
 import { useAuth } from '../context/AuthContext';
 import Modal from '../components/ui/Modal';
-import type { MedicamentoCatalogo, Proveedor, Ubicacion, Origen, ResumenImportacionExcel } from '../types';
+import PageHeader from '../components/ui/PageHeader';
+import Button from '../components/ui/Button';
+import { Field, TextInput, inputClass } from '../components/ui/Field';
+import MedicamentoFormModal from '../components/MedicamentoFormModal';
+import { formatFechaHora } from '../utils/formatDate';
+import type { MedicamentoCatalogo, CategoriaRef, Ubicacion, ResumenImportacionExcel } from '../types';
 
 interface LoteForm {
   medicamentoId: string;
@@ -34,11 +39,9 @@ const loteVacio: LoteForm = {
 export default function Entradas() {
   const { isAdmin } = useAuth();
   const [medicamentos, setMedicamentos] = useState<MedicamentoCatalogo[]>([]);
-  const [proveedores, setProveedores] = useState<Proveedor[]>([]);
+  const [categorias, setCategorias] = useState<CategoriaRef[]>([]);
   const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
 
-  const [proveedorId, setProveedorId] = useState('');
-  const [origen, setOrigen] = useState<Origen>('DONACION');
   const [observaciones, setObservaciones] = useState('');
   const [lotes, setLotes] = useState<LoteForm[]>([{ ...loteVacio }]);
   const [guardando, setGuardando] = useState(false);
@@ -46,6 +49,9 @@ export default function Entradas() {
   const [entradas, setEntradas] = useState<any[]>([]);
 
   const barcodeRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Índice del lote que solicitó crear un medicamento nuevo (null = modal cerrado).
+  const [medFormLote, setMedFormLote] = useState<number | null>(null);
 
   const [importOpen, setImportOpen] = useState(false);
   const [archivoImport, setArchivoImport] = useState<File | null>(null);
@@ -64,16 +70,23 @@ export default function Entradas() {
   };
 
   useEffect(() => {
-    Promise.all([listarMedicamentos(), listarProveedores(), listarUbicaciones()])
-      .then(([meds, provs, ubis]) => {
+    Promise.all([listarMedicamentos(), listarCategorias(), listarUbicaciones()])
+      .then(([meds, cats, ubis]) => {
         setMedicamentos(meds);
-        setProveedores(provs);
+        setCategorias(cats);
         setUbicaciones(ubis);
-        if (provs.length === 1) setProveedorId(provs[0].id);
       })
       .catch(() => toast.error('No se pudieron cargar los catálogos'));
     cargarEntradas();
   }, []);
+
+  // Tras crear un medicamento desde el flujo de entrada, lo agrega a la lista y
+  // lo selecciona en el lote que abrió el modal.
+  const onMedicamentoCreado = (m: MedicamentoCatalogo) => {
+    setMedicamentos((prev) => [m, ...prev.filter((x) => x.id !== m.id)]);
+    if (medFormLote !== null) setLote(medFormLote, 'medicamentoId', m.id);
+    setMedFormLote(null);
+  };
 
   const setLote = (i: number, campo: keyof LoteForm, valor: string) => {
     setLotes((prev) => prev.map((l, idx) => (idx === i ? { ...l, [campo]: valor } : l)));
@@ -101,7 +114,6 @@ export default function Entradas() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!proveedorId) return toast.error('Seleccione un proveedor');
 
     const lotesValidados: LoteEntradaInput[] = [];
     for (const l of lotes) {
@@ -125,8 +137,6 @@ export default function Entradas() {
     setGuardando(true);
     try {
       await registrarEntrada({
-        proveedorId,
-        origen,
         observaciones: observaciones.trim() || null,
         lotes: lotesValidados,
       });
@@ -186,9 +196,6 @@ export default function Entradas() {
     }
   };
 
-  const inputClass =
-    'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500';
-
   const getMedNombre = (id: string) => {
     const m = medicamentos.find((med) => med.id === id);
     return m ? `${m.nombreGenerico}${m.concentracion ? ` (${m.concentracion})` : ''}` : '';
@@ -196,41 +203,22 @@ export default function Entradas() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Registrar Entrada</h1>
-        {isAdmin && (
-          <button
-            onClick={abrirImport}
-            className="inline-flex items-center gap-2 rounded-lg border border-primary-700 px-4 py-2 font-medium text-primary-700 hover:bg-primary-50"
-          >
-            <FileSpreadsheet size={18} /> Importar desde Excel
-          </button>
-        )}
-      </div>
+      <PageHeader
+        title="Registrar entrada"
+        subtitle="Ingresa los lotes recibidos al inventario"
+        actions={
+          isAdmin && (
+            <Button variant="secondary" onClick={abrirImport}>
+              <FileSpreadsheet size={18} /> Importar desde Excel
+            </Button>
+          )
+        }
+      />
 
       <form onSubmit={submit} className="mb-8 rounded-xl border border-gray-200 bg-white p-6">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Proveedor / Donante</label>
-            <select value={proveedorId} onChange={(e) => setProveedorId(e.target.value)} className={inputClass}>
-              <option value="">Seleccione...</option>
-              {proveedores.map((p) => (
-                <option key={p.id} value={p.id}>{p.nombre}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Origen</label>
-            <select value={origen} onChange={(e) => setOrigen(e.target.value as Origen)} className={inputClass}>
-              <option value="DONACION">Donación</option>
-              <option value="PRESUPUESTO_MUNICIPAL">Presupuesto municipal</option>
-            </select>
-          </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Observaciones</label>
-            <input value={observaciones} onChange={(e) => setObservaciones(e.target.value)} className={inputClass} placeholder="Opcional" />
-          </div>
-        </div>
+        <Field label="Observaciones">
+          <TextInput value={observaciones} onChange={(e) => setObservaciones(e.target.value)} placeholder="Opcional" />
+        </Field>
 
         <div className="mt-6">
           <div className="mb-2 flex items-center justify-between">
@@ -244,8 +232,8 @@ export default function Entradas() {
             {lotes.map((l, i) => (
               <div key={i} className="rounded-lg border border-gray-200 bg-gray-50 p-3">
                 {/* Fila de escaneo */}
-                <div className="mb-3 flex items-center gap-2">
-                  <div className="relative flex-1">
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <div className="relative min-w-[220px] flex-1">
                     <Barcode size={16} className="absolute left-3 top-2.5 text-gray-400" />
                     <input
                       ref={(el) => { barcodeRefs.current[i] = el; }}
@@ -261,7 +249,16 @@ export default function Entradas() {
                       autoComplete="off"
                     />
                   </div>
-                  <ScanBarcode size={20} className="shrink-0 text-blue-500" />
+                  {isAdmin && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => setMedFormLote(i)}
+                      className="shrink-0"
+                    >
+                      <Plus size={16} /> Nuevo medicamento
+                    </Button>
+                  )}
                   {l.medicamentoId && (
                     <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
                       {getMedNombre(l.medicamentoId)}
@@ -304,12 +301,10 @@ export default function Entradas() {
                     </select>
                   </div>
                   <div className="flex items-center gap-2 sm:col-span-2">
-                    {origen === 'PRESUPUESTO_MUNICIPAL' && (
-                      <div className="flex-1">
-                        <label className="mb-1 block text-xs text-gray-500">Costo unit.</label>
-                        <input type="number" step="0.01" min={0} value={l.costoUnitario} onChange={(e) => setLote(i, 'costoUnitario', e.target.value)} className={inputClass} />
-                      </div>
-                    )}
+                    <div className="flex-1">
+                      <label className="mb-1 block text-xs text-gray-500">Costo unit.</label>
+                      <input type="number" step="0.01" min={0} value={l.costoUnitario} onChange={(e) => setLote(i, 'costoUnitario', e.target.value)} className={inputClass} placeholder="Opcional" />
+                    </div>
                     {lotes.length > 1 && (
                       <button type="button" onClick={() => quitarLote(i)} className="mb-0.5 rounded-md p-2 text-red-500 hover:bg-red-50">
                         <Trash2 size={16} />
@@ -323,13 +318,9 @@ export default function Entradas() {
         </div>
 
         <div className="mt-6 flex justify-end">
-          <button
-            type="submit"
-            disabled={guardando}
-            className="inline-flex items-center gap-2 rounded-lg bg-primary-700 px-5 py-2.5 font-medium text-white hover:bg-primary-800 disabled:opacity-50"
-          >
+          <Button type="submit" disabled={guardando} className="px-5 py-2.5">
             <Save size={18} /> {guardando ? 'Guardando...' : 'Registrar entrada'}
-          </button>
+          </Button>
         </div>
       </form>
 
@@ -340,21 +331,17 @@ export default function Entradas() {
           <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
             <tr>
               <th className="px-4 py-3">Fecha</th>
-              <th className="px-4 py-3">Proveedor</th>
-              <th className="px-4 py-3">Origen</th>
               <th className="px-4 py-3 text-center">Lotes</th>
               <th className="px-4 py-3">Registró</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {entradas.length === 0 ? (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">Sin entradas registradas</td></tr>
+              <tr><td colSpan={3} className="px-4 py-8 text-center text-gray-400">Sin entradas registradas</td></tr>
             ) : (
               entradas.map((e) => (
                 <tr key={e.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-gray-600">{new Date(e.createdAt).toLocaleString('es-GT')}</td>
-                  <td className="px-4 py-3 text-gray-900">{e.proveedor?.nombre}</td>
-                  <td className="px-4 py-3 text-gray-600">{e.origen === 'DONACION' ? 'Donación' : 'Presupuesto'}</td>
+                  <td className="px-4 py-3 text-gray-600">{formatFechaHora(e.createdAt)}</td>
                   <td className="px-4 py-3 text-center text-gray-600">{e._count?.lotes ?? '—'}</td>
                   <td className="px-4 py-3 text-gray-600">{e.usuario?.nombreCompleto}</td>
                 </tr>
@@ -372,14 +359,9 @@ export default function Entradas() {
               Descargue la plantilla, complétela con sus medicamentos y lotes, y súbala aquí. Cada fila
               representa un lote de un medicamento.
             </p>
-            <button
-              type="button"
-              onClick={descargarPlantilla}
-              disabled={descargandoPlantilla}
-              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-            >
+            <Button variant="secondary" onClick={descargarPlantilla} disabled={descargandoPlantilla}>
               <Download size={16} /> {descargandoPlantilla ? 'Descargando...' : 'Descargar plantilla Excel'}
-            </button>
+            </Button>
           </div>
 
           <div className="border-t border-gray-200 pt-4">
@@ -393,14 +375,9 @@ export default function Entradas() {
                 className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-primary-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-primary-700 hover:file:bg-primary-100"
               />
             </div>
-            <button
-              type="button"
-              onClick={subirExcel}
-              disabled={!archivoImport || importando}
-              className="mt-3 inline-flex items-center gap-2 rounded-lg bg-primary-700 px-4 py-2 text-sm font-medium text-white hover:bg-primary-800 disabled:opacity-50"
-            >
+            <Button onClick={subirExcel} disabled={!archivoImport || importando} className="mt-3">
               <Upload size={16} /> {importando ? 'Importando...' : 'Importar'}
-            </button>
+            </Button>
           </div>
 
           {resultadoImport && (
@@ -426,9 +403,8 @@ export default function Entradas() {
               </div>
               <p className="mb-3 text-xs text-gray-500">
                 {resultadoImport.medicamentosExistentes} medicamento(s) ya existían · {resultadoImport.categoriasCreadas}{' '}
-                categoría(s) nueva(s) · {resultadoImport.proveedoresCreados} proveedor(es) nuevo(s) ·{' '}
-                {resultadoImport.ubicacionesCreadas} ubicación(es) nueva(s) · {resultadoImport.codigosBarrasVinculados}{' '}
-                código(s) de barras vinculado(s)
+                categoría(s) nueva(s) · {resultadoImport.ubicacionesCreadas} ubicación(es) nueva(s) ·{' '}
+                {resultadoImport.codigosBarrasVinculados} código(s) de barras vinculado(s)
               </p>
 
               {resultadoImport.errores.length > 0 && (
@@ -455,6 +431,15 @@ export default function Entradas() {
           )}
         </div>
       </Modal>
+
+      {/* Crear medicamento sin salir del flujo de entrada */}
+      <MedicamentoFormModal
+        open={medFormLote !== null}
+        medicamento={null}
+        categorias={categorias}
+        onClose={() => setMedFormLote(null)}
+        onSaved={onMedicamentoCreado}
+      />
     </div>
   );
 }

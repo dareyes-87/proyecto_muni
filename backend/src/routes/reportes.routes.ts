@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { EstadoLote, OrigenEntrada } from '@prisma/client';
+import { EstadoLote } from '@prisma/client';
 import { authMiddleware, requireRole } from '../middleware/auth';
 import { registrarAuditoria } from '../middleware/audit';
 import {
@@ -7,7 +7,7 @@ import {
   reporteConsumoMedicamentos,
   reporteInventarioActual,
   reportePorVencer,
-  reporteEntradasProveedor,
+  reporteEntradas,
   reporteMedicamentosBaja,
   obtenerNombreFarmacia,
 } from '../services/reportes.service';
@@ -17,7 +17,6 @@ import { formatFecha, formatFechaHora } from '../utils/formatDate';
 
 const router = Router();
 
-const ORIGENES_VALIDOS = Object.values(OrigenEntrada);
 const ESTADOS_VALIDOS = Object.values(EstadoLote);
 
 function parsePage(v: unknown): number | undefined {
@@ -65,12 +64,8 @@ router.get('/consumo-medicamentos', authMiddleware, async (req: Request, res: Re
 // GET /api/reportes/inventario-actual
 router.get('/inventario-actual', authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { categoriaId, origen, estado, page, limit } = req.query;
+    const { categoriaId, estado, page, limit } = req.query;
 
-    if (origen && !ORIGENES_VALIDOS.includes(origen as OrigenEntrada)) {
-      res.status(400).json({ error: `Origen inválido. Use: ${ORIGENES_VALIDOS.join(', ')}` });
-      return;
-    }
     if (estado && !ESTADOS_VALIDOS.includes(estado as EstadoLote)) {
       res.status(400).json({ error: `Estado inválido. Use: ${ESTADOS_VALIDOS.join(', ')}` });
       return;
@@ -78,7 +73,6 @@ router.get('/inventario-actual', authMiddleware, async (req: Request, res: Respo
 
     const resultado = await reporteInventarioActual({
       categoriaId: categoriaId as string | undefined,
-      origen: origen as OrigenEntrada | undefined,
       estado: estado as EstadoLote | undefined,
       page: parsePage(page),
       limit: parsePage(limit),
@@ -106,27 +100,20 @@ router.get('/por-vencer', authMiddleware, async (req: Request, res: Response) =>
   }
 });
 
-// GET /api/reportes/entradas-proveedor
-router.get('/entradas-proveedor', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+// GET /api/reportes/entradas
+router.get('/entradas', authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { desde, hasta, proveedorId, origen, page, limit } = req.query;
+    const { desde, hasta, page, limit } = req.query;
 
-    if (origen && !ORIGENES_VALIDOS.includes(origen as OrigenEntrada)) {
-      res.status(400).json({ error: `Origen inválido. Use: ${ORIGENES_VALIDOS.join(', ')}` });
-      return;
-    }
-
-    const resultado = await reporteEntradasProveedor({
+    const resultado = await reporteEntradas({
       desde: desde as string | undefined,
       hasta: hasta as string | undefined,
-      proveedorId: proveedorId as string | undefined,
-      origen: origen as OrigenEntrada | undefined,
       page: parsePage(page),
       limit: parsePage(limit),
     });
     res.json(resultado);
   } catch (error) {
-    console.error('Error en reporte de entradas por proveedor:', error);
+    console.error('Error en reporte de entradas:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
@@ -240,7 +227,6 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
     case 'inventario': {
       const { data } = await reporteInventarioActual({
         categoriaId: query.categoriaId as string | undefined,
-        origen: query.origen as OrigenEntrada | undefined,
         estado: query.estado as EstadoLote | undefined,
         page: 1,
         limit: LIMITE_EXPORT,
@@ -255,15 +241,13 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
         fechaVencimiento: formatFecha(l.fechaVencimiento),
         semaforo: l.semaforo,
         ubicacion: l.ubicacion?.codigo ?? '',
-        origen: l.origen,
-        proveedor: l.proveedor,
       }));
       return {
         titulo: 'Reporte de Inventario Actual',
-        columnasPdf: ['Medicamento', 'Lote', 'Cód. barras', 'Cant.', 'Vence', 'Semáforo', 'Ubicación', 'Proveedor'],
-        alineacionesPdf: ['left', 'left', 'left', 'right', 'left', 'left', 'left', 'left'],
-        anchosRelativosPdf: [1.6, 0.9, 1.1, 0.6, 0.9, 0.8, 0.7, 1.6],
-        filasPdf: filas.map((f) => [f.medicamento, f.numeroLote, f.codigoBarras, f.cantidadActual, f.fechaVencimiento, f.semaforo, f.ubicacion, f.proveedor]),
+        columnasPdf: ['Medicamento', 'Lote', 'Cód. barras', 'Cant.', 'Vence', 'Semáforo', 'Ubicación'],
+        alineacionesPdf: ['left', 'left', 'left', 'right', 'left', 'left', 'left'],
+        anchosRelativosPdf: [1.8, 0.9, 1.1, 0.6, 0.9, 0.8, 0.8],
+        filasPdf: filas.map((f) => [f.medicamento, f.numeroLote, f.codigoBarras, f.cantidadActual, f.fechaVencimiento, f.semaforo, f.ubicacion]),
         columnasExcel: [
           { header: 'Medicamento', key: 'medicamento', width: 25 },
           { header: 'Presentación', key: 'presentacion', width: 15 },
@@ -274,8 +258,6 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
           { header: 'Fecha de vencimiento', key: 'fechaVencimiento', width: 18 },
           { header: 'Semáforo', key: 'semaforo', width: 12 },
           { header: 'Ubicación', key: 'ubicacion', width: 12 },
-          { header: 'Origen', key: 'origen', width: 20 },
-          { header: 'Proveedor', key: 'proveedor', width: 25 },
         ],
         filasExcel: filas,
       };
@@ -322,34 +304,28 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
     }
 
     case 'entradas': {
-      const { data } = await reporteEntradasProveedor({
+      const { data } = await reporteEntradas({
         desde: query.desde as string | undefined,
         hasta: query.hasta as string | undefined,
-        proveedorId: query.proveedorId as string | undefined,
-        origen: query.origen as OrigenEntrada | undefined,
         page: 1,
         limit: LIMITE_EXPORT,
       });
       const filas = data.map((e) => ({
         fecha: formatFechaHora(e.createdAt),
-        proveedor: e.proveedor,
-        origen: e.origen,
         usuario: e.usuario,
         totalLotes: e.totalLotes,
         totalUnidades: e.totalUnidades,
         costoTotal: e.costoTotal,
       }));
       return {
-        titulo: 'Reporte de Entradas por Proveedor',
-        columnasPdf: ['Fecha', 'Proveedor', 'Origen', 'Usuario', 'N.º lotes', 'Unidades', 'Costo total'],
-        alineacionesPdf: ['left', 'left', 'left', 'left', 'right', 'right', 'right'],
-        anchosRelativosPdf: [1.3, 1.8, 1.3, 1.8, 0.7, 0.8, 0.9],
-        filasPdf: filas.map((f) => [f.fecha, f.proveedor, f.origen, f.usuario, f.totalLotes, f.totalUnidades, f.costoTotal.toFixed(2)]),
+        titulo: 'Reporte de Entradas Registradas',
+        columnasPdf: ['Fecha', 'Usuario', 'N.º lotes', 'Unidades', 'Costo total'],
+        alineacionesPdf: ['left', 'left', 'right', 'right', 'right'],
+        anchosRelativosPdf: [1.6, 2.0, 0.9, 0.9, 1.0],
+        filasPdf: filas.map((f) => [f.fecha, f.usuario, f.totalLotes, f.totalUnidades, f.costoTotal.toFixed(2)]),
         columnasExcel: [
           { header: 'Fecha', key: 'fecha', width: 20 },
-          { header: 'Proveedor', key: 'proveedor', width: 25 },
-          { header: 'Origen', key: 'origen', width: 20 },
-          { header: 'Usuario', key: 'usuario', width: 20 },
+          { header: 'Usuario', key: 'usuario', width: 25 },
           { header: 'N.º de lotes', key: 'totalLotes', width: 12 },
           { header: 'Unidades totales', key: 'totalUnidades', width: 15 },
           { header: 'Costo total', key: 'costoTotal', width: 15 },
@@ -374,14 +350,13 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
         fechaVencimiento: formatFecha(l.fechaVencimiento),
         cantidadPerdida: l.cantidadPerdida,
         costoEstimado: l.costoEstimado !== null ? l.costoEstimado.toFixed(2) : '',
-        proveedor: l.proveedor,
       }));
       return {
         titulo: 'Reporte de Medicamentos Dados de Baja',
-        columnasPdf: ['Medicamento', 'Lote', 'Estado', 'Vencimiento', 'Cant. perdida', 'Costo est.', 'Proveedor'],
-        alineacionesPdf: ['left', 'left', 'left', 'left', 'right', 'right', 'left'],
-        anchosRelativosPdf: [1.7, 0.9, 1.0, 0.9, 0.9, 0.9, 1.7],
-        filasPdf: filas.map((f) => [f.medicamento, f.numeroLote, f.estado, f.fechaVencimiento, f.cantidadPerdida, f.costoEstimado, f.proveedor]),
+        columnasPdf: ['Medicamento', 'Lote', 'Estado', 'Vencimiento', 'Cant. perdida', 'Costo est.'],
+        alineacionesPdf: ['left', 'left', 'left', 'left', 'right', 'right'],
+        anchosRelativosPdf: [2.0, 0.9, 1.1, 1.0, 1.0, 1.0],
+        filasPdf: filas.map((f) => [f.medicamento, f.numeroLote, f.estado, f.fechaVencimiento, f.cantidadPerdida, f.costoEstimado]),
         columnasExcel: [
           { header: 'Medicamento', key: 'medicamento', width: 25 },
           { header: 'Presentación', key: 'presentacion', width: 15 },
@@ -391,7 +366,6 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
           { header: 'Fecha de vencimiento', key: 'fechaVencimiento', width: 18 },
           { header: 'Cantidad perdida', key: 'cantidadPerdida', width: 15 },
           { header: 'Costo estimado', key: 'costoEstimado', width: 15 },
-          { header: 'Proveedor', key: 'proveedor', width: 25 },
         ],
         filasExcel: filas,
       };

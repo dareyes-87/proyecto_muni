@@ -1,4 +1,4 @@
-import { PrismaClient, EstadoLote, OrigenEntrada } from '@prisma/client';
+import { PrismaClient, EstadoLote } from '@prisma/client';
 import { getUmbrales, calcularSemaforo, diasParaVencer, hoyMedianoche } from './inventario.service';
 
 const prisma = new PrismaClient();
@@ -143,7 +143,6 @@ export async function reporteConsumoMedicamentos(filtros: FiltrosConsumo) {
 
 export interface FiltrosInventarioActual extends PaginacionParams {
   categoriaId?: string;
-  origen?: OrigenEntrada;
   estado?: EstadoLote;
 }
 
@@ -153,7 +152,6 @@ export async function reporteInventarioActual(filtros: FiltrosInventarioActual) 
 
   const where: any = {};
   if (filtros.categoriaId) where.medicamento = { categoriaId: filtros.categoriaId };
-  if (filtros.origen) where.entrada = { origen: filtros.origen };
   if (filtros.estado) where.estado = filtros.estado;
 
   const [lotes, total] = await Promise.all([
@@ -162,7 +160,6 @@ export async function reporteInventarioActual(filtros: FiltrosInventarioActual) 
       include: {
         medicamento: { include: { categoria: true, codigosBarras: true } },
         ubicacion: true,
-        entrada: { include: { proveedor: true } },
       },
       orderBy: { fechaVencimiento: 'asc' },
       skip: p.skip,
@@ -188,8 +185,6 @@ export async function reporteInventarioActual(filtros: FiltrosInventarioActual) 
     semaforo: calcularSemaforo(l.fechaVencimiento, umbrales, l.estado),
     estado: l.estado,
     ubicacion: l.ubicacion ? { codigo: l.ubicacion.codigo, descripcion: l.ubicacion.descripcion } : null,
-    origen: l.entrada.origen,
-    proveedor: l.entrada.proveedor.nombre,
   }));
 
   return { data, pagination: paginacionRespuesta(p, total) };
@@ -252,17 +247,15 @@ export async function reportePorVencer(filtros: FiltrosPorVencer) {
 }
 
 // ============================================
-// 5. ENTRADAS POR PROVEEDOR
+// 5. ENTRADAS REGISTRADAS
 // ============================================
 
 export interface FiltrosEntradas extends PaginacionParams {
   desde?: string;
   hasta?: string;
-  proveedorId?: string;
-  origen?: OrigenEntrada;
 }
 
-export async function reporteEntradasProveedor(filtros: FiltrosEntradas) {
+export async function reporteEntradas(filtros: FiltrosEntradas) {
   const p = resolverPaginacion(filtros);
   const where: any = {};
   if (filtros.desde || filtros.hasta) {
@@ -270,14 +263,11 @@ export async function reporteEntradasProveedor(filtros: FiltrosEntradas) {
     if (filtros.desde) where.createdAt.gte = new Date(filtros.desde);
     if (filtros.hasta) where.createdAt.lte = new Date(filtros.hasta);
   }
-  if (filtros.proveedorId) where.proveedorId = filtros.proveedorId;
-  if (filtros.origen) where.origen = filtros.origen;
 
   const [entradas, total] = await Promise.all([
     prisma.entrada.findMany({
       where,
       include: {
-        proveedor: true,
         usuario: { select: { nombreCompleto: true } },
         lotes: { include: { medicamento: true } },
       },
@@ -294,8 +284,6 @@ export async function reporteEntradasProveedor(filtros: FiltrosEntradas) {
     return {
       id: e.id,
       createdAt: e.createdAt,
-      origen: e.origen,
-      proveedor: e.proveedor.nombre,
       usuario: e.usuario.nombreCompleto,
       totalLotes: e.lotes.length,
       totalUnidades,
@@ -342,7 +330,6 @@ export async function reporteMedicamentosBaja(filtros: FiltrosBaja) {
       where,
       include: {
         medicamento: { include: { categoria: true } },
-        entrada: { include: { proveedor: true } },
       },
       orderBy: { fechaVencimiento: 'desc' },
       skip: p.skip,
@@ -368,7 +355,6 @@ export async function reporteMedicamentosBaja(filtros: FiltrosBaja) {
     cantidadPerdida: l.cantidadActual,
     costoUnitario: l.costoUnitario,
     costoEstimado: l.costoUnitario ? costoNumerico(l.costoUnitario) * l.cantidadActual : null,
-    proveedor: l.entrada.proveedor.nombre,
   }));
 
   return {

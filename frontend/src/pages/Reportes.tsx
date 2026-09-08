@@ -6,33 +6,33 @@ import {
   createColumnHelper,
   flexRender,
 } from '@tanstack/react-table';
-import { FileBarChart, FileText, FileSpreadsheet, X } from 'lucide-react';
+import { FileText, FileSpreadsheet, X } from 'lucide-react';
 import api from '../api/client';
 import {
   reporteDispensaciones,
   reporteConsumoMedicamentos,
   reporteInventarioActual,
   reportePorVencer,
-  reporteEntradasProveedor,
+  reporteEntradas,
   reporteMedicamentosBaja,
   exportarReporte,
   extraerErrorDeBlob,
   type TipoReporte,
 } from '../api/reportes';
-import { listarCategorias, listarProveedores, buscarMedicamentos } from '../api/catalogos';
+import { listarCategorias, buscarMedicamentos } from '../api/catalogos';
 import Semaforo from '../components/ui/Semaforo';
+import PageHeader from '../components/ui/PageHeader';
+import Button from '../components/ui/Button';
+import { inputClass } from '../components/ui/Field';
 import { formatFecha, formatFechaHora } from '../utils/formatDate';
-import type { CategoriaRef, Proveedor } from '../types';
-
-const inputClass =
-  'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500';
+import type { CategoriaRef } from '../types';
 
 const TIPOS: { value: TipoReporte; label: string }[] = [
   { value: 'dispensaciones', label: 'Dispensaciones' },
   { value: 'consumo', label: 'Consumo por medicamento' },
   { value: 'inventario', label: 'Inventario actual' },
   { value: 'por-vencer', label: 'Por vencer' },
-  { value: 'entradas', label: 'Entradas por proveedor' },
+  { value: 'entradas', label: 'Entradas' },
   { value: 'baja', label: 'Dados de baja' },
 ];
 
@@ -48,8 +48,6 @@ const filtrosVacios = {
   medicamentoId: '',
   medicamentoLabel: '',
   categoriaId: '',
-  proveedorId: '',
-  origen: '' as '' | 'DONACION' | 'PRESUPUESTO_MUNICIPAL',
   estado: '' as '' | 'DISPONIBLE' | 'AGOTADO' | 'VENCIDO' | 'DADO_DE_BAJA',
   dias: 90,
 };
@@ -157,7 +155,6 @@ export default function Reportes() {
   const [total, setTotal] = useState(0);
   const [resumen, setResumen] = useState<{ totalUnidadesPerdidas: number; costoTotalEstimado: number } | null>(null);
   const [categorias, setCategorias] = useState<CategoriaRef[]>([]);
-  const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [exportando, setExportando] = useState<'pdf' | 'xlsx' | null>(null);
 
   // Espejo síncrono de `tipo` legible dentro de `cargar` sin esperar a que el efecto
@@ -167,7 +164,6 @@ export default function Reportes() {
 
   useEffect(() => {
     listarCategorias().catch(() => []).then((r) => setCategorias(r ?? []));
-    listarProveedores().catch(() => []).then((r) => setProveedores(r ?? []));
   }, []);
 
   useEffect(() => {
@@ -217,7 +213,6 @@ export default function Reportes() {
           resultado = await reporteInventarioActual({
             ...base,
             categoriaId: filtros.categoriaId || undefined,
-            origen: filtros.origen || undefined,
             estado: filtros.estado || undefined,
           });
           break;
@@ -225,12 +220,10 @@ export default function Reportes() {
           resultado = await reportePorVencer({ ...base, dias: filtros.dias || undefined });
           break;
         case 'entradas':
-          resultado = await reporteEntradasProveedor({
+          resultado = await reporteEntradas({
             ...base,
             desde: filtros.desde || undefined,
             hasta,
-            proveedorId: filtros.proveedorId || undefined,
-            origen: filtros.origen || undefined,
           });
           break;
         case 'baja': {
@@ -285,14 +278,9 @@ export default function Reportes() {
     if (tipo === 'consumo' && filtros.categoriaId) f.categoriaId = filtros.categoriaId;
     if (tipo === 'inventario') {
       if (filtros.categoriaId) f.categoriaId = filtros.categoriaId;
-      if (filtros.origen) f.origen = filtros.origen;
       if (filtros.estado) f.estado = filtros.estado;
     }
     if (tipo === 'por-vencer' && filtros.dias) f.dias = filtros.dias;
-    if (tipo === 'entradas') {
-      if (filtros.proveedorId) f.proveedorId = filtros.proveedorId;
-      if (filtros.origen) f.origen = filtros.origen;
-    }
     return f;
   };
 
@@ -359,7 +347,6 @@ export default function Reportes() {
             cell: (i) => <Semaforo estado={i.row.original.semaforo} dias={i.row.original.diasParaVencer} />,
           }),
           columnHelper.accessor((r) => r.ubicacion?.codigo ?? '—', { id: 'ubicacion', header: 'Ubicación' }),
-          columnHelper.accessor('proveedor', { header: 'Proveedor' }),
         ];
       case 'por-vencer':
         return [
@@ -379,8 +366,6 @@ export default function Reportes() {
       case 'entradas':
         return [
           columnHelper.accessor((r) => fmtDT(r.createdAt), { id: 'fecha', header: 'Fecha' }),
-          columnHelper.accessor('proveedor', { header: 'Proveedor' }),
-          columnHelper.accessor('origen', { header: 'Origen' }),
           columnHelper.accessor('usuario', { header: 'Usuario' }),
           columnHelper.accessor('totalLotes', { header: 'N.º lotes' }),
           columnHelper.accessor('totalUnidades', { header: 'Unidades' }),
@@ -397,7 +382,6 @@ export default function Reportes() {
             id: 'costoEstimado',
             header: 'Costo estimado',
           }),
-          columnHelper.accessor('proveedor', { header: 'Proveedor' }),
         ];
       default:
         return [];
@@ -414,17 +398,14 @@ export default function Reportes() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center gap-2">
-        <FileBarChart size={22} className="text-primary-700" />
-        <h1 className="text-2xl font-bold text-gray-900">Reportes</h1>
-      </div>
+      <PageHeader title="Reportes" subtitle="Consulta y exporta información del sistema" />
 
       <div className="mb-4 flex flex-wrap gap-2">
         {TIPOS.map((t) => (
           <button
             key={t.value}
             onClick={() => setTipo(t.value)}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
               tipo === t.value ? 'bg-primary-700 text-white' : 'bg-white text-gray-600 ring-1 ring-gray-200 hover:bg-gray-50'
             }`}
           >
@@ -498,21 +479,6 @@ export default function Reportes() {
           </div>
         )}
 
-        {(tipo === 'inventario' || tipo === 'entradas') && (
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">Origen</label>
-            <select
-              value={filtros.origen}
-              onChange={(e) => setFiltros({ ...filtros, origen: e.target.value as typeof filtros.origen })}
-              className={inputClass}
-            >
-              <option value="">Todos</option>
-              <option value="DONACION">Donación</option>
-              <option value="PRESUPUESTO_MUNICIPAL">Presupuesto municipal</option>
-            </select>
-          </div>
-        )}
-
         {tipo === 'inventario' && (
           <div>
             <label className="mb-1 block text-xs font-medium text-gray-500">Estado del lote</label>
@@ -545,28 +511,10 @@ export default function Reportes() {
           </div>
         )}
 
-        {tipo === 'entradas' && (
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">Proveedor</label>
-            <select
-              value={filtros.proveedorId}
-              onChange={(e) => setFiltros({ ...filtros, proveedorId: e.target.value })}
-              className={inputClass}
-            >
-              <option value="">Todos</option>
-              {proveedores.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
         <div className="flex items-end gap-2">
-          <button onClick={() => setFiltros(filtrosVacios)} className="rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100">
+          <Button variant="ghost" size="sm" onClick={() => setFiltros(filtrosVacios)}>
             Limpiar filtros
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -645,23 +593,15 @@ export default function Reportes() {
         </span>
         {totalPages > 1 && (
           <div className="flex items-center gap-3">
-            <button
-              disabled={page <= 1}
-              onClick={() => setPage((p) => p - 1)}
-              className="rounded-lg border border-gray-300 px-3 py-1.5 disabled:opacity-40"
-            >
+            <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
               Anterior
-            </button>
+            </Button>
             <span>
               Página {page} de {totalPages}
             </span>
-            <button
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => p + 1)}
-              className="rounded-lg border border-gray-300 px-3 py-1.5 disabled:opacity-40"
-            >
+            <Button variant="secondary" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
               Siguiente
-            </button>
+            </Button>
           </div>
         )}
       </div>

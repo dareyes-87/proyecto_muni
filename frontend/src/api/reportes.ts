@@ -42,10 +42,10 @@ export async function reportePorVencer(
   return data;
 }
 
-export async function reporteEntradasProveedor(
+export async function reporteEntradas(
   params: Record<string, unknown>
 ): Promise<ConPaginacion<ReporteEntradaRow>> {
-  const { data } = await api.get('/reportes/entradas-proveedor', { params });
+  const { data } = await api.get('/reportes/entradas', { params });
   return data;
 }
 

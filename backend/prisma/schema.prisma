@@ -87,25 +87,6 @@ model CodigoBarras {
   @@map("codigos_barras")
 }
 
-model Proveedor {
-  id       String        @id @default(uuid())
-  nombre   String
-  tipo     TipoProveedor
-  contacto String?
-  notas    String?
-  activo   Boolean       @default(true)
-
-  // Relaciones
-  entradas Entrada[]
-
-  @@map("proveedores")
-}
-
-enum TipoProveedor {
-  INSTITUCION
-  PERSONA
-}
-
 model Ubicacion {
   id          String @id @default(uuid())
   codigo      String @unique
@@ -121,21 +102,13 @@ model Ubicacion {
 // INVENTARIO
 // ============================================
 
-enum OrigenEntrada {
-  DONACION
-  PRESUPUESTO_MUNICIPAL
-}
-
 model Entrada {
   id             String        @id @default(uuid())
-  proveedorId    String        @map("proveedor_id")
-  origen         OrigenEntrada
   usuarioId      String        @map("usuario_id")
   observaciones  String?
   createdAt      DateTime      @default(now()) @map("created_at")
 
   // Relaciones
-  proveedor Proveedor @relation(fields: [proveedorId], references: [id])
   usuario   Usuario   @relation(fields: [usuarioId], references: [id])
   lotes     Lote[]
 

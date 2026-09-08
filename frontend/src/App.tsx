@@ -11,10 +11,7 @@ import Entradas from './pages/Entradas';
 import Usuarios from './pages/Usuarios';
 import Auditoria from './pages/Auditoria';
 import Reportes from './pages/Reportes';
-import Medicamentos from './pages/Catalogos/Medicamentos';
-import Categorias from './pages/Catalogos/Categorias';
-import Proveedores from './pages/Catalogos/Proveedores';
-import Ubicaciones from './pages/Catalogos/Ubicaciones';
+import Catalogos from './pages/Catalogos';
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const { usuario } = useAuth();
@@ -65,11 +62,12 @@ export default function App() {
         <Route path="inventario" element={<Inventario />} />
         <Route path="entradas" element={<Entradas />} />
 
-        {/* === MÓDULO CATÁLOGOS (Audias) === */}
-        <Route path="medicamentos" element={<Medicamentos />} />
-        <Route path="categorias" element={<Categorias />} />
-        <Route path="proveedores" element={<Proveedores />} />
-        <Route path="ubicaciones" element={<Ubicaciones />} />
+        {/* === MÓDULO CATÁLOGOS (Audias) — página única con pestañas === */}
+        <Route path="catalogos" element={<Catalogos />} />
+        {/* Redirecciones de las rutas antiguas de catálogos */}
+        <Route path="medicamentos" element={<Navigate to="/catalogos?tab=medicamentos" replace />} />
+        <Route path="categorias" element={<Navigate to="/catalogos?tab=categorias" replace />} />
+        <Route path="ubicaciones" element={<Navigate to="/catalogos?tab=ubicaciones" replace />} />
 
         {/* === MÓDULO DISPENSACIÓN (Jorge) === */}
         <Route path="dispensacion" element={<Dispensacion />} />

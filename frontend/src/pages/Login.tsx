@@ -3,6 +3,8 @@ import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import { Pill } from 'lucide-react';
+import Button from '../components/ui/Button';
+import { Field, TextInput } from '../components/ui/Field';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -43,44 +45,31 @@ export default function Login() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1.5">
-              Usuario
-            </label>
-            <input
+          <Field label="Usuario" htmlFor="username">
+            <TextInput
               id="username"
-              type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
               autoFocus
-              className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition"
               placeholder="Ingrese su usuario"
             />
-          </div>
+          </Field>
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">
-              Contraseña
-            </label>
-            <input
+          <Field label="Contraseña" htmlFor="password">
+            <TextInput
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition"
               placeholder="Ingrese su contraseña"
             />
-          </div>
+          </Field>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2.5 bg-primary-700 text-white font-medium rounded-lg hover:bg-primary-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Ingresando...' : 'Iniciar Sesión'}
-          </button>
+          <Button type="submit" disabled={loading} className="w-full py-2.5">
+            {loading ? 'Ingresando...' : 'Iniciar sesión'}
+          </Button>
         </form>
       </div>
     </div>

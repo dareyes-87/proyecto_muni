@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient, EstadoLote, OrigenEntrada } from '@prisma/client';
+import { PrismaClient, EstadoLote } from '@prisma/client';
 import { z } from 'zod';
 import multer from 'multer';
 import ExcelJS from 'exceljs';
@@ -34,8 +34,6 @@ const loteEntradaSchema = z.object({
 });
 
 const entradaSchema = z.object({
-  proveedorId: z.string().uuid('proveedorId inválido'),
-  origen: z.enum(['DONACION', 'PRESUPUESTO_MUNICIPAL']),
   observaciones: z.string().trim().optional().nullable(),
   lotes: z.array(loteEntradaSchema).min(1, 'Debe registrar al menos un lote'),
 });
@@ -55,16 +53,10 @@ router.post('/entradas', authMiddleware, async (req: Request, res: Response): Pr
     res.status(400).json({ error: 'Datos inválidos', detalles: parsed.error.flatten() });
     return;
   }
-  const { proveedorId, origen, observaciones, lotes } = parsed.data;
+  const { observaciones, lotes } = parsed.data;
 
   try {
     // Validar existencia de referencias para dar errores claros (en vez de P2003 de Prisma).
-    const proveedor = await prisma.proveedor.findUnique({ where: { id: proveedorId } });
-    if (!proveedor || !proveedor.activo) {
-      res.status(400).json({ error: 'Proveedor no encontrado o inactivo' });
-      return;
-    }
-
     const medicamentoIds = [...new Set(lotes.map((l) => l.medicamentoId))];
     const medicamentos = await prisma.medicamento.findMany({
       where: { id: { in: medicamentoIds }, activo: true },
@@ -90,8 +82,6 @@ router.post('/entradas', authMiddleware, async (req: Request, res: Response): Pr
     const entrada = await prisma.$transaction(async (tx) => {
       const nuevaEntrada = await tx.entrada.create({
         data: {
-          proveedorId,
-          origen,
           usuarioId: req.user!.userId,
           observaciones: observaciones || null,
         },
@@ -114,7 +104,6 @@ router.post('/entradas', authMiddleware, async (req: Request, res: Response): Pr
       return tx.entrada.findUnique({
         where: { id: nuevaEntrada.id },
         include: {
-          proveedor: { select: { id: true, nombre: true } },
           lotes: {
             include: { medicamento: { select: { id: true, nombreGenerico: true } } },
           },
@@ -127,7 +116,7 @@ router.post('/entradas', authMiddleware, async (req: Request, res: Response): Pr
       accion: 'CREAR',
       entidad: 'entrada',
       entidadId: entrada!.id,
-      datosNuevos: { proveedorId, origen, lotes: lotes.length },
+      datosNuevos: { lotes: lotes.length },
       ipAddress: req.ip,
     });
 
@@ -153,7 +142,6 @@ router.get('/entradas', authMiddleware, async (req: Request, res: Response): Pro
         skip: (page - 1) * pageSize,
         take: pageSize,
         include: {
-          proveedor: { select: { id: true, nombre: true } },
           usuario: { select: { id: true, nombreCompleto: true } },
           _count: { select: { lotes: true } },
         },
@@ -382,9 +370,7 @@ router.get('/medicamento/:id', authMiddleware, async (req: Request, res: Respons
             entrada: {
               select: {
                 id: true,
-                origen: true,
                 createdAt: true,
-                proveedor: { select: { id: true, nombre: true } },
               },
             },
           },
@@ -581,8 +567,6 @@ const COLUMNAS_EXCEL = [
   'numeroLote',
   'fechaVencimiento',
   'ubicacion',
-  'origen',
-  'proveedor',
 ] as const;
 type CampoExcel = (typeof COLUMNAS_EXCEL)[number];
 
@@ -637,11 +621,6 @@ function parseFechaCelda(valor: ExcelJS.CellValue): Date | null {
   return null;
 }
 
-const ORIGENES_VALIDOS: Record<string, OrigenEntrada> = {
-  donacion: 'DONACION',
-  presupuestomunicipal: 'PRESUPUESTO_MUNICIPAL',
-};
-
 interface FilaValidada {
   nombreGenerico: string;
   nombreComercial: string | null;
@@ -654,8 +633,6 @@ interface FilaValidada {
   numeroLote: string;
   fechaVencimiento: Date;
   ubicacion: string | null;
-  origen: OrigenEntrada;
-  proveedor: string;
 }
 
 function validarFila(raw: Record<CampoExcel, ExcelJS.CellValue>): { datos: FilaValidada } | { error: string } {
@@ -673,15 +650,8 @@ function validarFila(raw: Record<CampoExcel, ExcelJS.CellValue>): { datos: FilaV
   const categoria = celdaATexto(raw.categoria);
   if (!categoria) errores.push('categoria es requerida');
 
-  const proveedor = celdaATexto(raw.proveedor);
-  if (!proveedor) errores.push('proveedor es requerido');
-
   const numeroLote = celdaATexto(raw.numeroLote);
   if (!numeroLote) errores.push('numeroLote es requerido');
-
-  const origenTexto = normalizarHeader(celdaATexto(raw.origen));
-  const origen = ORIGENES_VALIDOS[origenTexto];
-  if (!origen) errores.push('origen inválido (use DONACION o PRESUPUESTO_MUNICIPAL)');
 
   const cantidadTexto = celdaATexto(raw.cantidad);
   const cantidad = parseInt(cantidadTexto, 10);
@@ -711,8 +681,6 @@ function validarFila(raw: Record<CampoExcel, ExcelJS.CellValue>): { datos: FilaV
       numeroLote,
       fechaVencimiento: fechaVencimiento!,
       ubicacion,
-      origen,
-      proveedor,
     },
   };
 }
@@ -790,7 +758,6 @@ router.post(
     let medicamentosCreados = 0;
     let medicamentosExistentes = 0;
     let categoriasCreadas = 0;
-    let proveedoresCreados = 0;
     let ubicacionesCreadas = 0;
     let codigosBarrasVinculados = 0;
     let lotesRegistrados = 0;
@@ -805,21 +772,6 @@ router.post(
           if (!categoria) {
             categoria = await tx.categoria.create({ data: { nombre: fila.categoria } });
             categoriaCreada = true;
-          }
-
-          let proveedor = await tx.proveedor.findFirst({
-            where: { nombre: { equals: fila.proveedor, mode: 'insensitive' } },
-          });
-          let proveedorCreado = false;
-          if (!proveedor) {
-            // Sin columna de tipo en el Excel: se crea como INSTITUCION por defecto
-            // (editable luego en Catálogos > Proveedores).
-            proveedor = await tx.proveedor.create({
-              data: { nombre: fila.proveedor, tipo: 'INSTITUCION' },
-            });
-            proveedorCreado = true;
-          } else if (!proveedor.activo) {
-            throw new Error(`El proveedor "${fila.proveedor}" existe pero está inactivo`);
           }
 
           let ubicacion = null as Awaited<ReturnType<typeof tx.ubicacion.findFirst>>;
@@ -876,8 +828,6 @@ router.post(
 
           const entrada = await tx.entrada.create({
             data: {
-              proveedorId: proveedor.id,
-              origen: fila.origen,
               usuarioId: req.user!.userId,
               observaciones: `Importado desde Excel (fila ${numeroFila})`,
             },
@@ -899,8 +849,6 @@ router.post(
           return {
             categoria,
             categoriaCreada,
-            proveedor,
-            proveedorCreado,
             ubicacion,
             ubicacionCreada,
             medicamento,
@@ -935,17 +883,6 @@ router.post(
             ipAddress: req.ip,
           });
         }
-        if (resultado.proveedorCreado) {
-          proveedoresCreados++;
-          await registrarAuditoria({
-            usuarioId: req.user!.userId,
-            accion: 'CREAR',
-            entidad: 'proveedor',
-            entidadId: resultado.proveedor.id,
-            datosNuevos: resultado.proveedor,
-            ipAddress: req.ip,
-          });
-        }
         if (resultado.ubicacionCreada && resultado.ubicacion) {
           ubicacionesCreadas++;
           await registrarAuditoria({
@@ -969,8 +906,6 @@ router.post(
           entidad: 'entrada',
           entidadId: resultado.entradaId,
           datosNuevos: {
-            proveedorId: resultado.proveedor.id,
-            origen: fila.origen,
             lotes: 1,
             origenImportacion: 'excel',
             fila: numeroFila,
@@ -991,7 +926,6 @@ router.post(
         medicamentosCreados,
         medicamentosExistentes,
         categoriasCreadas,
-        proveedoresCreados,
         ubicacionesCreadas,
         codigosBarrasVinculados,
         lotesRegistrados,
@@ -1029,8 +963,6 @@ router.get(
       numeroLote: 'L-2026-001',
       fechaVencimiento: new Date('2027-12-31T00:00:00'),
       ubicacion: 'A-1',
-      origen: 'DONACION',
-      proveedor: 'Cruz Roja Guatemalteca',
     });
     filaEjemplo.getCell('fechaVencimiento').numFmt = 'yyyy-mm-dd';
     filaEjemplo.font = { italic: true, color: { argb: 'FF888888' } };
@@ -1044,16 +976,13 @@ router.get(
       '2. La fila 2 es un ejemplo — puede borrarla o sobrescribirla, no la deje como dato real.',
       '3. Cada fila representa UN lote de UN medicamento (una entrada individual).',
       '4. Campos obligatorios: nombreGenerico, presentacion, unidadMedida, categoria, cantidad,',
-      '   numeroLote, fechaVencimiento, origen, proveedor.',
+      '   numeroLote, fechaVencimiento.',
       '5. Campos opcionales: nombreComercial, concentracion, codigoBarras, ubicacion.',
-      '6. origen debe ser exactamente: DONACION o PRESUPUESTO_MUNICIPAL.',
-      '7. fechaVencimiento en formato AAAA-MM-DD (ej. 2027-12-31) o como fecha de Excel.',
-      '8. Si categoria, proveedor o ubicacion no existen en el sistema, se crean automáticamente.',
-      '9. Si el medicamento ya existe (mismo nombreGenerico + presentacion + concentracion),',
+      '6. fechaVencimiento en formato AAAA-MM-DD (ej. 2027-12-31) o como fecha de Excel.',
+      '7. Si categoria o ubicacion no existen en el sistema, se crean automáticamente.',
+      '8. Si el medicamento ya existe (mismo nombreGenerico + presentacion + concentracion),',
       '   se reutiliza y solo se registra el nuevo lote.',
-      '10. Los proveedores nuevos se crean por defecto como INSTITUCION; puede editarlos luego',
-      '    en Catálogos > Proveedores si corresponde a una PERSONA.',
-      '11. Si una fila tiene errores, se omite pero el resto del archivo se procesa igual.',
+      '9. Si una fila tiene errores, se omite pero el resto del archivo se procesa igual.',
     ];
     lineas.forEach((linea, i) => {
       const row = instrucciones.getRow(i + 1);

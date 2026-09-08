@@ -1,4 +1,4 @@
-import { PrismaClient, Rol, TipoProveedor } from '@prisma/client';
+import { PrismaClient, Rol } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -108,25 +108,6 @@ async function main() {
     });
   }
   console.log(`✅ ${configs.length} configuraciones creadas/verificadas`);
-
-  // ============================================
-  // Proveedor de ejemplo
-  // ============================================
-  const proveedorExists = await prisma.proveedor.findFirst({
-    where: { nombre: 'Donaciones Generales' },
-  });
-
-  if (!proveedorExists) {
-    await prisma.proveedor.create({
-      data: {
-        nombre: 'Donaciones Generales',
-        tipo: TipoProveedor.INSTITUCION,
-        contacto: 'N/A',
-        notas: 'Proveedor genérico para donaciones sin origen específico',
-      },
-    });
-    console.log('✅ Proveedor de ejemplo creado');
-  }
 
   // ============================================
   // Medicamentos de ejemplo (solo si no existe ninguno)
