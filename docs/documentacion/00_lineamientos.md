@@ -50,7 +50,10 @@
 - Toda figura y tabla debe mencionarse en el texto antes de aparecer (ej. "En la Figura 5 se
   muestra…"). El número mencionado debe coincidir exactamente con el de la figura.
 - Identificadores:
-  - Casos de uso: `CU-XX`
+  - Casos de uso de la tesis: `CU-XX` (CU-01, CU-02…), numerados solo con lo implementado
+  - Casos de uso del documento original (`docs/proyecto_farmacia_original.md`): se citan como
+    `CUO-01` a `CUO-37` (en ese documento aparecen como CU-01 a CU-37). La tesis incluye una
+    matriz de trazabilidad CUO → CU. (Decisión confirmada por Audias Guevara, 2026-09-25; P-13 / R-03.)
   - Requerimientos funcionales: `RF-XX`
   - Requerimientos no funcionales: `RNF-XX`
   - Reglas de negocio: `RN-XX`

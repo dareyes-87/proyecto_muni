@@ -3,6 +3,9 @@
 > Fase: Extracción. Documento de hechos con fuente; no es texto final de la tesis.
 > Archivo analizado: `docs/proyecto_farmacia_original.md` (799 líneas). Fecha de extracción: 2026-09-25.
 > Resuelve P-09.
+> **Nota de numeración (R-03, 2026-09-25):** los códigos CU-01 a CU-37 que aparecen en este archivo
+> son los del documento original; en la tesis se citan como **CUO-01 a CUO-37** (ver
+> `00_lineamientos.md`, sección de identificadores).
 
 ---
 
