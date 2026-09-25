@@ -90,8 +90,17 @@
   5. Flujo normal (pasos numerados sin repetir números)
   6. Flujo alternativo
   7. Postcondiciones
-- **Tipografía, tamaño, interlineado y márgenes:** `[COMPLETAR: se definirán con la plantilla
-  .docx de referencia que se colocará en plantilla/]`.
+- **Papel:** tamaño Carta (8.5 × 11 pulgadas).
+- **Márgenes:** 2.54 cm en los cuatro lados.
+- **Cuerpo del texto:** Times New Roman 12 pt, justificado, interlineado doble (2.0), sangría de
+  primera línea de 1.27 cm, sin espacio adicional antes ni después de los párrafos.
+- **Títulos:** Times New Roman 12 pt en negrita (no se usan tamaños mayores). "INTRODUCCIÓN",
+  "CAPÍTULO I" y el título del capítulo van centrados y en mayúsculas. Las secciones (1.1) y
+  subsecciones (1.1.1) van alineadas a la izquierda, en negrita y sin sangría.
+- **Tablas:** Times New Roman; se permite reducir hasta 10 pt dentro de tablas grandes para que
+  el contenido quepa. El interlineado dentro de las tablas es sencillo.
+- **Pies de figura y tabla** ("Figura N.", título y "Fuente: …"): Times New Roman 12 pt,
+  interlineado sencillo.
 
 ## Diagramas
 
@@ -118,7 +127,7 @@ objetivos, alcances y límites, metodología.
 
 **Capítulo 2 — Marco de referencia:** tecnologías utilizadas y su justificación.
 
-**Capítulo 3 — Fase de Inicio:** documento de visión, interesados y usuarios, glosario, riesgos,
+**Capítulo 3 — Fase de Inicio:** documento de visión, interesados y usuarios, riesgos,
 factibilidad.
 
 **Capítulo 4 — Requerimientos:** RF por módulo, RNF (ISO 25010), reglas de negocio, modelo de
