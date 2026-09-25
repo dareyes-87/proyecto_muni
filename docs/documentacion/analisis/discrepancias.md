@@ -1,3 +1,25 @@
 # Discrepancias entre código y especificación técnica
 
 Registro de diferencias entre `docs/FarmaG_Especificacion_Tecnica_v1.md` y lo realmente implementado en el código (prevalece el código).
+
+## Extracción parte 1 — Stack, estructura y modelo de datos (2026-09-25)
+
+Especificación = `docs/FarmaG_Especificacion_Tecnica_v1.md`.
+
+| ID | Tema | Especificación dice | Código dice | Fuente |
+|----|------|---------------------|-------------|--------|
+| D-01 | Proveedores / donantes | Existe el catálogo `proveedores` (nombre, tipo INSTITUCION/PERSONA, contacto, notas, activo) | No existe el modelo `Proveedor` ni el enum `TipoProveedor` en el esquema | Espec. §3.2.4, líneas 140–149; backend/prisma/schema.prisma, líneas 1–286 (ausente) |
+| D-02 | Campos de `entradas` | `entradas` tiene `proveedor_id` (FK) y `origen` (DONACION / PRESUPUESTO_MUNICIPAL) | `Entrada` solo tiene `id`, `usuarioId`, `observaciones`, `createdAt`; no existe el enum de origen | Espec. §3.3.1, líneas 165–174; schema.prisma, líneas 105–116 |
+| D-03 | Inventario unificado con origen | Cada lote tiene un campo `origen` para filtrar y reportar por procedencia | Ni `Lote` ni `Entrada` tienen campo de origen | Espec. §3.3.3, líneas 195–200; schema.prisma, líneas 105–145 |
+| D-04 | Nombre de la tabla de lotes | La tabla se llama `detalle_entradas`; `detalle_dispensaciones.lote_id` apunta a ella; el `SELECT … FOR UPDATE` es sobre `detalle_entradas` | El modelo es `Lote`, tabla `lotes`; el `FOR UPDATE` se hace `FROM lotes` | Espec. líneas 176, 265, 354; schema.prisma, línea 144; backend/src/services/dispensacion.service.ts, líneas 199–207 |
+| D-05 | `costo_unitario` | "Solo para PRESUPUESTO_MUNICIPAL" | Opcional en todos los lotes, sin condición (no existe origen) | Espec. línea 187; schema.prisma, línea 133; backend/src/routes/inventario.routes.ts, línea 32 |
+| D-06 | Longitud de campos de texto | Tipos `VARCHAR(n)` con longitudes específicas (p. ej. `nombre_generico VARCHAR(200)`, `codigo VARCHAR(50)`, `dpi VARCHAR(13)`, `ip_address VARCHAR(45)`) | Todos los `String` sin `@db.VarChar`, es decir, `TEXT` sin límite de longitud en la base de datos | Espec. §3.2–§3.6 (líneas 104–108, 127–128, 137–138, 156–157, 185, 237–240, 268–270, 329–334); schema.prisma (ningún `@db.VarChar`) |
+| D-07 | Tipo de `log_auditoria.accion` | `VARCHAR(50)` con valores de texto | Enum `AccionAuditoria` con 9 valores fijos | Espec. línea 329; schema.prisma, líneas 246–256 y 261 |
+| D-08 | Tipo de `log_auditoria.entidad_id` | `UUID` | `String?` (TEXT, nulo permitido, sin FK) | Espec. línea 331; schema.prisma, línea 263 |
+| D-09 | Campos no previstos en la especificación | No figuran | Existen `Medicamento.imagenUrl`, `Categoria.activo`, `Beneficiario.updatedAt`, `Lote.createdAt` | schema.prisma, líneas 47, 64, 136 y 160 |
+| D-10 | Modelos no previstos en la especificación | No se describen tablas de evidencia fotográfica ni de configuración; la tabla de usuarios no se define campo por campo | Existen `FotoDispensacion`, `TokenCaptura` (y enum `TipoFoto`), `ConfiguracionSistema` y `Usuario` con sus campos | schema.prisma, líneas 19–37, 185–221 y 279–286 |
+| D-11 | Condición del cron de vencimiento | Pasa a VENCIDO si `fecha_vencimiento <= hoy` | Pasa a VENCIDO si `fechaVencimiento < hoy` (hoy a las 00:00:00): un lote que vence hoy sigue `DISPONIBLE` hasta la ejecución del día siguiente | Espec. §3.3.4, línea 206; backend/src/services/vencimiento.service.ts, líneas 13–26 |
+| D-12 | Servidor web y puerto | Nginx sirve el build de React en el puerto 80 | Por defecto (`FRONTEND_TARGET=development`) se sirve con Vite en el puerto 5173; nginx en el 80 solo con `FRONTEND_TARGET=production` | Espec. §2, líneas 27, 53 y 59; docker-compose.yml, línea 46; .env.example, línea 13; frontend/Dockerfile, líneas 1–33 |
+| D-13 | Migraciones | Prisma se justifica por "migraciones como código" | No existe `prisma/migrations/`; el contenedor sincroniza con `prisma db push --accept-data-loss` | Espec. línea 24; backend/Dockerfile, línea 15; contenido de backend/prisma/ (solo schema.prisma y seed.ts) |
+| D-14 | Recharts | Librería de gráficos para el dashboard | Declarada en `package.json` pero no se importa en ningún archivo de `frontend/src` | Espec. línea 28; frontend/package.json, línea 18 |
+| D-15 | Estructura de carpetas | Backend con `medicamentos.routes.ts`, `beneficiarios.routes.ts`, `services/auth.service.ts`, `src/types/`; frontend con `hooks/`, `components/shared/`, `Catalogos/Proveedores.tsx`; `docs/modelo_datos.md` y `docs/manual_usuario.md` | No existen esos archivos/carpetas; en cambio existen `captura.routes.ts`, `usuarios.routes.ts`, `backend/src/assets/`, `pages/Captura.tsx`, `pages/Entradas.tsx`, `pages/Catalogos/index.tsx`, `components/MedicamentoFormModal.tsx` | Espec. §7, líneas 404–484; `git ls-files` |
