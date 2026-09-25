@@ -145,25 +145,25 @@ docs/FarmaG_Especificacion_Tecnica_v1.md, líneas 378–390).
 | 3 | CU-03 Actualizar stock manualmente (línea 444) | No | No existe un ajuste manual de cantidad. Lo único que se acerca es dar de baja un lote completo: `PUT /api/inventario/lotes/:id/baja`, solo ADMIN (inventario.routes.ts, líneas 421–447). |
 | 4 | CU-04 Visualizar alertas de stock mínimo (línea 454) | Sí | `GET /api/inventario/alertas` (inventario.routes.ts, línea 247; stock bajo en línea 310); frontend/src/pages/Dashboard.tsx |
 | 5 | CU-05 Visualizar alertas de vencimiento (línea 459) | Sí | `GET /api/inventario/alertas` (inventario.routes.ts, líneas 247–346); semáforo en backend/src/services/inventario.service.ts; Dashboard.tsx |
-| 6 | CU-06 Registrar venta y generar ticket (línea 478) | No | Sin módulo de ventas ni tabla de tickets (backend/prisma/schema.prisma) |
-| 7 | CU-07 Consultar pedidos pendientes (línea 483) | No | Ídem |
-| 8 | CU-08 Confirmar entrega / completar ticket (línea 488) | No | Ídem |
-| 9 | CU-09 Modificar ticket (anulación parcial) (línea 493) | No | Ídem |
-| 10 | CU-10 Anular ticket manualmente (línea 498) | No | Ídem |
-| 11 | CU-11 Reimprimir ticket (línea 503) | No | Ídem |
-| 12 | CU-12 Registrar devolución de venta (línea 508) | No | Sin modelo ni endpoint de devoluciones |
-| 13 | CU-13 Consultar ventas del día (propias) (línea 513) | No | Sin módulo de ventas |
+| 6 | CU-06 Registrar venta y generar ticket (línea 478) | Excluida del alcance (R-04) | Sin módulo de ventas ni tabla de tickets (backend/prisma/schema.prisma) |
+| 7 | CU-07 Consultar pedidos pendientes (línea 483) | Excluida del alcance (R-04) | Ídem |
+| 8 | CU-08 Confirmar entrega / completar ticket (línea 488) | Excluida del alcance (R-04) | Ídem |
+| 9 | CU-09 Modificar ticket (anulación parcial) (línea 493) | Excluida del alcance (R-04) | Ídem |
+| 10 | CU-10 Anular ticket manualmente (línea 498) | Excluida del alcance (R-04) | Ídem |
+| 11 | CU-11 Reimprimir ticket (línea 503) | Excluida del alcance (R-04) | Ídem |
+| 12 | CU-12 Registrar devolución de venta (línea 508) | Excluida del alcance (R-04) | Sin modelo ni endpoint de devoluciones |
+| 13 | CU-13 Consultar ventas del día (propias) (línea 513) | Excluida del alcance (R-04) | Sin módulo de ventas |
 | 14 | CU-14 Registrar dispensación gratuita (línea 532) | Sí | `POST /api/dispensacion/despachar` (backend/src/routes/dispensacion.routes.ts, línea 133); backend/src/services/dispensacion.service.ts; frontend/src/pages/Dispensacion.tsx |
 | 15 | CU-15 Registrar / buscar beneficiario (línea 537) | Sí | `POST /api/dispensacion/beneficiarios`, `GET /beneficiarios/buscar`, `PUT /beneficiarios/:id` (dispensacion.routes.ts, líneas 24, 35 y 86); frontend/src/pages/Beneficiarios.tsx |
 | 16 | CU-16 Ver historial de beneficiario (línea 542) | Sí | `GET /api/dispensacion/beneficiarios/:id` (dispensacion.routes.ts, línea 74); Beneficiarios.tsx |
 | 17 | CU-17 Registrar devolución de beneficencia (línea 547) | No | Sin modelo ni endpoint de devoluciones |
 | 18 | CU-18 Consultar dispensaciones del día (propias) (línea 552) | Parcial | `GET /api/dispensacion/historial` filtra por rango de fechas y beneficiario, **no por usuario** (dispensacion.routes.ts, línea 183; dispensacion.service.ts, líneas 287–314), y ninguna página del frontend lo consume. El Dashboard muestra "Dispensaciones hoy" como conteo global de todos los usuarios (inventario.routes.ts, línea 293; Dashboard.tsx, línea 110). |
 | 19 | CU-19 Reporte de movimientos de inventario (línea 571) | Parcial | No hay un reporte unificado de "movimientos"; hay reportes separados de entradas, inventario actual, por vencer, bajas y dispensaciones (backend/src/routes/reportes.routes.ts, líneas 28–122) |
-| 20 | CU-20 Reporte de ventas (línea 576) | No | Sin módulo de ventas |
+| 20 | CU-20 Reporte de ventas (línea 576) | Excluida del alcance (R-04) | Sin módulo de ventas |
 | 21 | CU-21 Reporte de beneficencia con filtro día/mes/año (línea 581) | Sí | `GET /api/reportes/dispensaciones` con rango de fechas, beneficiario y medicamento (reportes.routes.ts, línea 28); frontend/src/pages/Reportes.tsx. El filtro es un rango de fechas, no selectores de día/mes/año. |
-| 22 | CU-22 Dashboard de ventas (línea 586) | No | Sin módulo de ventas |
+| 22 | CU-22 Dashboard de ventas (línea 586) | Excluida del alcance (R-04) | Sin módulo de ventas |
 | 23 | CU-23 Dashboard de beneficencia (línea 591) | Parcial | Un solo Dashboard general con indicadores (dispensaciones de hoy, beneficiarios, alertas), sin separar por área, sin gráficos y sin filtros día/mes/año (Dashboard.tsx; inventario.routes.ts, líneas 247–346) |
-| 24 | CU-24 Dashboard diario propio (ventas) (línea 596) | No | Sin módulo de ventas |
+| 24 | CU-24 Dashboard diario propio (ventas) (línea 596) | Excluida del alcance (R-04) | Sin módulo de ventas |
 | 25 | CU-25 Dashboard diario propio (beneficencia) (línea 601) | Parcial | El Dashboard es el mismo para todos los roles y sus conteos son globales, no del usuario (inventario.routes.ts, línea 293) |
 | 26 | CU-26 Historial con filtros para Farmacéutico / Enc. Beneficencia (línea 606) | Parcial | Los `GET` de reportes son accesibles para ambos roles en el backend (reportes.routes.ts, líneas 28–122, solo `authMiddleware`), pero la página `/reportes` está restringida a ADMIN en el frontend (frontend/src/App.tsx, línea 77). El Encargado solo ve el historial por beneficiario (Beneficiarios.tsx). |
 | 27 | CU-27 Exportar reportes a PDF (línea 616) | Sí | `GET /api/reportes/exportar/:tipo/:formato`, solo ADMIN (reportes.routes.ts, línea 377); backend/src/utils/pdf.ts. Además exporta a Excel (backend/src/utils/excel.ts). |
@@ -174,14 +174,16 @@ docs/FarmaG_Especificacion_Tecnica_v1.md, líneas 378–390).
 | 32 | CU-32 Configurar umbrales de alertas de vencimiento (línea 655) | Sí | `GET`/`PUT /api/inventario/configuracion`; el PUT es solo ADMIN (inventario.routes.ts, líneas 472–537) |
 | 33 | CU-33 Consultar log de auditoría (línea 660) | Sí | `GET /api/auditoria`, solo ADMIN (backend/src/routes/auditoria.routes.ts, línea 9); frontend/src/pages/Auditoria.tsx |
 | 34 | CU-34 Iniciar / cerrar sesión (línea 665) | Sí | `POST /api/auth/login` (backend/src/routes/auth.routes.ts, línea 13); el cierre de sesión es solo del lado del cliente (frontend/src/context/AuthContext.tsx, línea 50). El valor `LOGOUT` del enum de auditoría no se registra en ningún lugar del backend. |
-| 35 | CU-35 Anular tickets pendientes tras 12 horas (línea 684) | No | Sin módulo de ventas |
+| 35 | CU-35 Anular tickets pendientes tras 12 horas (línea 684) | Excluida del alcance (R-04) | Sin módulo de ventas |
 | 36 | CU-36 Generar alertas de stock mínimo (automático) (línea 689) | Parcial | Las alertas se calculan cuando se consulta `GET /api/inventario/alertas` (inventario.routes.ts, línea 247); no hay un proceso automático que las genere o notifique |
 | 37 | CU-37 Generar alertas de vencimiento de 30 y 15 días (línea 694; configurables, línea 792) | Parcial | Umbrales configurables, pero con valores por defecto de **30 (rojo) y 90 (amarillo)** días, no 30 y 15 (backend/prisma/seed.ts, líneas 85–101; backend/src/services/inventario.service.ts, líneas 22–33). El cron diario solo marca lotes como `VENCIDO`, no genera alertas (backend/src/services/vencimiento.service.ts, líneas 9–35). |
-| 38 | Rol Farmacéutico/Cajero (objetivo 4, línea 40; entidad roles, líneas 245–247) | No | El enum `Rol` solo tiene `ADMIN` y `ENCARGADO_BENEFICENCIA`, y no existe una tabla `roles` (schema.prisma, líneas 14–17) |
-| 39 | Precio de venta en el catálogo de medicamentos (línea 182) | No | `Medicamento` no tiene campo de precio (schema.prisma, líneas 55–76) |
+| 38 | Rol Farmacéutico/Cajero (objetivo 4, línea 40; entidad roles, líneas 245–247) | Excluida del alcance (R-04) | El enum `Rol` solo tiene `ADMIN` y `ENCARGADO_BENEFICENCIA`, y no existe una tabla `roles` (schema.prisma, líneas 14–17) |
+| 39 | Precio de venta en el catálogo de medicamentos (línea 182) | Excluida del alcance (R-04) | `Medicamento` no tiene campo de precio (schema.prisma, líneas 55–76) |
 | 40 | Interfaz web accesible desde cualquier dispositivo con navegador (línea 800) | Sí | SPA React servida por Vite o nginx en la red local (docker-compose.yml; frontend/Dockerfile) |
 
-**Totales (40 funcionalidades):** Sí = 15 · Parcial = 8 · No = 17.
+**Totales (40 funcionalidades):** Implementadas = 15 · Parciales = 8 · Excluidas del alcance (R-04) = 14 · No implementadas = 3.
+
+Nota: la fila 17 (CU-17, devolución de beneficencia) se dejó como "No" porque R-04 excluye las devoluciones de la farmacia de venta y esta corresponde a la dispensación gratuita. Pendiente de confirmar por el responsable.
 
 Funcionalidades implementadas que **no** pedía el documento original (solo como referencia):
 - Evidencia fotográfica por QR (`FotoDispensacion`, `TokenCaptura`).
