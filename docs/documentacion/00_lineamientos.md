@@ -40,7 +40,15 @@
 - Español formal, impersonal ("se implementó", "el sistema permite…"), sin primera persona, sin
   tono publicitario ni frases de relleno.
 - Terminología consistente según el glosario (`analisis/glosario.md` cuando exista).
-- Figuras y tablas numeradas por capítulo (Figura 4.2, Tabla 5.1) con título y fuente.
+- Figuras y tablas con numeración corrida en todo el documento (Figura 1, Figura 2…; Tabla 1,
+  Tabla 2…), **no** por capítulo.
+- Formato de cada figura o tabla, en este orden:
+  1. Línea 1: "Figura N." o "Tabla N." (número seguido de punto).
+  2. Línea 2: título descriptivo.
+  3. Luego: la imagen o la tabla.
+  4. Última línea: "Fuente: Elaboración propia" o "Fuente: Autor (año)."
+- Toda figura y tabla debe mencionarse en el texto antes de aparecer (ej. "En la Figura 5 se
+  muestra…"). El número mencionado debe coincidir exactamente con el de la figura.
 - Identificadores:
   - Casos de uso: `CU-XX`
   - Requerimientos funcionales: `RF-XX`
@@ -49,6 +57,41 @@
   - Casos de prueba: `CP-XX`
 
   Una vez asignado un código, no se renumera.
+
+## Formato del documento (APA 7 adaptado según el asesor)
+
+- **Referencia de formato:** tesis de Jonathan David Franco Sosa (UMG, 2026), estilo solicitado
+  por el asesor.
+- **Paginación:** páginas preliminares numeradas en romanos; el cuerpo inicia en 1 desde la
+  Introducción.
+- **Encabezado de capítulo** en dos líneas: "CAPÍTULO I" y debajo "1 TÍTULO DEL CAPÍTULO" en
+  mayúsculas.
+- **Secciones numeradas:** 1.1, 1.1.1. Niveles inferiores con a), b), c) o 1), 2), 3).
+- **Introducción:** termina describiendo brevemente el contenido de cada capítulo.
+- **Orden final del documento:** último capítulo → Glosario → Referencias bibliográficas →
+  Anexos.
+- **Glosario:** lista numerada, en orden alfabético, término seguido de dos puntos y definición.
+- **Citas en el texto:** (Autor, año) o Autor (año); dos autores unidos con "y"; tres o más con
+  "et al.".
+- **Referencias:** título "REFERENCIAS BIBLIOGRÁFICAS", orden alfabético, sangría francesa,
+  formato:
+
+  > Apellido, A. (año). *Título en cursiva*. Institución o editorial. Recuperado el D de mes de
+  > AAAA de URL.
+
+  Solo en español: nunca usar "Retrieved" ni "from".
+- **Fuentes:** solo se citan fuentes reales y verificables. Nunca inventar autores, años ni URL.
+  Si falta una referencia, usar `[COMPLETAR: referencia sobre X]`.
+- **Casos de uso:** en tabla titulada "Tabla N. Caso de uso #X: Nombre", con filas en este orden:
+  1. Caso de uso
+  2. Descripción
+  3. Actores
+  4. Precondición
+  5. Flujo normal (pasos numerados sin repetir números)
+  6. Flujo alternativo
+  7. Postcondiciones
+- **Tipografía, tamaño, interlineado y márgenes:** `[COMPLETAR: se definirán con la plantilla
+  .docx de referencia que se colocará en plantilla/]`.
 
 ## Diagramas
 
@@ -95,6 +138,6 @@ restauración, mantenimiento.
 **Capítulo 8 — Aseguramiento de la calidad:** plan de pruebas funcionales, casos de prueba,
 resultados, referencia al informe de pentesting (anexo).
 
-**Cierre:** conclusiones, recomendaciones, referencias.
+**Cierre:** conclusiones, recomendaciones, glosario, referencias bibliográficas.
 
 **Anexos:** manual de usuario, informe de pentesting.
