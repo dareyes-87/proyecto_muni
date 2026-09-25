@@ -5,23 +5,31 @@
 
 ## Convenciones de este documento
 
-- **Tipo PostgreSQL:** el esquema solo fija el tipo nativo en dos campos (`@db.Date` y
-  `@db.Decimal(10, 2)`). Para el resto, el tipo indicado es el que genera el mapeo por defecto de
-  Prisma para el conector `postgresql` (`String`→`TEXT`, `Int`→`INTEGER`, `Boolean`→`BOOLEAN`,
-  `DateTime`→`TIMESTAMP(3)`, `Json`→`JSONB`, enum→tipo `ENUM` de PostgreSQL con el mismo nombre).
-  No se verificó contra una base de datos en ejecución → ver P-08 en `preguntas_abiertas.md`.
-- **UUID:** los `id` usan `@default(uuid())`. El valor lo genera el cliente Prisma al insertar; la
-  columna es `TEXT` sin `DEFAULT` en la base de datos.
-- **`@updatedAt`:** lo actualiza el cliente Prisma en cada `update`; no es un `DEFAULT` ni un
-  trigger de la base de datos.
-- **onDelete / onUpdate:** ninguna relación del esquema define `onDelete` ni `onUpdate`
-  (verificado: no aparecen en `schema.prisma`). Aplica el comportamiento por defecto de Prisma:
-  relaciones obligatorias → `onDelete: Restrict`, `onUpdate: Cascade`; relaciones opcionales →
-  `onDelete: SetNull`, `onUpdate: Cascade`.
+- **Tipo PostgreSQL — verificado contra la base de datos.** Los tipos, la nulabilidad, los
+  valores por defecto, los índices y las claves foráneas de las 14 tablas se compararon con la base
+  de datos en ejecución el 2026-09-25 (fuente: salida de `\d+ <tabla>` y de
+  `information_schema.columns` en el contenedor `db`, PostgreSQL 16.14). **Todo coincide con este
+  documento; no hubo que corregir ningún tipo.** Equivalencias de notación:
+  - `TIMESTAMP(3)` = `timestamp(3) without time zone` (sin zona horaria).
+  - `DECIMAL(10,2)` = `numeric(10,2)`.
+  - Los enums existen como tipos de PostgreSQL con nombre entre comillas: `"Rol"`,
+    `"EstadoLote"`, `"TipoFoto"`, `"AccionAuditoria"`, con los mismos valores del esquema.
+- **Valores por defecto en la base de datos:** `now()` aparece como `DEFAULT CURRENT_TIMESTAMP`;
+  `@default(true/false/10)` y `@default(DISPONIBLE)` aparecen como `DEFAULT` en la columna.
+- **UUID:** los `id` usan `@default(uuid())`. Verificado: la columna es `text` **sin** `DEFAULT`
+  en la base de datos; el valor lo genera el cliente Prisma al insertar.
+- **`@updatedAt`:** verificado: la columna **no** tiene `DEFAULT` en la base de datos; la actualiza
+  el cliente Prisma en cada `update` (no hay trigger).
+- **onDelete / onUpdate:** el esquema no define `onDelete` ni `onUpdate` en ninguna relación.
+  Verificado en la base de datos: las 13 claves foráneas obligatorias tienen
+  `ON UPDATE CASCADE ON DELETE RESTRICT`, y la única opcional (`lotes.ubicacion_id`) tiene
+  `ON UPDATE CASCADE ON DELETE SET NULL`.
 - **Nombres de columna:** cuando un campo tiene `@map`, la columna real se indica entre paréntesis
   en la columna "Campo".
-- Ningún modelo define `@@index`. Los índices existentes son los implícitos de `@id`, `@unique` y
-  `@@unique`.
+- Ningún modelo define `@@index`. Verificado en la base de datos: los únicos índices son los de
+  las claves primarias y los `UNIQUE` (simples y el compuesto de `fotos_dispensacion`). Las
+  columnas FK no tienen índice propio, salvo `tokens_captura.dispensacion_id` (cubierta por su
+  `UNIQUE`) y `fotos_dispensacion.dispensacion_id` (primera columna del `UNIQUE` compuesto).
 
 ---
 
@@ -190,7 +198,7 @@ Catálogos base (39–99), Inventario (101–145), Dispensación gratuita (147�
 **Relaciones:**
 - Lote (N) → (1) Entrada, por `entradaId` (obligatoria).
 - Lote (N) → (1) Medicamento, por `medicamentoId` (obligatoria).
-- Lote (N) → (0..1) Ubicacion, por `ubicacionId` (opcional → `onDelete: SetNull` por defecto).
+- Lote (N) → (0..1) Ubicacion, por `ubicacionId` (opcional → `ON DELETE SET NULL`, verificado en la BD).
 - Lote (1) → (N) DetalleDispensacion, por `DetalleDispensacion.loteId`.
 
 **Índices / restricciones compuestas:** ninguna. No existe índice explícito sobre
@@ -372,7 +380,7 @@ líneas 15–31).
 
 ## 4. Relaciones del sistema (para el diagrama entidad-relación)
 
-Ninguna define `onDelete`/`onUpdate` explícito (ver Convenciones).
+Ninguna define `onDelete`/`onUpdate` explícito en el esquema. En la base de datos, todas son `ON UPDATE CASCADE ON DELETE RESTRICT`, salvo la 8 (`ON DELETE SET NULL`) (ver Convenciones).
 
 1. Usuario (1) —— (N) Entrada : un usuario registra muchas entradas de inventario (`entradas.usuario_id`).
 2. Usuario (1) —— (N) Dispensacion : un usuario realiza muchas dispensaciones (`dispensaciones.usuario_id`).

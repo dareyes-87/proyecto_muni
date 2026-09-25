@@ -10,80 +10,84 @@
 
 ### 1.1 Nota sobre versiones
 
-El repositorio **no contiene `package-lock.json`** ni ningún otro archivo de bloqueo de
-dependencias (verificado con `find . -name package-lock.json`, sin resultados; `CLAUDE.md`
-también lo indica: "sin `package-lock.json` en este proyecto"). Por lo tanto, la versión que se
-reporta es el **rango declarado** en `package.json` (con prefijo `^`, que admite versiones menores
-y de parche superiores). La versión exacta instalada en cada construcción de la imagen Docker no se
-puede determinar desde el repositorio → ver `preguntas_abiertas.md` (P-01).
+El repositorio **no contiene `package-lock.json`** ni otro archivo de bloqueo de dependencias, por
+lo que `package.json` solo declara rangos (prefijo `^`). Cada tabla muestra dos columnas:
 
-Las imágenes Docker de `nginx` no fijan versión (`nginx:alpine`) → ver P-02.
+- **Versión declarada:** rango de `package.json` o etiqueta de imagen del `Dockerfile` /
+  `docker-compose.yml`.
+- **Versión instalada:** versión real resuelta en los contenedores en ejecución (fuente: salida de
+  `npm ls --depth=0` en los contenedores `api` y `web`, `node --version` y `SELECT version();` en
+  `db`, 2026-09-25). Los contenedores estaban en ejecución desde hacía unas 35 horas; la versión
+  instalada puede cambiar si la imagen se reconstruye, porque no hay archivo de bloqueo.
+
+La versión de nginx no se pudo verificar porque en modo desarrollo el contenedor `web` ejecuta Vite
+y no nginx (P-02, resuelta parcialmente).
 
 ### 1.2 Infraestructura, runtime y base de datos
 
-| Capa | Tecnología | Versión declarada | Uso en el sistema | Fuente |
-|------|-----------|-------------------|-------------------|--------|
-| Base de datos | PostgreSQL (imagen `postgres`) | `16-alpine` | Motor relacional del sistema; servicio `db` | (fuente: docker-compose.yml, líneas 2–3) |
-| Runtime backend | Node.js (imagen `node`) | `20-alpine` | Ejecuta la API Express | (fuente: backend/Dockerfile, línea 1) |
-| Runtime frontend (desarrollo y build) | Node.js (imagen `node`) | `20-alpine` | Ejecuta Vite en desarrollo y el `npm run build` en producción | (fuente: frontend/Dockerfile, líneas 2 y 16) |
-| Servidor web (producción) | Nginx (imagen `nginx`) | `alpine` (sin versión fija) | Sirve el build estático y hace proxy de `/api/` y `/uploads/` al backend | (fuente: frontend/Dockerfile, líneas 26–33; frontend/nginx.conf, líneas 1–34) |
-| Contenerización | Docker Compose | Sin versión declarada (el archivo no tiene clave `version:`) | Orquesta los 3 servicios `db`, `api`, `web` | (fuente: docker-compose.yml, líneas 1–61) |
-| Lenguaje backend | TypeScript (compilado a `ES2022`, módulos `commonjs`, modo `strict`) | `^5.6.0` (devDependency) | Lenguaje del backend | (fuente: backend/tsconfig.json, líneas 3–8; backend/package.json, línea 42) |
-| Lenguaje frontend | TypeScript | `^5.6.0` (devDependency) | Lenguaje del frontend | (fuente: frontend/package.json, línea 29) |
+| Capa | Tecnología | Versión declarada | Versión instalada | Uso en el sistema | Fuente |
+|------|-----------|-------------------|------------------|-------------------|--------|
+| Base de datos | PostgreSQL (imagen `postgres`) | `16-alpine` | 16.14 | Motor relacional del sistema; servicio `db` | (fuente: docker-compose.yml, líneas 2–3) |
+| Runtime backend | Node.js (imagen `node`) | `20-alpine` | v20.20.2 | Ejecuta la API Express | (fuente: backend/Dockerfile, línea 1) |
+| Runtime frontend (desarrollo y build) | Node.js (imagen `node`) | `20-alpine` | v20.20.2 (contenedor `web`, modo desarrollo) | Ejecuta Vite en desarrollo y el `npm run build` en producción | (fuente: frontend/Dockerfile, líneas 2 y 16) |
+| Servidor web (producción) | Nginx (imagen `nginx`) | `alpine` (sin versión fija) | No verificable: nginx no se ejecuta en modo desarrollo (P-02) | Sirve el build estático y hace proxy de `/api/` y `/uploads/` al backend | (fuente: frontend/Dockerfile, líneas 26–33; frontend/nginx.conf, líneas 1–34) |
+| Contenerización | Docker Compose | Sin versión declarada (el archivo no tiene clave `version:`) | Docker Compose v5.1.4 / Docker Engine 29.5.3 (equipo donde se verificó) | Orquesta los 3 servicios `db`, `api`, `web` | (fuente: docker-compose.yml, líneas 1–61) |
+| Lenguaje backend | TypeScript (compilado a `ES2022`, módulos `commonjs`, modo `strict`) | `^5.6.0` (devDependency) | 5.9.3 | Lenguaje del backend | (fuente: backend/tsconfig.json, líneas 3–8; backend/package.json, línea 42) |
+| Lenguaje frontend | TypeScript | `^5.6.0` (devDependency) | 5.9.3 | Lenguaje del frontend | (fuente: frontend/package.json, línea 29) |
 
 ### 1.3 Dependencias de producción — backend
 
-| Capa | Tecnología | Versión declarada | Uso en el sistema | Fuente |
-|------|-----------|-------------------|-------------------|--------|
-| Backend / ORM | `@prisma/client` | `^6.9.0` | Cliente de acceso a PostgreSQL generado desde `schema.prisma`; cada archivo de rutas instancia su propio `PrismaClient` | (fuente: backend/package.json, línea 19; uso: backend/src/routes/auth.routes.ts, línea 2; backend/src/middleware/audit.ts, línea 1) |
-| Backend / seguridad | `bcryptjs` | `^2.4.3` | Hash y verificación de contraseñas (factor de costo 12) | (fuente: backend/package.json, línea 20; uso: backend/src/routes/auth.routes.ts, línea 31; backend/src/routes/usuarios.routes.ts, líneas 49 y 188; backend/prisma/seed.ts, línea 17) |
-| Backend / HTTP | `cors` | `^2.8.5` | Middleware CORS global (sin opciones, acepta cualquier origen) | (fuente: backend/package.json, línea 21; uso: backend/src/server.ts, líneas 2 y 21) |
-| Backend / archivos | `exceljs` | `^4.4.0` | Exportación de reportes a Excel e importación masiva de inventario desde `.xlsx` | (fuente: backend/package.json, línea 22; uso: backend/src/utils/excel.ts, línea 1; backend/src/routes/inventario.routes.ts, línea 5) |
-| Backend / HTTP | `express` | `^4.21.0` | Framework HTTP de la API | (fuente: backend/package.json, línea 23; uso: backend/src/server.ts, líneas 1 y 18) |
-| Backend / seguridad | `jsonwebtoken` | `^9.0.2` | Firma (login) y verificación (middleware) de tokens JWT | (fuente: backend/package.json, línea 24; uso: backend/src/routes/auth.routes.ts, línea 4; backend/src/middleware/auth.ts, línea 2) |
-| Backend / archivos | `multer` | `^2.2.0` | Recepción de archivos subidos (fotos de medicamentos, fotos de evidencia, Excel de importación) | (fuente: backend/package.json, línea 25; uso: backend/src/routes/catalogos.routes.ts, línea 4; backend/src/routes/captura.routes.ts, línea 2; backend/src/routes/inventario.routes.ts, línea 4) |
-| Backend / utilidades | `nanoid` | `^3.3.17` | Generación del token aleatorio de 10 caracteres para la captura de fotos por QR | (fuente: backend/package.json, línea 26; uso: backend/src/services/dispensacion.service.ts, líneas 2 y 409) |
-| Backend / tareas programadas | `node-cron` | `^3.0.3` | Programación del proceso diario de vencimientos | (fuente: backend/package.json, línea 27; uso: backend/src/services/vencimiento.service.ts, líneas 1 y 9) |
-| Backend / archivos | `pdfkit` | `^0.15.1` | Generación de reportes en PDF | (fuente: backend/package.json, línea 28; uso: backend/src/utils/pdf.ts, línea 1) |
-| Backend / validación | `zod` | `^3.23.8` | Validación de cuerpos de petición; los `ZodError` se traducen a HTTP 400 | (fuente: backend/package.json, línea 29; uso: backend/src/routes/inventario.routes.ts, línea 3; backend/src/routes/catalogos.routes.ts, línea 3; backend/src/middleware/errorHandler.ts, línea 11) |
+| Capa | Tecnología | Versión declarada | Versión instalada | Uso en el sistema | Fuente |
+|------|-----------|-------------------|------------------|-------------------|--------|
+| Backend / ORM | `@prisma/client` | `^6.9.0` | 6.19.3 | Cliente de acceso a PostgreSQL generado desde `schema.prisma`; cada archivo de rutas instancia su propio `PrismaClient` | (fuente: backend/package.json, línea 19; uso: backend/src/routes/auth.routes.ts, línea 2; backend/src/middleware/audit.ts, línea 1) |
+| Backend / seguridad | `bcryptjs` | `^2.4.3` | 2.4.3 | Hash y verificación de contraseñas (factor de costo 12) | (fuente: backend/package.json, línea 20; uso: backend/src/routes/auth.routes.ts, línea 31; backend/src/routes/usuarios.routes.ts, líneas 49 y 188; backend/prisma/seed.ts, línea 17) |
+| Backend / HTTP | `cors` | `^2.8.5` | 2.8.6 | Middleware CORS global (sin opciones, acepta cualquier origen) | (fuente: backend/package.json, línea 21; uso: backend/src/server.ts, líneas 2 y 21) |
+| Backend / archivos | `exceljs` | `^4.4.0` | 4.4.0 | Exportación de reportes a Excel e importación masiva de inventario desde `.xlsx` | (fuente: backend/package.json, línea 22; uso: backend/src/utils/excel.ts, línea 1; backend/src/routes/inventario.routes.ts, línea 5) |
+| Backend / HTTP | `express` | `^4.21.0` | 4.22.3 | Framework HTTP de la API | (fuente: backend/package.json, línea 23; uso: backend/src/server.ts, líneas 1 y 18) |
+| Backend / seguridad | `jsonwebtoken` | `^9.0.2` | 9.0.3 | Firma (login) y verificación (middleware) de tokens JWT | (fuente: backend/package.json, línea 24; uso: backend/src/routes/auth.routes.ts, línea 4; backend/src/middleware/auth.ts, línea 2) |
+| Backend / archivos | `multer` | `^2.2.0` | 2.4.0 | Recepción de archivos subidos (fotos de medicamentos, fotos de evidencia, Excel de importación) | (fuente: backend/package.json, línea 25; uso: backend/src/routes/catalogos.routes.ts, línea 4; backend/src/routes/captura.routes.ts, línea 2; backend/src/routes/inventario.routes.ts, línea 4) |
+| Backend / utilidades | `nanoid` | `^3.3.17` | 3.3.19 | Generación del token aleatorio de 10 caracteres para la captura de fotos por QR | (fuente: backend/package.json, línea 26; uso: backend/src/services/dispensacion.service.ts, líneas 2 y 409) |
+| Backend / tareas programadas | `node-cron` | `^3.0.3` | 3.0.3 | Programación del proceso diario de vencimientos | (fuente: backend/package.json, línea 27; uso: backend/src/services/vencimiento.service.ts, líneas 1 y 9) |
+| Backend / archivos | `pdfkit` | `^0.15.1` | 0.15.2 | Generación de reportes en PDF | (fuente: backend/package.json, línea 28; uso: backend/src/utils/pdf.ts, línea 1) |
+| Backend / validación | `zod` | `^3.23.8` | 3.25.76 | Validación de cuerpos de petición; los `ZodError` se traducen a HTTP 400 | (fuente: backend/package.json, línea 29; uso: backend/src/routes/inventario.routes.ts, línea 3; backend/src/routes/catalogos.routes.ts, línea 3; backend/src/middleware/errorHandler.ts, línea 11) |
 
 ### 1.4 Dependencias de producción — frontend
 
-| Capa | Tecnología | Versión declarada | Uso en el sistema | Fuente |
-|------|-----------|-------------------|-------------------|--------|
-| Frontend / HTTP | `axios` | `^1.7.0` | Cliente HTTP; `api/client.ts` inyecta el JWT; `api/captura.ts` usa una instancia sin JWT para la página pública de captura | (fuente: frontend/package.json, línea 12; uso: frontend/src/api/client.ts; frontend/src/api/captura.ts, línea 1) |
-| Frontend / UI | `react` | `^18.3.1` | Librería de interfaz | (fuente: frontend/package.json, línea 13; uso: frontend/src/components/layout/Layout.tsx, línea 21, entre otros) |
-| Frontend / UI | `react-dom` | `^18.3.1` | Montaje de la aplicación en el DOM | (fuente: frontend/package.json, línea 14; uso: frontend/src/main.tsx, línea 2) |
-| Frontend / navegación | `react-router-dom` | `^6.26.0` | Enrutamiento de páginas del SPA | (fuente: frontend/package.json, línea 15; uso: frontend/src/App.tsx, línea 1) |
-| Frontend / UI | `react-hot-toast` | `^2.4.1` | Notificaciones tipo *toast* | (fuente: frontend/package.json, línea 16; uso: frontend/src/main.tsx; frontend/src/components/MedicamentoFormModal.tsx, línea 2) |
-| Frontend / UI | `react-qr-code` | `^2.2.0` | Dibujo del código QR de captura de evidencia tras despachar | (fuente: frontend/package.json, línea 17; uso: frontend/src/pages/Dispensacion.tsx, línea 7) |
-| Frontend / gráficos | `recharts` | `^2.12.0` | **Declarada pero no importada en ningún archivo de `frontend/src`** (búsqueda de `recharts` sin resultados) | (fuente: frontend/package.json, línea 18) → ver P-03 |
-| Frontend / tablas | `@tanstack/react-table` | `^8.20.0` | Tablas de datos (componente `DataTable` y páginas de Auditoría, Medicamentos, Reportes) | (fuente: frontend/package.json, línea 19; uso: frontend/src/pages/Auditoria.tsx, línea 8; frontend/src/components/ui/DataTable.tsx) |
-| Frontend / iconos | `lucide-react` | `^0.441.0` | Iconografía de la interfaz | (fuente: frontend/package.json, línea 20; uso: frontend/src/components/layout/Layout.tsx, línea 20) |
+| Capa | Tecnología | Versión declarada | Versión instalada | Uso en el sistema | Fuente |
+|------|-----------|-------------------|------------------|-------------------|--------|
+| Frontend / HTTP | `axios` | `^1.7.0` | 1.20.0 | Cliente HTTP; `api/client.ts` inyecta el JWT; `api/captura.ts` usa una instancia sin JWT para la página pública de captura | (fuente: frontend/package.json, línea 12; uso: frontend/src/api/client.ts; frontend/src/api/captura.ts, línea 1) |
+| Frontend / UI | `react` | `^18.3.1` | 18.3.1 | Librería de interfaz | (fuente: frontend/package.json, línea 13; uso: frontend/src/components/layout/Layout.tsx, línea 21, entre otros) |
+| Frontend / UI | `react-dom` | `^18.3.1` | 18.3.1 | Montaje de la aplicación en el DOM | (fuente: frontend/package.json, línea 14; uso: frontend/src/main.tsx, línea 2) |
+| Frontend / navegación | `react-router-dom` | `^6.26.0` | 6.30.6 | Enrutamiento de páginas del SPA | (fuente: frontend/package.json, línea 15; uso: frontend/src/App.tsx, línea 1) |
+| Frontend / UI | `react-hot-toast` | `^2.4.1` | 2.6.1 | Notificaciones tipo *toast* | (fuente: frontend/package.json, línea 16; uso: frontend/src/main.tsx; frontend/src/components/MedicamentoFormModal.tsx, línea 2) |
+| Frontend / UI | `react-qr-code` | `^2.2.0` | 2.2.0 | Dibujo del código QR de captura de evidencia tras despachar | (fuente: frontend/package.json, línea 17; uso: frontend/src/pages/Dispensacion.tsx, línea 7) |
+| Frontend / gráficos | `recharts` | `^2.12.0` | 2.15.4 | **Declarada pero no importada en ningún archivo de `frontend/src`** (búsqueda de `recharts` sin resultados) | (fuente: frontend/package.json, línea 18) → ver P-03 |
+| Frontend / tablas | `@tanstack/react-table` | `^8.20.0` | 8.21.3 | Tablas de datos (componente `DataTable` y páginas de Auditoría, Medicamentos, Reportes) | (fuente: frontend/package.json, línea 19; uso: frontend/src/pages/Auditoria.tsx, línea 8; frontend/src/components/ui/DataTable.tsx) |
+| Frontend / iconos | `lucide-react` | `^0.441.0` | 0.441.0 | Iconografía de la interfaz | (fuente: frontend/package.json, línea 20; uso: frontend/src/components/layout/Layout.tsx, línea 20) |
 
 ### 1.5 Dependencias de desarrollo
 
-| Proyecto | Paquete | Versión declarada | Uso | Fuente |
-|----------|---------|-------------------|-----|--------|
-| backend | `@types/bcryptjs` | `^2.4.6` | Tipos TypeScript | (fuente: backend/package.json, línea 32) |
-| backend | `@types/cors` | `^2.8.17` | Tipos TypeScript | (fuente: backend/package.json, línea 33) |
-| backend | `@types/express` | `^5.0.0` | Tipos TypeScript (versión 5 de tipos sobre Express 4; ver nota en CLAUDE.md sobre `req.params`) | (fuente: backend/package.json, línea 34) |
-| backend | `@types/jsonwebtoken` | `^9.0.7` | Tipos TypeScript | (fuente: backend/package.json, línea 35) |
-| backend | `@types/multer` | `^2.2.0` | Tipos TypeScript | (fuente: backend/package.json, línea 36) |
-| backend | `@types/node` | `^22.9.0` | Tipos TypeScript | (fuente: backend/package.json, línea 37) |
-| backend | `@types/node-cron` | `^3.0.11` | Tipos TypeScript | (fuente: backend/package.json, línea 38) |
-| backend | `@types/pdfkit` | `^0.13.4` | Tipos TypeScript | (fuente: backend/package.json, línea 39) |
-| backend | `prisma` | `^6.9.0` | CLI de Prisma (`db push`, `generate`, `db seed`, `studio`) | (fuente: backend/package.json, líneas 10–13 y 40; backend/Dockerfile, líneas 9 y 15) |
-| backend | `tsx` | `^4.19.0` | Ejecuta TypeScript sin compilar; usado en el arranque (`tsx watch`) y en el seed | (fuente: backend/package.json, líneas 7, 16 y 41; backend/Dockerfile, línea 15) |
-| backend | `typescript` | `^5.6.0` | Compilador (`npm run build` → `tsc`) | (fuente: backend/package.json, líneas 8 y 42) |
-| frontend | `@types/react` | `^18.3.0` | Tipos TypeScript | (fuente: frontend/package.json, línea 23) |
-| frontend | `@types/react-dom` | `^18.3.0` | Tipos TypeScript | (fuente: frontend/package.json, línea 24) |
-| frontend | `@vitejs/plugin-react` | `^4.3.0` | Plugin de React para Vite | (fuente: frontend/package.json, línea 25; frontend/vite.config.ts, líneas 2 y 5) |
-| frontend | `autoprefixer` | `^10.4.20` | Plugin PostCSS | (fuente: frontend/package.json, línea 26; frontend/postcss.config.js, línea 4) |
-| frontend | `postcss` | `^8.4.45` | Procesador CSS usado por Tailwind | (fuente: frontend/package.json, línea 27; frontend/postcss.config.js, líneas 1–6) |
-| frontend | `tailwindcss` | `^3.4.10` | Framework CSS utilitario; paletas `primary`, `dorado` y `farmacia` definidas en la configuración | (fuente: frontend/package.json, línea 28; frontend/tailwind.config.js, líneas 1–47) |
-| frontend | `typescript` | `^5.6.0` | Compilador (`tsc -b` en el build) | (fuente: frontend/package.json, líneas 8 y 29) |
-| frontend | `vite` | `^5.4.0` | Servidor de desarrollo y empaquetador | (fuente: frontend/package.json, líneas 7–9 y 30) |
+| Proyecto | Paquete | Versión declarada | Versión instalada | Uso | Fuente |
+|----------|---------|-------------------|------------------|-----|--------|
+| backend | `@types/bcryptjs` | `^2.4.6` | 2.4.6 | Tipos TypeScript | (fuente: backend/package.json, línea 32) |
+| backend | `@types/cors` | `^2.8.17` | 2.8.19 | Tipos TypeScript | (fuente: backend/package.json, línea 33) |
+| backend | `@types/express` | `^5.0.0` | 5.0.6 | Tipos TypeScript (versión 5 de tipos sobre Express 4; ver nota en CLAUDE.md sobre `req.params`) | (fuente: backend/package.json, línea 34) |
+| backend | `@types/jsonwebtoken` | `^9.0.7` | 9.0.10 | Tipos TypeScript | (fuente: backend/package.json, línea 35) |
+| backend | `@types/multer` | `^2.2.0` | 2.2.0 | Tipos TypeScript | (fuente: backend/package.json, línea 36) |
+| backend | `@types/node` | `^22.9.0` | 22.20.4 | Tipos TypeScript | (fuente: backend/package.json, línea 37) |
+| backend | `@types/node-cron` | `^3.0.11` | 3.0.11 | Tipos TypeScript | (fuente: backend/package.json, línea 38) |
+| backend | `@types/pdfkit` | `^0.13.4` | 0.13.9 | Tipos TypeScript | (fuente: backend/package.json, línea 39) |
+| backend | `prisma` | `^6.9.0` | 6.19.3 | CLI de Prisma (`db push`, `generate`, `db seed`, `studio`) | (fuente: backend/package.json, líneas 10–13 y 40; backend/Dockerfile, líneas 9 y 15) |
+| backend | `tsx` | `^4.19.0` | 4.23.15 | Ejecuta TypeScript sin compilar; usado en el arranque (`tsx watch`) y en el seed | (fuente: backend/package.json, líneas 7, 16 y 41; backend/Dockerfile, línea 15) |
+| backend | `typescript` | `^5.6.0` | 5.9.3 | Compilador (`npm run build` → `tsc`) | (fuente: backend/package.json, líneas 8 y 42) |
+| frontend | `@types/react` | `^18.3.0` | 18.3.31 | Tipos TypeScript | (fuente: frontend/package.json, línea 23) |
+| frontend | `@types/react-dom` | `^18.3.0` | 18.3.7 | Tipos TypeScript | (fuente: frontend/package.json, línea 24) |
+| frontend | `@vitejs/plugin-react` | `^4.3.0` | 4.7.0 | Plugin de React para Vite | (fuente: frontend/package.json, línea 25; frontend/vite.config.ts, líneas 2 y 5) |
+| frontend | `autoprefixer` | `^10.4.20` | 10.6.1 | Plugin PostCSS | (fuente: frontend/package.json, línea 26; frontend/postcss.config.js, línea 4) |
+| frontend | `postcss` | `^8.4.45` | 8.5.28 | Procesador CSS usado por Tailwind | (fuente: frontend/package.json, línea 27; frontend/postcss.config.js, líneas 1–6) |
+| frontend | `tailwindcss` | `^3.4.10` | 3.4.19 | Framework CSS utilitario; paletas `primary`, `dorado` y `farmacia` definidas en la configuración | (fuente: frontend/package.json, línea 28; frontend/tailwind.config.js, líneas 1–47) |
+| frontend | `typescript` | `^5.6.0` | 5.9.3 | Compilador (`tsc -b` en el build) | (fuente: frontend/package.json, líneas 8 y 29) |
+| frontend | `vite` | `^5.4.0` | 5.4.21 | Servidor de desarrollo y empaquetador | (fuente: frontend/package.json, líneas 7–9 y 30) |
 
 > Observación: la paleta `farmacia` de `tailwind.config.js` (líneas 37–42) no se referencia en el
 > código según la sesión 2026-07-19 registrada en `CLAUDE.md`; no se volvió a verificar en esta
@@ -134,7 +138,7 @@ usados como host en líneas 29, `vite.config.ts` líneas 10 y 14, `nginx.conf` l
 | Nombre de contenedor | `farmag_web` | (línea 47) |
 | Reinicio | `unless-stopped` | (línea 48) |
 | Variables de entorno | `VITE_LAN_IP` (tomada de `LAN_IP`, vacía por defecto) | (líneas 49–50) |
-| Puertos publicados | `80:80` y `5173:5173` (ambos se publican sin importar el *target*) | (líneas 51–53) |
+| Puertos publicados | `80:80` y `5173:5173` (ambos se publican sin importar el *target*). Verificado el 2026-09-25: en modo desarrollo el contenedor solo ejecuta `vite` (`ps aux`), por lo que el puerto 80 queda publicado sin proceso escuchando | (líneas 51–53; salida de `docker compose ps` y `ps aux` en `web`, 2026-09-25) |
 | Dependencias | `api` (sin condición: solo orden de arranque) | (líneas 54–55) |
 | Volúmenes | `./frontend/src` → `/app/src`; `./frontend/public` → `/app/public` | (líneas 56–58) |
 | Healthcheck | No definido | — |
@@ -329,7 +333,11 @@ de carpetas basadas en los archivos que contienen:
 
 - El cron se registra una sola vez al iniciar el servidor, dentro del callback de `app.listen`
   (fuente: backend/src/server.ts, líneas 49–56).
-- No se configura zona horaria en `cron.schedule` ni en `docker-compose.yml` → ver P-07.
+- No se configura zona horaria en `cron.schedule` ni en `docker-compose.yml`. Verificado el
+  2026-09-25: el contenedor `api` corre en **UTC** (`date` → `UTC`; `Intl…timeZone` → `UTC`;
+  variable `TZ` vacía; sin `/etc/localtime`). Por lo tanto el cron de las 00:05 UTC se ejecuta a
+  las **18:05 hora de Guatemala (UTC-6) del día anterior** → ver P-07 y H-02 en
+  `hallazgos_defectos.md`.
 - Proceso de fondo en el frontend (no es tarea del servidor): tras despachar, la pantalla de
   dispensación consulta las fotos de la dispensación cada 3 000 ms mientras no estén las dos o no
   se hayan omitido (fuente: frontend/src/pages/Dispensacion.tsx, líneas 405–421).
