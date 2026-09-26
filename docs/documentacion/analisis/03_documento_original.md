@@ -134,7 +134,7 @@ Salida de `git log --follow --format="%h %an %ad %s" --date=short -- docs/proyec
 ## 4. Funcionalidades pedidas vs. implementadas
 
 Criterio: **Sí** = implementada en el código actual; **Parcial** = implementada con alcance menor o
-distinto al pedido; **No** = sin implementación en el código. Los módulos de ventas, devoluciones y
+distinto al pedido; **Excluida del alcance** = fuera del alcance por decisión documentada (R-xx); **No aplica por regla de negocio** = la regla de negocio de la farmacia la hace innecesaria; **No** = sin implementación en el código. Los módulos de ventas, devoluciones y
 tickets figuran como "Fuera de Fase 1" en la especificación técnica v1 (fuente:
 docs/FarmaG_Especificacion_Tecnica_v1.md, líneas 378–390).
 
@@ -142,7 +142,7 @@ docs/FarmaG_Especificacion_Tecnica_v1.md, líneas 378–390).
 |---|-----------------------------------------------|----------------|-------------------------|
 | 1 | CU-01 Registrar entrada de medicamentos (línea 434; entradas vinculadas a proveedor, línea 192) | Parcial | `POST /api/inventario/entradas` (backend/src/routes/inventario.routes.ts, línea 50); frontend/src/pages/Entradas.tsx. Registra entradas con lotes, pero **sin proveedor ni origen** (cambio intencional de diseño, ver D-01 a D-03). La permiten ambos roles, no solo el Administrador. |
 | 2 | CU-02 Consultar inventario (línea 439) | Sí | `GET /api/inventario` (inventario.routes.ts, línea 167); frontend/src/pages/Inventario.tsx |
-| 3 | CU-03 Actualizar stock manualmente (línea 444) | No | No existe un ajuste manual de cantidad. Lo único que se acerca es dar de baja un lote completo: `PUT /api/inventario/lotes/:id/baja`, solo ADMIN (inventario.routes.ts, líneas 421–447). |
+| 3 | CU-03 Actualizar stock manualmente (línea 444) | Excluida del alcance (R-05) | No existe un ajuste manual de cantidad. Lo único que se acerca es dar de baja un lote completo: `PUT /api/inventario/lotes/:id/baja`, solo ADMIN (inventario.routes.ts, líneas 421–447). |
 | 4 | CU-04 Visualizar alertas de stock mínimo (línea 454) | Sí | `GET /api/inventario/alertas` (inventario.routes.ts, línea 247; stock bajo en línea 310); frontend/src/pages/Dashboard.tsx |
 | 5 | CU-05 Visualizar alertas de vencimiento (línea 459) | Sí | `GET /api/inventario/alertas` (inventario.routes.ts, líneas 247–346); semáforo en backend/src/services/inventario.service.ts; Dashboard.tsx |
 | 6 | CU-06 Registrar venta y generar ticket (línea 478) | Excluida del alcance (R-04) | Sin módulo de ventas ni tabla de tickets (backend/prisma/schema.prisma) |
@@ -156,7 +156,7 @@ docs/FarmaG_Especificacion_Tecnica_v1.md, líneas 378–390).
 | 14 | CU-14 Registrar dispensación gratuita (línea 532) | Sí | `POST /api/dispensacion/despachar` (backend/src/routes/dispensacion.routes.ts, línea 133); backend/src/services/dispensacion.service.ts; frontend/src/pages/Dispensacion.tsx |
 | 15 | CU-15 Registrar / buscar beneficiario (línea 537) | Sí | `POST /api/dispensacion/beneficiarios`, `GET /beneficiarios/buscar`, `PUT /beneficiarios/:id` (dispensacion.routes.ts, líneas 24, 35 y 86); frontend/src/pages/Beneficiarios.tsx |
 | 16 | CU-16 Ver historial de beneficiario (línea 542) | Sí | `GET /api/dispensacion/beneficiarios/:id` (dispensacion.routes.ts, línea 74); Beneficiarios.tsx |
-| 17 | CU-17 Registrar devolución de beneficencia (línea 547) | No | Sin modelo ni endpoint de devoluciones |
+| 17 | CU-17 Registrar devolución de beneficencia (línea 547) | No aplica por regla de negocio (R-06) | Sin modelo ni endpoint de devoluciones |
 | 18 | CU-18 Consultar dispensaciones del día (propias) (línea 552) | Parcial | `GET /api/dispensacion/historial` filtra por rango de fechas y beneficiario, **no por usuario** (dispensacion.routes.ts, línea 183; dispensacion.service.ts, líneas 287–314), y ninguna página del frontend lo consume. El Dashboard muestra "Dispensaciones hoy" como conteo global de todos los usuarios (inventario.routes.ts, línea 293; Dashboard.tsx, línea 110). |
 | 19 | CU-19 Reporte de movimientos de inventario (línea 571) | Parcial | No hay un reporte unificado de "movimientos"; hay reportes separados de entradas, inventario actual, por vencer, bajas y dispensaciones (backend/src/routes/reportes.routes.ts, líneas 28–122) |
 | 20 | CU-20 Reporte de ventas (línea 576) | Excluida del alcance (R-04) | Sin módulo de ventas |
@@ -169,7 +169,7 @@ docs/FarmaG_Especificacion_Tecnica_v1.md, líneas 378–390).
 | 27 | CU-27 Exportar reportes a PDF (línea 616) | Sí | `GET /api/reportes/exportar/:tipo/:formato`, solo ADMIN (reportes.routes.ts, línea 377); backend/src/utils/pdf.ts. Además exporta a Excel (backend/src/utils/excel.ts). |
 | 28 | CU-28 Gestionar usuarios (línea 635) | Sí | backend/src/routes/usuarios.routes.ts (líneas 11, 34, 81, 121; solo ADMIN); frontend/src/pages/Usuarios.tsx |
 | 29 | CU-29 Gestionar catálogo de medicamentos (línea 640) | Sí | backend/src/routes/catalogos.routes.ts (p. ej. `POST /medicamentos`, línea 225); frontend/src/pages/Catalogos/Medicamentos.tsx; frontend/src/components/MedicamentoFormModal.tsx |
-| 30 | CU-30 Gestionar catálogo de proveedores (línea 645) | No | Eliminado del esquema y del código (cambio intencional de diseño, ver D-01) |
+| 30 | CU-30 Gestionar catálogo de proveedores (línea 645) | Excluida del alcance (R-01) | Eliminado del esquema y del código (cambio intencional de diseño, ver D-01) |
 | 31 | CU-31 Gestionar catálogo de categorías (línea 650) | Sí | catalogos.routes.ts (líneas 461–509); frontend/src/pages/Catalogos/Categorias.tsx |
 | 32 | CU-32 Configurar umbrales de alertas de vencimiento (línea 655) | Sí | `GET`/`PUT /api/inventario/configuracion`; el PUT es solo ADMIN (inventario.routes.ts, líneas 472–537) |
 | 33 | CU-33 Consultar log de auditoría (línea 660) | Sí | `GET /api/auditoria`, solo ADMIN (backend/src/routes/auditoria.routes.ts, línea 9); frontend/src/pages/Auditoria.tsx |
@@ -181,9 +181,9 @@ docs/FarmaG_Especificacion_Tecnica_v1.md, líneas 378–390).
 | 39 | Precio de venta en el catálogo de medicamentos (línea 182) | Excluida del alcance (R-04) | `Medicamento` no tiene campo de precio (schema.prisma, líneas 55–76) |
 | 40 | Interfaz web accesible desde cualquier dispositivo con navegador (línea 800) | Sí | SPA React servida por Vite o nginx en la red local (docker-compose.yml; frontend/Dockerfile) |
 
-**Totales (40 funcionalidades):** Implementadas = 15 · Parciales = 8 · Excluidas del alcance (R-04) = 14 · No implementadas = 3.
+**Totales (40 funcionalidades):** Implementadas = 15 · Parciales = 8 · Excluidas del alcance = 16 (R-04: 14; R-01: 1; R-05: 1) · No aplica por regla de negocio = 1 (R-06) · No implementadas = 0.
 
-Nota: la fila 17 (CU-17, devolución de beneficencia) se dejó como "No" porque R-04 excluye las devoluciones de la farmacia de venta y esta corresponde a la dispensación gratuita. Pendiente de confirmar por el responsable.
+Nota: la fila 17 (CU-17, devolución de beneficencia) no queda cubierta por R-04 (que excluye las devoluciones de la farmacia de venta); se clasifica según R-06. La fila 3 (CU-03) depende de R-05, pendiente de confirmación con el equipo.
 
 Funcionalidades implementadas que **no** pedía el documento original (solo como referencia):
 - Evidencia fotográfica por QR (`FotoDispensacion`, `TokenCaptura`).
