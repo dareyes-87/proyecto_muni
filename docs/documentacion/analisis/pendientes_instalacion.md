@@ -20,4 +20,4 @@ No registrar contraseñas, secretos ni nombres de usuarios del sistema en este a
 | 9 | Si se configuró respaldo de la base de datos y con qué frecuencia | [COMPLETAR: respaldo configurado Sí/No; método; frecuencia; ubicación de las copias] | H-05 |
 | 10 | Usuarios creados en producción (solo cantidad por rol) | [COMPLETAR: cantidad con rol ADMIN] · [COMPLETAR: cantidad con rol ENCARGADO_BENEFICENCIA] | — |
 | 11 | Capacitación impartida al personal (fecha, duración, asistentes por puesto) | [COMPLETAR: fecha(s)] · [COMPLETAR: duración] · [COMPLETAR: número de asistentes por puesto] | — |
-| 12 | Cuenta con la que opera el encargado de la farmacia (rol ADMIN o ENCARGADO_BENEFICENCIA) y si existe más de un usuario activo | [COMPLETAR: rol de la cuenta del encargado] · [COMPLETAR: ¿más de un usuario activo? Sí/No] | R-07, R-08 |
+| 12 | Cuenta con la que opera el encargado de la farmacia (rol ADMIN o ENCARGADO_BENEFICENCIA) y si existe más de un usuario activo | Opera con una cuenta de rol ADMIN (confirmado por Audias Guevara, 2026-09-25). Pendiente: si existen más usuarios activos. | R-07, R-08 |
