@@ -1,0 +1,77 @@
+# Composición de PRODUCCIÓN (H-001, H-007).
+#
+# Diferencias clave con docker-compose.yml (desarrollo):
+#   - Backend en target `production`: `node dist` + `prisma migrate deploy`
+#     (NUNCA tsx watch ni db push --accept-data-loss).
+#   - Frontend servido como build estático por nginx (:80). El dev server de
+#     Vite (:5173) NO se publica ni se usa.
+#   - Sin bind-mounts de código fuente: se usan las imágenes compiladas.
+#   - db y api solo accesibles en 127.0.0.1; los usuarios entran por el :80 del web.
+#
+# Uso:
+#   docker compose -f docker-compose.prod.yml up -d --build
+# Carga inicial (una sola vez, con ADMIN_INITIAL_PASSWORD definido en .env):
+#   docker compose -f docker-compose.prod.yml run --rm api npm run prisma:seed
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: farmag_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-farmag}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD en .env}
+      POSTGRES_DB: ${DB_NAME:-farmag_db}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-farmag} -d ${DB_NAME:-farmag_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    container_name: farmag_api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      TZ: America/Guatemala
+      PORT: 3000
+      DATABASE_URL: postgresql://${DB_USER:-farmag}:${DB_PASSWORD:?Defina DB_PASSWORD en .env}@db:5432/${DB_NAME:-farmag_db}?schema=public
+      JWT_SECRET: ${JWT_SECRET:?Defina JWT_SECRET (largo y aleatorio) en .env}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
+      CORS_ORIGIN: ${CORS_ORIGIN:-}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:-}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+    # Solo accesible en el host; el web (nginx) llega por la red interna de Docker.
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    # Solo se persisten las imágenes subidas (no se monta código fuente).
+    volumes:
+      - ./backend/uploads:/app/uploads:z
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production
+    container_name: farmag_web
+    restart: unless-stopped
+    # Solo el :80 de nginx. El dev server de Vite (:5173) NO se expone en producción.
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:

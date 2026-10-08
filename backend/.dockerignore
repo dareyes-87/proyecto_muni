@@ -1,0 +1,13 @@
+# No copiar artefactos del host al contexto de build. CRÍTICO: node_modules del
+# host (Windows) trae binarios win32 de sharp que rompen el build Alpine (musl).
+# npm ci dentro de la imagen instala los binarios correctos desde el lockfile.
+node_modules
+dist
+.env
+.env.*
+!.env.example
+npm-debug.log*
+.git
+.gitignore
+Dockerfile
+.dockerignore

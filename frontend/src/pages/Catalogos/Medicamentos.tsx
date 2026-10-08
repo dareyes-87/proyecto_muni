@@ -44,7 +44,7 @@ export default function Medicamentos() {
   const cargar = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await listarMedicamentosPaginado({ page, limit: 20, q: q.trim() || undefined });
+      const res = await listarMedicamentosPaginado({ page, limit: 20, q: q.trim() || undefined, incluirInactivos: true });
       setRows(res.data);
       setTotalPages(res.pagination.totalPages);
     } catch {

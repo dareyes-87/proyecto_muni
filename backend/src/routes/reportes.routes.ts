@@ -14,6 +14,7 @@ import {
 import { generarPdfTabla, type Alineacion } from '../utils/pdf';
 import { generarExcel } from '../utils/excel';
 import { formatFecha, formatFechaHora } from '../utils/formatDate';
+import { responderError } from '../utils/httpError';
 
 const router = Router();
 
@@ -38,8 +39,7 @@ router.get('/dispensaciones', authMiddleware, async (req: Request, res: Response
     });
     res.json(resultado);
   } catch (error) {
-    console.error('Error en reporte de dispensaciones:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    responderError(res, error);
   }
 });
 
@@ -56,8 +56,7 @@ router.get('/consumo-medicamentos', authMiddleware, async (req: Request, res: Re
     });
     res.json(resultado);
   } catch (error) {
-    console.error('Error en reporte de consumo:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    responderError(res, error);
   }
 });
 
@@ -113,8 +112,7 @@ router.get('/entradas', authMiddleware, async (req: Request, res: Response): Pro
     });
     res.json(resultado);
   } catch (error) {
-    console.error('Error en reporte de entradas:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    responderError(res, error);
   }
 });
 
@@ -130,8 +128,7 @@ router.get('/medicamentos-baja', authMiddleware, async (req: Request, res: Respo
     });
     res.json(resultado);
   } catch (error) {
-    console.error('Error en reporte de medicamentos dados de baja:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    responderError(res, error);
   }
 });
 
@@ -434,8 +431,7 @@ router.get(
       res.setHeader('Content-Disposition', `attachment; filename="${tipo}-${Date.now()}.${extension}"`);
       res.send(buffer);
     } catch (error) {
-      console.error('Error exportando reporte:', error);
-      res.status(500).json({ error: 'Error interno del servidor' });
+      responderError(res, error);
     }
   }
 );

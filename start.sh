@@ -22,21 +22,32 @@ fi
 
 export LAN_IP
 
+# --- Detectar modo (produccion usa puerto 80, desarrollo 5173) ---
+FARMAG_PORT=5173
+if [ -f .env ] && grep -iqE '^FRONTEND_TARGET=production' .env; then
+    FARMAG_PORT=80
+fi
+
 if [ -n "$LAN_IP" ]; then
     echo "[FarmaG] IP de red local detectada: $LAN_IP"
-    echo "[FarmaG] El QR de captura apuntara a http://$LAN_IP:5173"
+    if [ "$FARMAG_PORT" = "80" ]; then
+        echo "[FarmaG] Modo PRODUCCION - acceder desde: http://$LAN_IP"
+    else
+        echo "[FarmaG] Modo DESARROLLO - acceder desde: http://$LAN_IP:5173"
+    fi
+    echo "[FarmaG] El QR de captura usara esta IP automaticamente."
 else
     echo "[FarmaG] No se detecto IP de red local."
     echo "[FarmaG] El QR usara localhost - no funcionara desde el celular."
 fi
 echo
 
-# --- Ejecutar docker compose ---
+# --- Ejecutar docker compose (siempre en segundo plano con -d) ---
 if [ "$1" = "down" ]; then
     shift
     docker compose down "$@"
 elif [ $# -eq 0 ]; then
     docker compose up -d
 else
-    docker compose up "$@"
+    docker compose up "$@" -d
 fi

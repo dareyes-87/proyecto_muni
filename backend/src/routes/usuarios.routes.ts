@@ -1,11 +1,10 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { authMiddleware, requireRole } from '../middleware/auth';
 import { registrarAuditoria } from '../middleware/audit';
+import { prisma } from '../config/prisma';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // GET /api/usuarios
 router.get('/', authMiddleware, requireRole('ADMIN'), async (_req: Request, res: Response) => {
@@ -37,6 +36,23 @@ router.post('/', authMiddleware, requireRole('ADMIN'), async (req: Request, res:
 
     if (!username || !password || !nombreCompleto || !rol) {
       res.status(400).json({ error: 'Campos requeridos: username, password, nombreCompleto, rol' });
+      return;
+    }
+
+    // Validar el rol contra el enum antes de tocar Prisma (un valor fuera del enum
+    // provocaba un 500). También exige tipos string en username/nombreCompleto.
+    if (typeof username !== 'string' || typeof nombreCompleto !== 'string') {
+      res.status(400).json({ error: 'username y nombreCompleto deben ser texto' });
+      return;
+    }
+    if (rol !== 'ADMIN' && rol !== 'ENCARGADO_BENEFICENCIA') {
+      res.status(400).json({ error: 'Rol inválido' });
+      return;
+    }
+
+    // Misma política mínima de contraseña que el restablecimiento (H-16).
+    if (typeof password !== 'string' || password.length < 6) {
+      res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
       return;
     }
 

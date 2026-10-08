@@ -39,11 +39,11 @@ if defined LAN_IP (
 
 echo.
 
-REM --- Ejecutar docker compose con los argumentos recibidos ---
+REM --- Ejecutar docker compose (siempre en segundo plano con -d) ---
 if "%~1"=="down" (
     docker compose down %2 %3 %4
 ) else if "%~1"=="" (
     docker compose up -d
 ) else (
-    docker compose up %*
+    docker compose up %* -d
 )

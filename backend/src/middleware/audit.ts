@@ -1,6 +1,5 @@
-import { PrismaClient, AccionAuditoria } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { AccionAuditoria } from '@prisma/client';
+import { prisma } from '../config/prisma';
 
 interface AuditParams {
   usuarioId: string;

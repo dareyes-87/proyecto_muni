@@ -23,7 +23,7 @@ export default function Categorias() {
   const cargar = async () => {
     setLoading(true);
     try {
-      setCategorias(await listarCategoriasCompleto());
+      setCategorias(await listarCategoriasCompleto(true));
     } catch {
       toast.error('No se pudieron cargar las categorías');
     } finally {
