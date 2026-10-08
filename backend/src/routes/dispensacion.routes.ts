@@ -3,6 +3,7 @@ import { TipoFoto } from '@prisma/client';
 import { authMiddleware } from '../middleware/auth';
 import { registrarAuditoria } from '../middleware/audit';
 import { responderError } from '../utils/httpError';
+import { textoQuery } from '../utils/validacion';
 import {
   buscarBeneficiarios,
   crearBeneficiario,
@@ -28,7 +29,7 @@ const router = Router();
 // GET /api/dispensacion/beneficiarios/buscar?q=...
 router.get('/beneficiarios/buscar', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const q = (req.query.q as string) || '';
+    const q = textoQuery(req.query.q) || '';
     const data = await buscarBeneficiarios(q);
     res.json({ data });
   } catch (error) {
@@ -41,9 +42,18 @@ router.post('/beneficiarios', authMiddleware, async (req: Request, res: Response
   try {
     const { nombreCompleto, dpi, telefono, direccion, observaciones } = req.body;
 
-    if (!nombreCompleto || nombreCompleto.trim().length < 3) {
+    // nombreCompleto debe ser texto: un objeto/arreglo rompía `.trim()` → 500.
+    if (typeof nombreCompleto !== 'string' || nombreCompleto.trim().length < 3) {
       res.status(400).json({ error: 'El nombre debe tener al menos 3 caracteres' });
       return;
+    }
+
+    // Los campos opcionales, si vienen, deben ser texto (evita 500 de Prisma).
+    for (const [campo, val] of Object.entries({ dpi, telefono, direccion, observaciones })) {
+      if (val !== undefined && val !== null && typeof val !== 'string') {
+        res.status(400).json({ error: `El campo ${campo} debe ser texto` });
+        return;
+      }
     }
 
     if (dpi && !/^\d{13}$/.test(dpi)) {
@@ -91,9 +101,16 @@ router.put('/beneficiarios/:id', authMiddleware, async (req: Request, res: Respo
     const { id } = req.params as { id: string };
     const { nombreCompleto, dpi, telefono, direccion, observaciones } = req.body;
 
-    if (nombreCompleto !== undefined && nombreCompleto.trim().length < 3) {
+    if (nombreCompleto !== undefined && (typeof nombreCompleto !== 'string' || nombreCompleto.trim().length < 3)) {
       res.status(400).json({ error: 'El nombre debe tener al menos 3 caracteres' });
       return;
+    }
+
+    for (const [campo, val] of Object.entries({ dpi, telefono, direccion, observaciones })) {
+      if (val !== undefined && val !== null && typeof val !== 'string') {
+        res.status(400).json({ error: `El campo ${campo} debe ser texto` });
+        return;
+      }
     }
 
     if (dpi && !/^\d{13}$/.test(dpi)) {
@@ -201,9 +218,9 @@ router.post('/despachar', authMiddleware, async (req: Request, res: Response) =>
 router.get('/historial', authMiddleware, async (req: Request, res: Response) => {
   try {
     const resultado = await obtenerHistorial({
-      fechaDesde: req.query.fechaDesde as string,
-      fechaHasta: req.query.fechaHasta as string,
-      beneficiarioId: req.query.beneficiarioId as string,
+      fechaDesde: textoQuery(req.query.fechaDesde),
+      fechaHasta: textoQuery(req.query.fechaHasta),
+      beneficiarioId: textoQuery(req.query.beneficiarioId),
       page: req.query.page ? parseInt(req.query.page as string, 10) : undefined,
       limit: req.query.limit ? parseInt(req.query.limit as string, 10) : undefined,
     });

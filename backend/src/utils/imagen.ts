@@ -30,16 +30,26 @@ export async function comprimirImagen(
   const maxDimension = opciones.maxDimension ?? 1600;
   const calidad = opciones.calidad ?? 80;
 
-  const buffer = await sharp(entrada, { failOn: 'none' })
-    .rotate()
-    .resize({
-      width: maxDimension,
-      height: maxDimension,
-      fit: 'inside',
-      withoutEnlargement: true,
-    })
-    .webp({ quality: calidad })
-    .toBuffer();
+  // Si el buffer no es una imagen decodificable (texto renombrado, archivo
+  // corrupto, MIME falsificado), sharp lanza. Eso es entrada inválida del usuario,
+  // no un fallo del servidor: se traduce a un 400 (los handlers honran err.status).
+  let buffer: Buffer;
+  try {
+    buffer = await sharp(entrada, { failOn: 'none' })
+      .rotate()
+      .resize({
+        width: maxDimension,
+        height: maxDimension,
+        fit: 'inside',
+        withoutEnlargement: true,
+      })
+      .webp({ quality: calidad })
+      .toBuffer();
+  } catch {
+    const err: any = new Error('El archivo no es una imagen válida');
+    err.status = 400;
+    throw err;
+  }
 
   return { buffer, ext: 'webp', mimetype: 'image/webp' };
 }

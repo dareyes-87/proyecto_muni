@@ -11,6 +11,7 @@ import {
   limpiarIntentos,
   msAMinutos,
 } from '../middleware/loginRateLimit';
+import { registrarIntentoIp, msASegundos } from '../middleware/ipRateLimit';
 
 const router = Router();
 
@@ -39,6 +40,7 @@ async function responderFallo(res: Response, username: string, usuarioId?: strin
   }
 
   if (resultado.bloqueado) {
+    res.set('Retry-After', String(msASegundos(resultado.restanteMs)));
     res.status(429).json({
       error: `Demasiados intentos fallidos. Intente de nuevo en ${msAMinutos(resultado.restanteMs)} minuto(s).`,
     });
@@ -53,6 +55,19 @@ async function responderFallo(res: Response, username: string, usuarioId?: strin
 // POST /api/auth/login
 router.post('/login', async (req: Request, res: Response): Promise<void> => {
   try {
+    // CAPA 1 — Rate limit por IP (antes de todo lo demás, incluso de validar el
+    // cuerpo): frena fuerza bruta / credential stuffing / barrido de muchos
+    // usernames desde una misma red. Cuenta toda solicitud de login de la IP.
+    const ip = req.ip || 'desconocida';
+    const limiteIp = registrarIntentoIp(ip);
+    if (limiteIp.limitado) {
+      res.set('Retry-After', String(msASegundos(limiteIp.restanteMs)));
+      res.status(429).json({
+        error: 'Demasiadas solicitudes de inicio de sesión desde esta red. Intente de nuevo más tarde.',
+      });
+      return;
+    }
+
     const { username, password } = req.body;
 
     // El tipo debe ser string: un objeto/arreglo (p. ej. {"gt":""}) no debe llegar
@@ -63,10 +78,11 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Si el usuario está bloqueado por intentos fallidos, no se verifican
-    // credenciales: debe esperar a que termine el bloqueo (H-09).
+    // CAPA 2 — Lockout por usuario: si la cuenta está bloqueada por intentos
+    // fallidos, no se verifican credenciales (H-09). Independiente del límite por IP.
     const restante = msBloqueoRestante(username);
     if (restante > 0) {
+      res.set('Retry-After', String(msASegundos(restante)));
       res.status(429).json({
         error: `Demasiados intentos fallidos. Intente de nuevo en ${msAMinutos(restante)} minuto(s).`,
       });

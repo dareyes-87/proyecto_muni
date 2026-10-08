@@ -7,6 +7,7 @@ import { authMiddleware, requireRole } from '../middleware/auth';
 import { registrarAuditoria } from '../middleware/audit';
 import { comprimirImagen } from '../utils/imagen';
 import { responderError } from '../utils/httpError';
+import { textoQuery } from '../utils/validacion';
 import { prisma } from '../config/prisma';
 
 const router = Router();
@@ -20,7 +21,7 @@ router.get('/medicamentos', authMiddleware, async (req: Request, res: Response):
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
     const skip = (page - 1) * limit;
-    const q = (req.query.q as string) || undefined;
+    const q = textoQuery(req.query.q);
     // La pantalla de catálogo necesita ver los inactivos para poder reactivarlos (H-26).
     const incluirInactivos = req.query.incluirInactivos === 'true';
 
@@ -51,7 +52,7 @@ router.get('/medicamentos', authMiddleware, async (req: Request, res: Response):
 // GET /api/catalogos/medicamentos/buscar?q=aceta
 router.get('/medicamentos/buscar', authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
-    const q = (req.query.q as string)?.trim();
+    const q = textoQuery(req.query.q)?.trim();
 
     if (!q) {
       res.json({ data: [] });
@@ -656,7 +657,10 @@ const uploadImagen = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   fileFilter: (_req, file, cb) => {
     if (!EXT_POR_MIME[file.mimetype]) {
-      cb(new Error('Formato de imagen no permitido. Use JPG, PNG o WEBP'));
+      // status 400: el errorHandler global lo traduce a 400 (no 500).
+      const err: any = new Error('Formato de imagen no permitido. Use JPG, PNG o WEBP');
+      err.status = 400;
+      cb(err);
       return;
     }
     cb(null, true);
@@ -718,8 +722,9 @@ router.post(
 
       res.json({ data: actualizado });
     } catch (error) {
-      console.error('Error subiendo imagen de medicamento:', error);
-      res.status(500).json({ error: 'Error interno del servidor' });
+      // Honra err.status 400 (imagen inválida/no decodificable) y oculta el detalle
+      // de los 500 reales.
+      responderError(res, error);
     }
   }
 );

@@ -27,6 +27,22 @@ export function esEnteroPositivo(valor: unknown): valor is number {
 }
 
 /**
+ * Normaliza un parámetro de query que debe ser texto. Express entrega un arreglo
+ * cuando el parámetro se repite (`?q=a&q=b`, HTTP Parameter Pollution); si eso
+ * llega a un `.trim()` o a un filtro Prisma `contains` provoca un HTTP 500. Aquí
+ * se toma el primer elemento si es arreglo, se devuelve la cadena si lo es, y
+ * `undefined` en cualquier otro caso (objeto, número, etc.).
+ */
+export function textoQuery(valor: unknown): string | undefined {
+  if (typeof valor === 'string') return valor;
+  if (Array.isArray(valor)) {
+    const primero = valor.find((v) => typeof v === 'string');
+    return typeof primero === 'string' ? primero : undefined;
+  }
+  return undefined;
+}
+
+/**
  * Normaliza page/limit de query a enteros seguros. page >= 1; limit en [1, maxLimit].
  * Un valor inválido (negativo, NaN, texto) cae al valor por defecto, nunca a un
  * `skip` negativo (que Prisma rechaza con un 500).

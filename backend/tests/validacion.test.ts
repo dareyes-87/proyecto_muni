@@ -6,7 +6,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { clampPaginacion, esEnteroPositivo, exigirCadena, ErrorValidacion } from '../src/utils/validacion';
+import { clampPaginacion, esEnteroPositivo, exigirCadena, textoQuery, ErrorValidacion } from '../src/utils/validacion';
 
 // --- esEnteroPositivo: núcleo del fix H-020 (cantidad de despacho) ---
 test('esEnteroPositivo: acepta enteros positivos', () => {
@@ -63,4 +63,20 @@ test('clampPaginacion: página válida calcula skip correcto', () => {
   assert.equal(r.page, 3);
   assert.equal(r.limit, 25);
   assert.equal(r.skip, 50);
+});
+
+// --- textoQuery: evita 500 por HPP (?q=a&q=b) y tipos inesperados en query ---
+test('textoQuery: devuelve la cadena cuando es string', () => {
+  assert.equal(textoQuery('aceta'), 'aceta');
+});
+
+test('textoQuery: arreglo (HPP) → primer string (antes rompía .trim/Prisma con 500)', () => {
+  assert.equal(textoQuery(['a', 'b']), 'a');
+});
+
+test('textoQuery: objeto / número / undefined → undefined (no se pasa a Prisma)', () => {
+  assert.equal(textoQuery({ gt: '' } as unknown), undefined);
+  assert.equal(textoQuery(123 as unknown), undefined);
+  assert.equal(textoQuery(undefined), undefined);
+  assert.equal(textoQuery([] as unknown), undefined);
 });

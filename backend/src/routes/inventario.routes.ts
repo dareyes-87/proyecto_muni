@@ -13,6 +13,7 @@ import {
   hoyMedianoche,
   validarFechaVencimientoEntrada,
 } from '../services/inventario.service';
+import { textoQuery } from '../utils/validacion';
 import { prisma } from '../config/prisma';
 
 const router = Router();
@@ -178,7 +179,9 @@ router.get('/entradas', authMiddleware, async (req: Request, res: Response): Pro
 // ============================================
 router.get('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { q, categoriaId } = req.query as Record<string, string | undefined>;
+    // Coerción segura: `?q=a&q=b` (arreglo) rompía el filtro Prisma `contains` → 500.
+    const q = textoQuery(req.query.q);
+    const categoriaId = textoQuery(req.query.categoriaId);
     const soloStockBajo = req.query.soloStockBajo === 'true';
     const page = Math.max(1, parseInt((req.query.page as string) || '1', 10));
     const pageSize = Math.min(100, Math.max(1, parseInt((req.query.pageSize as string) || '20', 10)));
