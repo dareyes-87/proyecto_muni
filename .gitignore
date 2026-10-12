@@ -1,6 +1,9 @@
 node_modules/
 dist/
 build/
+coverage/
+# Artefactos de compilación incremental de TypeScript (generados por `tsc -b`)
+*.tsbuildinfo
 .env
 *.log
 .DS_Store
