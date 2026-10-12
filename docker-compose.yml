@@ -38,6 +38,14 @@ services:
       - ./backend/src:/app/src:z
       - ./backend/prisma:/app/prisma:z
       - ./backend/uploads:/app/uploads:z
+      # Respaldo previo a cada arranque (ver backend/docker-entrypoint.sh)
+      - ./backups:/app/backups:z
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 180s
 
   web:
     build:
@@ -56,6 +64,56 @@ services:
     volumes:
       - ./frontend/src:/app/src:z
       - ./frontend/public:/app/public:z
+
+  # Respaldo automático de la base de datos.
+  # Ejecuta pg_dump al arrancar y luego cada BACKUP_INTERVAL_HOURS horas; guarda los
+  # archivos en ./backups (carpeta del host) y borra los de más de BACKUP_KEEP_DAYS días.
+  # - Reutiliza la imagen postgres:16-alpine que ya usa el servicio db (no descarga nada nuevo).
+  # - Usa las mismas variables DB_* que db y api, con los mismos valores por defecto, así que
+  #   funciona con cualquier .env que ya sirva para el sistema.
+  # - El script va en línea (no como archivo .sh) para que no le afecten los finales de línea
+  #   CRLF de Windows. Dentro de este YAML, cada "$" del script se escribe "$$".
+  # - Estado: ./backups/ULTIMO_RESPALDO.txt (OK o ERROR) e historial en historial_respaldos.log.
+  # Restaurar: ver docs/RESPALDOS.md.
+  backup:
+    image: postgres:16-alpine
+    container_name: farmag_backup
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGUSER: ${DB_USER:-farmag}
+      PGPASSWORD: ${DB_PASSWORD:-farmag_secret_2026}
+      PGDATABASE: ${DB_NAME:-farmag_db}
+      BACKUP_INTERVAL_HOURS: ${BACKUP_INTERVAL_HOURS:-12}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+    volumes:
+      - ./backups:/backups:z
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        DIR=/backups
+        mkdir -p "$$DIR"
+        echo "Respaldo automatico: cada $${BACKUP_INTERVAL_HOURS} h, se conservan $${BACKUP_KEEP_DAYS} dias"
+        while true; do
+          TS=$$(date -u +%Y%m%d_%H%M%SZ)
+          OUT="$$DIR/farmag_$$TS.dump"
+          if pg_dump -Fc -f "$$OUT.tmp" && pg_restore -l "$$OUT.tmp" > /dev/null 2>&1 && [ -s "$$OUT.tmp" ]; then
+            mv "$$OUT.tmp" "$$OUT"
+            SIZE=$$(wc -c < "$$OUT")
+            echo "$$TS OK $$SIZE bytes farmag_$$TS.dump" >> "$$DIR/historial_respaldos.log"
+            echo "OK $$TS" > "$$DIR/ULTIMO_RESPALDO.txt"
+            find "$$DIR" -name 'farmag_*.dump' -mtime +"$$BACKUP_KEEP_DAYS" -delete
+            sleep $$((BACKUP_INTERVAL_HOURS * 3600))
+          else
+            rm -f "$$OUT.tmp"
+            echo "$$TS ERROR" >> "$$DIR/historial_respaldos.log"
+            echo "ERROR $$TS" > "$$DIR/ULTIMO_RESPALDO.txt"
+            sleep 300
+          fi
+        done
 
 volumes:
   pgdata:

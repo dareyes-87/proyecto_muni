@@ -10,3 +10,4 @@ backend/uploads/medicamentos/*
 !backend/uploads/medicamentos/.gitkeep
 backend/uploads/dispensaciones/*
 !backend/uploads/dispensaciones/.gitkeep
+backups/
