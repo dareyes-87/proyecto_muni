@@ -47,6 +47,19 @@ sql() {
   psql "$PGURL" -v ON_ERROR_STOP=1 -tAc "$1" 2>/dev/null
 }
 
+# Arranca la API según el modo. En producción (imagen compilada, target
+# `production`) corre el build de dist/; en desarrollo, tsx watch sobre src/.
+# Así TODOS los targets del Dockerfile usan este mismo arranque seguro (respaldo
+# previo + migraciones versionadas) sin que producción se salte esos pasos.
+arrancar_api() {
+  if [ "${NODE_ENV:-development}" = "production" ] && [ -f dist/server.js ]; then
+    log "arrancando API (produccion: node dist/server.js)"
+    exec node dist/server.js
+  fi
+  log "arrancando API (desarrollo: tsx watch)"
+  exec npx tsx watch src/server.ts
+}
+
 # ------------------------------------------------------------
 # 0. Esperar a la base de datos (máx. ~2 min)
 # ------------------------------------------------------------
@@ -55,7 +68,7 @@ until sql "SELECT 1" >/dev/null; do
   i=$((i + 1))
   if [ "$i" -ge 60 ]; then
     log "ERROR: la base de datos no responde; se arranca la API sin tocar el esquema"
-    exec npx tsx watch src/server.ts
+    arrancar_api
   fi
   sleep 2
 done
@@ -135,5 +148,4 @@ fi
 # ------------------------------------------------------------
 npx prisma db seed || log "AVISO: el seed falló (no impide el arranque)"
 
-log "arrancando API"
-exec npx tsx watch src/server.ts
+arrancar_api

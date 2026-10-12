@@ -56,9 +56,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    # Solo se persisten las imágenes subidas (no se monta código fuente).
+    # Solo se persisten las imágenes subidas y los respaldos (no se monta código fuente).
     volumes:
       - ./backend/uploads:/app/uploads:z
+      # Respaldo previo a cada arranque (ver backend/docker-entrypoint.sh)
+      - ./backups:/app/backups:z
 
   web:
     build:
@@ -72,6 +74,49 @@ services:
       - "80:80"
     depends_on:
       - api
+
+  # Respaldo automático de la base de datos (igual que en docker-compose.yml):
+  # pg_dump al arrancar y cada BACKUP_INTERVAL_HOURS horas, hacia ./backups.
+  # Ver docs/RESPALDOS.md para restaurar.
+  backup:
+    image: postgres:16-alpine
+    container_name: farmag_backup
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGUSER: ${DB_USER:-farmag}
+      PGPASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD en .env}
+      PGDATABASE: ${DB_NAME:-farmag_db}
+      BACKUP_INTERVAL_HOURS: ${BACKUP_INTERVAL_HOURS:-12}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+    volumes:
+      - ./backups:/backups:z
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        DIR=/backups
+        mkdir -p "$$DIR"
+        echo "Respaldo automatico: cada $${BACKUP_INTERVAL_HOURS} h, se conservan $${BACKUP_KEEP_DAYS} dias"
+        while true; do
+          TS=$$(date -u +%Y%m%d_%H%M%SZ)
+          OUT="$$DIR/farmag_$$TS.dump"
+          if pg_dump -Fc -f "$$OUT.tmp" && pg_restore -l "$$OUT.tmp" > /dev/null 2>&1 && [ -s "$$OUT.tmp" ]; then
+            mv "$$OUT.tmp" "$$OUT"
+            SIZE=$$(wc -c < "$$OUT")
+            echo "$$TS OK $$SIZE bytes farmag_$$TS.dump" >> "$$DIR/historial_respaldos.log"
+            echo "OK $$TS" > "$$DIR/ULTIMO_RESPALDO.txt"
+            find "$$DIR" -name 'farmag_*.dump' -mtime +"$$BACKUP_KEEP_DAYS" -delete
+            sleep $$((BACKUP_INTERVAL_HOURS * 3600))
+          else
+            rm -f "$$OUT.tmp"
+            echo "$$TS ERROR" >> "$$DIR/historial_respaldos.log"
+            echo "ERROR $$TS" > "$$DIR/ULTIMO_RESPALDO.txt"
+            sleep 300
+          fi
+        done
 
 volumes:
   pgdata:
