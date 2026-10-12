@@ -33,10 +33,13 @@ npx prisma db seed                         # Re-ejecuta prisma/seed.ts (idempote
 npm run build                              # tsc → dist/ (chequeo de tipos)
 ```
 
-> ⚠️ **Migraciones:** el `Dockerfile` del backend arranca con `prisma db push --accept-data-loss`
-> (no migraciones versionadas), mientras que `npm run dev` usa `prisma migrate deploy`. Al cambiar
-> el schema en desarrollo el flujo real es **editar `schema.prisma` → `db push` → `generate`**. No
-> existe carpeta `prisma/migrations/` todavía.
+> ⚠️ **Migraciones (desde 2026-10, ver `docs/DESPLIEGUE.md`):** el backend ya **no** usa
+> `prisma db push --accept-data-loss`. Arranca con `backend/docker-entrypoint.sh`, que saca un
+> respaldo y aplica **solo migraciones versionadas** de `prisma/migrations/`. Para cambiar el
+> esquema: **editar `schema.prisma` → `docker compose exec api npx prisma migrate dev --name <cambio>`
+> → commitear la carpeta de la migración junto con el schema.** Un cambio a `schema.prisma` sin
+> migración no pasa el workflow "Despliegue seguro". Lo que entra a `main` lo aplica el servidor
+> de la municipalidad solo, en máximo 30 minutos.
 
 **Frontend (local en `frontend/`):**
 ```bash
