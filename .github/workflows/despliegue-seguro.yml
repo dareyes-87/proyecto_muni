@@ -215,13 +215,23 @@ jobs:
           ls -l backups/
           previo=$(ls backups/predeploy_*.dump | tail -1)
           [ -n "$previo" ] || { echo "::error::no hay respaldo previo"; exit 1; }
-          for i in $(seq 1 24); do ls backups/farmag_*.dump > /dev/null 2>&1 && break; sleep 5; done
-          periodico=$(ls backups/farmag_*.dump | tail -1)
+          # Si la versión anterior ya traía el servicio backup, su primer respaldo es de
+          # ANTES de cargar los datos de prueba y el despliegue no lo recrea. Se reinicia
+          # para forzar un respaldo nuevo y se espera uno posterior a esta marca.
+          touch /tmp/marca_respaldo
+          sleep 1
+          docker compose -p farmag restart backup
+          periodico=""
+          for i in $(seq 1 24); do
+            periodico=$(find backups -name 'farmag_*.dump' -newer /tmp/marca_respaldo | sort | tail -1)
+            [ -n "$periodico" ] && break
+            sleep 5
+          done
           [ -n "$periodico" ] || { echo "::error::el servicio backup no generó respaldo"; docker compose -p farmag logs backup; exit 1; }
           for f in "$previo" "$periodico"; do
             docker cp "$f" farmag_db:/tmp/r.dump
             docker exec farmag_db sh -c 'createdb -U "$POSTGRES_USER" prueba_restauracion && pg_restore --no-owner -U "$POSTGRES_USER" -d prueba_restauracion /tmp/r.dump'
-            n=$(docker exec farmag_db sh -c 'psql -tA -U "$POSTGRES_USER" -d prueba_restauracion -c "SELECT count(*) FROM beneficiarios WHERE id LIKE '"'"'ci-%'"'"'"')
+            n=$(docker exec farmag_db sh -c 'psql -tA -U "$POSTGRES_USER" -d prueba_restauracion -c "SELECT count(*) FROM beneficiarios WHERE id LIKE '"'"'ci-%'"'"'"' || echo "error")
             docker exec farmag_db sh -c 'dropdb -U "$POSTGRES_USER" prueba_restauracion'
             [ "$n" = "200" ] || { echo "::error::$f no restaura los datos ($n filas)"; exit 1; }
             echo "$f restaura bien ($n beneficiarios de prueba)"
