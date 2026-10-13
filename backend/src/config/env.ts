@@ -1,9 +1,12 @@
+import fs from 'fs';
+import path from 'path';
+
 // Configuración del backend con validación al iniciar.
 //
 // No existe un JWT_SECRET de respaldo: si falta una variable crítica el proceso
-// se detiene con un mensaje claro (H-03). En producción, además, se rechazan los
-// valores de ejemplo del repositorio y los secretos demasiado cortos, para que el
-// sistema nunca arranque con credenciales conocidas.
+// se detiene con un mensaje claro (H-03). En producción, además, se detectan los
+// valores de ejemplo del repositorio y los secretos demasiado cortos: se advierte
+// (o se aborta con STRICT_SECRETS=true, ver más abajo).
 
 const nodeEnv = process.env.NODE_ENV || 'development';
 const isProd = nodeEnv === 'production';
@@ -14,6 +17,7 @@ const VALORES_INSEGUROS = [
   'farmag_jwt_secret_cambiar_en_produccion',
   'farmag_secret_2026',
   'cambiar',
+  'cambie', // CAMBIE_ESTE_SECRETO... / CAMBIE_ESTA_CONTRASENA del .env.example actual
   'changeme',
 ];
 
@@ -38,18 +42,41 @@ function exigir(nombre: string, valor: string | undefined): string {
 const jwtSecret = exigir('JWT_SECRET', process.env.JWT_SECRET);
 const databaseUrl = exigir('DATABASE_URL', process.env.DATABASE_URL);
 
+// En producción, los valores de ejemplo o un JWT_SECRET corto son un riesgo. Pero
+// el servidor de la municipalidad se actualiza solo y nadie puede corregir su .env
+// en sitio: si el backend se detuviera aquí, la farmacia quedaría sin sistema.
+// Por eso, por defecto se ADVIERTE (consola + backups/ESTADO_ARRANQUE.txt) y se
+// arranca igual. Con STRICT_SECRETS=true se vuelve obligatorio (abortar), para
+// activarlo cuando se haya confirmado el .env real del servidor.
+const estricto = (process.env.STRICT_SECRETS || '').toLowerCase() === 'true';
+
+function advertir(mensaje: string): void {
+  console.warn(`\n⚠️  AVISO DE SEGURIDAD: ${mensaje}\n`);
+  try {
+    const dir = process.env.PREDEPLOY_BACKUP_DIR || path.join(process.cwd(), 'backups');
+    if (fs.existsSync(dir)) {
+      const linea = `[arranque ${new Date().toISOString()}] AVISO: ${mensaje}\n`;
+      fs.appendFileSync(path.join(dir, 'ESTADO_ARRANQUE.txt'), linea);
+    }
+  } catch {
+    // Escribir la constancia nunca debe impedir el arranque.
+  }
+}
+
 if (isProd) {
+  const problemas: string[] = [];
   if (contieneValorInseguro(jwtSecret) || jwtSecret.length < 16) {
-    abortar(
-      'JWT_SECRET usa un valor por defecto/de ejemplo o es demasiado corto. ' +
-        'En producción debe ser un secreto propio, largo y aleatorio.'
-    );
+    problemas.push('JWT_SECRET usa un valor de ejemplo o es demasiado corto (<16)');
   }
   if (contieneValorInseguro(databaseUrl)) {
-    abortar(
-      'la contraseña de la base de datos usa un valor por defecto inseguro. ' +
-        'Defina una contraseña propia en DATABASE_URL para producción.'
-    );
+    problemas.push('la contraseña de la base de datos es un valor de ejemplo');
+  }
+  if (problemas.length > 0) {
+    const mensaje =
+      `${problemas.join('; ')}. En producción defina secretos propios en .env ` +
+      '(y luego STRICT_SECRETS=true para exigirlos).';
+    if (estricto) abortar(mensaje);
+    advertir(mensaje);
   }
 }
 

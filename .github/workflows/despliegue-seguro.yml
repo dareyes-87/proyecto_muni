@@ -108,7 +108,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        env_servidor: [sin-env, env-de-ejemplo]
+        # produccion-ejemplo: NODE_ENV y FRONTEND_TARGET en production con los
+        # secretos de ejemplo (posible configuración del servidor real).
+        env_servidor: [sin-env, env-de-ejemplo, produccion-ejemplo]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -132,7 +134,15 @@ jobs:
         run: |
           git worktree add ../servidor "${{ steps.base.outputs.base }}"
           cd ../servidor
-          if [ "${{ matrix.env_servidor }}" = "env-de-ejemplo" ]; then cp .env.example .env; fi
+          case "${{ matrix.env_servidor }}" in
+            env-de-ejemplo) cp .env.example .env ;;
+            produccion-ejemplo)
+              cp .env.example .env
+              sed -i 's/^NODE_ENV=.*/NODE_ENV=production/; s/^FRONTEND_TARGET=.*/FRONTEND_TARGET=production/' .env
+              grep -q '^NODE_ENV=production' .env || echo 'NODE_ENV=production' >> .env
+              grep -q '^FRONTEND_TARGET=production' .env || echo 'FRONTEND_TARGET=production' >> .env
+              cat .env ;;
+          esac
           docker compose -p farmag up -d --build
           for i in $(seq 1 90); do
             curl -sf http://localhost:3000/api/health > /dev/null && exit 0
@@ -194,6 +204,11 @@ jobs:
           if grep -E 'ERROR|ATENCION|SIN RESPALDO' backups/ESTADO_ARRANQUE.txt; then
             echo "::error::el arranque reportó problemas"; exit 1
           fi
+          if [ "${{ matrix.env_servidor }}" = "produccion-ejemplo" ]; then
+            grep -q 'AVISO: .*JWT_SECRET' backups/ESTADO_ARRANQUE.txt \
+              || { echo "::error::con secretos de ejemplo en producción debía quedar un AVISO"; exit 1; }
+            echo "La API arrancó en producción con secretos de ejemplo y dejó el AVISO."
+          fi
           docker compose -p farmag exec -T db sh -c \
             'psql -tA -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NOT NULL"' | tee /tmp/mig.txt
           grep -qx 0_init /tmp/mig.txt || { echo "::error::0_init no quedó registrada"; exit 1; }
@@ -240,6 +255,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Instalación desde cero
         run: |
+          # Desde el bootstrap seguro (H-002) no hay contraseña por defecto: se fija una.
+          echo 'ADMIN_INITIAL_PASSWORD=Instalacion-CI-2026' > .env
           docker compose -p nueva up -d --build
           for i in $(seq 1 90); do
             [ "$(docker inspect -f '{{.State.Health.Status}}' farmag_api 2>/dev/null)" = healthy ] && break; sleep 5
@@ -247,7 +264,11 @@ jobs:
           cat backups/ESTADO_ARRANQUE.txt
           if grep -E 'ERROR|ATENCION' backups/ESTADO_ARRANQUE.txt; then exit 1; fi
           curl -sf -X POST http://localhost:3000/api/auth/login -H 'Content-Type: application/json' \
-            -d '{"username":"admin","password":"admin2026"}' | jq -e .token > /dev/null
+            -d '{"username":"admin","password":"Instalacion-CI-2026"}' | jq -e .token > /dev/null
+          # La contraseña antigua por defecto ya no debe servir en una instalación nueva.
+          codigo=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:3000/api/auth/login \
+            -H 'Content-Type: application/json' -d '{"username":"admin","password":"admin2026"}')
+          [ "$codigo" = "401" ] || { echo "::error::admin2026 respondió $codigo (esperado 401)"; exit 1; }
       - name: Registros si algo falló
         if: failure()
         run: docker compose -p nueva logs --tail 200

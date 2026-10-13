@@ -58,7 +58,7 @@ GitHub → **Settings → Branches → Add branch ruleset / protection rule** pa
 
 - Require a pull request before merging (1 aprobación).
 - Require status checks to pass: `esquema`, `compilacion`, `despliegue (sin-env)`,
-  `despliegue (env-de-ejemplo)`, `instalacion`.
+  `despliegue (env-de-ejemplo)`, `despliegue (produccion-ejemplo)`, `instalacion`.
 - Bloquear force push y borrado de la rama.
 
 Sin esto, cualquiera con permiso de escritura puede seguir haciendo push directo a `main`.
@@ -67,6 +67,9 @@ Sin esto, cualquiera con permiso de escritura puede seguir haciendo push directo
 
 - **ATENCION … requiere borrar datos**: la base del servidor no coincide con `schema.prisma` y
   alinearla borraría algo. Hay que escribir una migración explícita para ese caso.
+- **AVISO … JWT_SECRET / base de datos**: el servidor corre con `NODE_ENV=production` y secretos de
+  ejemplo. La API arranca igual (no se puede corregir en sitio). Cuando alguien defina `JWT_SECRET` y
+  `DB_PASSWORD` propios en el `.env` del servidor, poner `STRICT_SECRETS=true` para exigirlos.
 - **SIN RESPALDO**: no se pudo escribir en `backups/` o `pg_dump` falló; el esquema no se tocó.
 - **falló migrate deploy**: una migración dio error. Prisma la marca como fallida y no aplicará otras
   hasta resolverla (`npx prisma migrate resolve`), por eso el workflow `despliegue` debe pasar antes

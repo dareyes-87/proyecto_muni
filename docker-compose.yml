@@ -43,6 +43,8 @@ services:
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:-}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      # true = no arrancar en producción con secretos de ejemplo (ver config/env.ts).
+      STRICT_SECRETS: ${STRICT_SECRETS:-false}
     # Solo accesible desde el propio host. El frontend (web) llega a la API por la
     # red interna de Docker; los usuarios acceden únicamente por el puerto del
     # frontend (H-04).
