@@ -16,11 +16,16 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Interceptor: redirigir a login si el token expiró
+// Interceptor: redirigir a login si el token expiró.
+// Se excluye la propia ruta de login: un 401/429 ahí es un intento fallido o un
+// bloqueo por demasiados intentos, no una sesión vencida, y recargar ocultaría el
+// mensaje de error (H-32).
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const url: string = error.config?.url || '';
+    const esLogin = url.includes('/auth/login');
+    if (error.response?.status === 401 && !esLogin) {
       localStorage.removeItem('farmag_token');
       localStorage.removeItem('farmag_usuario');
       window.location.href = '/login';

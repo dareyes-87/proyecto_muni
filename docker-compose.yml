@@ -9,8 +9,10 @@ services:
       POSTGRES_DB: ${DB_NAME:-farmag_db}
     volumes:
       - pgdata:/var/lib/postgresql/data
+    # Solo accesible desde el propio host (no en toda la red). La API se conecta
+    # por la red interna de Docker (host "db"), no por este puerto publicado (H-04).
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-farmag} -d ${DB_NAME:-farmag_db}"]
       interval: 5s
@@ -21,16 +23,33 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      # development (por defecto) = tsx watch. production = node dist.
+      # Ambos targets arrancan con docker-entrypoint.sh (respaldo previo +
+      # migraciones versionadas). Para producción use docker-compose.prod.yml.
+      target: ${BACKEND_TARGET:-development}
     container_name: farmag_api
     restart: unless-stopped
     environment:
       NODE_ENV: ${NODE_ENV:-development}
+      # Zona horaria de Guatemala: el cron de vencimiento (00:05) y el cálculo de
+      # "hoy" deben correr en hora local, no en UTC (H-02).
+      TZ: America/Guatemala
       PORT: 3000
       DATABASE_URL: postgresql://${DB_USER:-farmag}:${DB_PASSWORD:-farmag_secret_2026}@db:5432/${DB_NAME:-farmag_db}?schema=public
       JWT_SECRET: ${JWT_SECRET:-farmag_jwt_secret_cambiar_en_produccion}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
+      # Bootstrap del primer administrador (H-002). Si no se define una contraseña,
+      # el seed genera una aleatoria y la imprime una vez en los logs de este servicio.
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:-}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      # true = no arrancar en producción con secretos de ejemplo (ver config/env.ts).
+      STRICT_SECRETS: ${STRICT_SECRETS:-false}
+    # Solo accesible desde el propio host. El frontend (web) llega a la API por la
+    # red interna de Docker; los usuarios acceden únicamente por el puerto del
+    # frontend (H-04).
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     depends_on:
       db:
         condition: service_healthy
@@ -38,6 +57,8 @@ services:
       - ./backend/src:/app/src:z
       - ./backend/prisma:/app/prisma:z
       - ./backend/uploads:/app/uploads:z
+      # Montado para poder ejecutar las pruebas en el contenedor con `npm test`.
+      - ./backend/tests:/app/tests:z
       # Respaldo previo a cada arranque (ver backend/docker-entrypoint.sh)
       - ./backups:/app/backups:z
     healthcheck:
@@ -56,6 +77,11 @@ services:
     restart: unless-stopped
     environment:
       VITE_LAN_IP: ${LAN_IP:-}
+    # Se publican ambos puertos porque el puerto activo depende de FRONTEND_TARGET:
+    # en desarrollo responde 5173 (Vite) y en producción 80 (nginx). El puerto del
+    # modo inactivo queda publicado pero sin proceso detrás (no responde) — es
+    # inofensivo; los scripts start.sh/start.cmd anuncian la URL correcta según el
+    # modo (H-08). Para exponer solo uno, fijar FRONTEND_TARGET y quitar el otro.
     ports:
       - "80:80"
       - "5173:5173"

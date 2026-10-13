@@ -3,7 +3,8 @@ import { UserPlus, Users, Eye, Pencil, X, ChevronLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../api/client';
 import EvidenciaBadge from '../components/ui/EvidenciaBadge';
-import type { FotoDispensacion } from '../api/captura';
+import AuthImage from '../components/ui/AuthImage';
+import type { FotoDispensacion, TipoFoto } from '../api/captura';
 import PageHeader from '../components/ui/PageHeader';
 import Button from '../components/ui/Button';
 import SearchInput from '../components/ui/SearchInput';
@@ -46,7 +47,7 @@ export default function Beneficiarios() {
   const [showModal, setShowModal] = useState(false);
   const [editando, setEditando] = useState<Beneficiario | null>(null);
   const [detalle, setDetalle] = useState<BeneficiarioDetalle | null>(null);
-  const [fotoAmpliada, setFotoAmpliada] = useState<FotoDispensacion | null>(null);
+  const [fotoAmpliada, setFotoAmpliada] = useState<{ dispId: string; tipo: TipoFoto } | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   const buscar = async (texto: string) => {
@@ -160,12 +161,12 @@ export default function Beneficiarios() {
                       {disp.fotos.map((foto) => (
                         <button
                           key={foto.id}
-                          onClick={() => setFotoAmpliada(foto)}
+                          onClick={() => setFotoAmpliada({ dispId: disp.id, tipo: foto.tipo })}
                           title={foto.tipo === 'RECETA' ? 'Receta' : 'Evidencia de entrega'}
                           className="group relative h-16 w-16 overflow-hidden rounded-lg border border-gray-200 hover:border-primary-500"
                         >
-                          <img
-                            src={foto.imagenUrl}
+                          <AuthImage
+                            src={`/dispensacion/${disp.id}/foto/${foto.tipo}`}
                             alt={foto.tipo === 'RECETA' ? 'Receta' : 'Evidencia de entrega'}
                             className="h-full w-full object-cover"
                           />
@@ -208,8 +209,8 @@ export default function Beneficiarios() {
               <X size={28} />
             </button>
             <figure className="max-h-full" onClick={(e) => e.stopPropagation()}>
-              <img
-                src={fotoAmpliada.imagenUrl}
+              <AuthImage
+                src={`/dispensacion/${fotoAmpliada.dispId}/foto/${fotoAmpliada.tipo}`}
                 alt={fotoAmpliada.tipo === 'RECETA' ? 'Receta' : 'Evidencia de entrega'}
                 className="max-h-[80vh] max-w-full rounded-lg object-contain"
               />

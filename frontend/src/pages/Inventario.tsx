@@ -19,23 +19,34 @@ export default function Inventario() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
   const [soloStockBajo, setSoloStockBajo] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
   const [detalle, setDetalle] = useState<MedicamentoDetalle | null>(null);
   const [detalleLoading, setDetalleLoading] = useState(false);
 
   const [bajaLote, setBajaLote] = useState<{ id: string; numero: string } | null>(null);
   const [bajaLoading, setBajaLoading] = useState(false);
+  const [motivoBaja, setMotivoBaja] = useState('');
 
   const cargar = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await listarInventario({ q: q.trim() || undefined, soloStockBajo });
+      const res = await listarInventario({ q: q.trim() || undefined, soloStockBajo, page });
       setRows(res.data);
+      setTotalPages(res.pagination?.totalPages || 1);
+      setTotal(res.pagination?.total ?? res.data.length);
     } catch {
       toast.error('No se pudo cargar el inventario');
     } finally {
       setLoading(false);
     }
+  }, [q, soloStockBajo, page]);
+
+  // Al cambiar un filtro se vuelve a la primera página.
+  useEffect(() => {
+    setPage(1);
   }, [q, soloStockBajo]);
 
   useEffect(() => {
@@ -59,9 +70,10 @@ export default function Inventario() {
     if (!bajaLote) return;
     setBajaLoading(true);
     try {
-      await darDeBajaLote(bajaLote.id);
+      await darDeBajaLote(bajaLote.id, motivoBaja.trim() || undefined);
       toast.success('Lote dado de baja');
       setBajaLote(null);
+      setMotivoBaja('');
       if (detalle) await abrirDetalle(detalle.id);
       cargar();
     } catch (e: any) {
@@ -152,6 +164,31 @@ export default function Inventario() {
         }
       />
 
+      {/* Paginación */}
+      {totalPages > 1 && (
+        <div className="mt-4 flex items-center justify-between text-sm text-gray-600">
+          <span>
+            Página {page} de {totalPages} · {total} medicamento{total === 1 ? '' : 's'}
+          </span>
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              disabled={page <= 1 || loading}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Anterior
+            </Button>
+            <Button
+              variant="secondary"
+              disabled={page >= totalPages || loading}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Siguiente
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Modal detalle */}
       <Modal
         open={detalleLoading || !!detalle}
@@ -236,12 +273,25 @@ export default function Inventario() {
           <>
             ¿Seguro que deseas dar de baja el lote <strong>{bajaLote?.numero}</strong>? Esta acción quedará
             registrada en auditoría y no se puede deshacer.
+            <label className="mt-4 block text-sm font-medium text-gray-700">
+              Motivo (opcional)
+              <textarea
+                value={motivoBaja}
+                onChange={(e) => setMotivoBaja(e.target.value)}
+                rows={2}
+                placeholder="Ej. vencido, dañado, extraviado…"
+                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500"
+              />
+            </label>
           </>
         }
         confirmLabel="Dar de baja"
         loading={bajaLoading}
         onConfirm={confirmarBaja}
-        onClose={() => setBajaLote(null)}
+        onClose={() => {
+          setBajaLote(null);
+          setMotivoBaja('');
+        }}
       />
     </div>
   );

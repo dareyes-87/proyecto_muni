@@ -1,14 +1,16 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { authMiddleware, requireRole } from '../middleware/auth';
 import { registrarAuditoria } from '../middleware/audit';
+import { comprimirImagen } from '../utils/imagen';
+import { responderError } from '../utils/httpError';
+import { textoQuery } from '../utils/validacion';
+import { prisma } from '../config/prisma';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // ============================================
 // MEDICAMENTOS
@@ -19,9 +21,11 @@ router.get('/medicamentos', authMiddleware, async (req: Request, res: Response):
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
     const skip = (page - 1) * limit;
-    const q = (req.query.q as string) || undefined;
+    const q = textoQuery(req.query.q);
+    // La pantalla de catálogo necesita ver los inactivos para poder reactivarlos (H-26).
+    const incluirInactivos = req.query.incluirInactivos === 'true';
 
-    const where: any = { activo: true };
+    const where: any = incluirInactivos ? {} : { activo: true };
     if (q) {
       where.OR = [
         { nombreGenerico: { contains: q, mode: 'insensitive' } },
@@ -48,7 +52,7 @@ router.get('/medicamentos', authMiddleware, async (req: Request, res: Response):
 // GET /api/catalogos/medicamentos/buscar?q=aceta
 router.get('/medicamentos/buscar', authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
-    const q = (req.query.q as string)?.trim();
+    const q = textoQuery(req.query.q)?.trim();
 
     if (!q) {
       res.json({ data: [] });
@@ -158,6 +162,7 @@ async function fetchConTimeout(url: string, ms = 5000) {
 router.get(
   '/medicamentos/lookup-fda/:codigoBarras',
   authMiddleware,
+  requireRole('ADMIN'), // Solo el formulario de ADMIN usa esta consulta externa (H-21).
   async (req: Request, res: Response): Promise<void> => {
     try {
       const { codigoBarras } = req.params as { codigoBarras: string };
@@ -307,6 +312,14 @@ router.put('/medicamentos/:id', authMiddleware, requireRole('ADMIN'), async (req
   try {
     const { id } = req.params as { id: string };
 
+    // Validación de los campos enviados (H-15): no permite dejar en blanco los
+    // campos requeridos al editar.
+    const parsedEdit = medicamentoSchema.partial().safeParse(req.body);
+    if (!parsedEdit.success) {
+      res.status(400).json({ error: 'Datos inválidos', detalles: parsedEdit.error.flatten() });
+      return;
+    }
+
     const existente = await prisma.medicamento.findUnique({ where: { id } });
     if (!existente) {
       res.status(404).json({ error: 'Medicamento no encontrado' });
@@ -356,8 +369,7 @@ router.put('/medicamentos/:id', authMiddleware, requireRole('ADMIN'), async (req
 
     res.json({ data: medicamento });
   } catch (error) {
-    console.error('Error editando medicamento:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    responderError(res, error);
   }
 });
 
@@ -376,20 +388,25 @@ router.post('/medicamentos/:id/codigos', authMiddleware, requireRole('ADMIN'), a
       return;
     }
 
+    // Se recorta ANTES de comprobar duplicados: antes la verificación usaba el
+    // valor sin recortar y la inserción el recortado, por lo que un código con
+    // espacios podía terminar en error 500 por restricción única (H-31).
+    const codigoLimpio = codigo.trim();
+
     const medicamento = await prisma.medicamento.findUnique({ where: { id } });
     if (!medicamento) {
       res.status(404).json({ error: 'Medicamento no encontrado' });
       return;
     }
 
-    const yaExiste = await prisma.codigoBarras.findUnique({ where: { codigo } });
+    const yaExiste = await prisma.codigoBarras.findUnique({ where: { codigo: codigoLimpio } });
     if (yaExiste) {
       res.status(409).json({ error: 'Este código de barras ya está registrado en otro medicamento' });
       return;
     }
 
     const nuevoCodigo = await prisma.codigoBarras.create({
-      data: { codigo: codigo.trim(), descripcion: descripcion || null, medicamentoId: id },
+      data: { codigo: codigoLimpio, descripcion: descripcion || null, medicamentoId: id },
     });
 
     await registrarAuditoria({
@@ -442,10 +459,11 @@ router.delete('/codigos/:id', authMiddleware, requireRole('ADMIN'), async (req: 
 // ============================================
 
 // GET /api/catalogos/categorias
-router.get('/categorias', authMiddleware, async (_req: Request, res: Response): Promise<void> => {
+router.get('/categorias', authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
+    const incluirInactivos = req.query.incluirInactivos === 'true';
     const categorias = await prisma.categoria.findMany({
-      where: { activo: true },
+      where: incluirInactivos ? {} : { activo: true },
       orderBy: { nombre: 'asc' },
     });
     res.json({ data: categorias });
@@ -503,8 +521,12 @@ router.put('/categorias/:id', authMiddleware, requireRole('ADMIN'), async (req: 
     }
 
     const { nombre, descripcion, activo } = req.body;
+    if (nombre !== undefined && (typeof nombre !== 'string' || !nombre.trim())) {
+      res.status(400).json({ error: 'El nombre de la categoría no puede quedar vacío' });
+      return;
+    }
     const datosActualizados: Record<string, unknown> = {};
-    if (nombre !== undefined) datosActualizados.nombre = nombre;
+    if (nombre !== undefined) datosActualizados.nombre = nombre.trim();
     if (descripcion !== undefined) datosActualizados.descripcion = descripcion;
     if (activo !== undefined) datosActualizados.activo = activo;
 
@@ -522,8 +544,7 @@ router.put('/categorias/:id', authMiddleware, requireRole('ADMIN'), async (req: 
 
     res.json({ data: categoria });
   } catch (error) {
-    console.error('Error editando categoría:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    responderError(res, error);
   }
 });
 
@@ -594,8 +615,12 @@ router.put('/ubicaciones/:id', authMiddleware, requireRole('ADMIN'), async (req:
     }
 
     const { codigo, descripcion } = req.body;
+    if (codigo !== undefined && (typeof codigo !== 'string' || !codigo.trim())) {
+      res.status(400).json({ error: 'El código de ubicación no puede quedar vacío' });
+      return;
+    }
     const datosActualizados: Record<string, unknown> = {};
-    if (codigo !== undefined) datosActualizados.codigo = codigo;
+    if (codigo !== undefined) datosActualizados.codigo = codigo.trim();
     if (descripcion !== undefined) datosActualizados.descripcion = descripcion;
 
     const ubicacion = await prisma.ubicacion.update({ where: { id }, data: datosActualizados });
@@ -612,8 +637,7 @@ router.put('/ubicaciones/:id', authMiddleware, requireRole('ADMIN'), async (req:
 
     res.json({ data: ubicacion });
   } catch (error) {
-    console.error('Error editando ubicación:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    responderError(res, error);
   }
 });
 
@@ -633,7 +657,10 @@ const uploadImagen = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   fileFilter: (_req, file, cb) => {
     if (!EXT_POR_MIME[file.mimetype]) {
-      cb(new Error('Formato de imagen no permitido. Use JPG, PNG o WEBP'));
+      // status 400: el errorHandler global lo traduce a 400 (no 500).
+      const err: any = new Error('Formato de imagen no permitido. Use JPG, PNG o WEBP');
+      err.status = 400;
+      cb(err);
       return;
     }
     cb(null, true);
@@ -660,7 +687,9 @@ router.post(
         return;
       }
 
-      const ext = EXT_POR_MIME[req.file.mimetype];
+      // Comprimir a WebP (foto de catálogo: no necesita gran resolución) para
+      // ahorrar espacio en disco.
+      const comprimida = await comprimirImagen(req.file.buffer, { maxDimension: 1000 });
 
       fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
@@ -672,8 +701,8 @@ router.post(
         fs.unlinkSync(path.join(UPLOADS_DIR, archivo));
       }
 
-      const nombreArchivo = `${id}.${ext}`;
-      fs.writeFileSync(path.join(UPLOADS_DIR, nombreArchivo), req.file.buffer);
+      const nombreArchivo = `${id}.${comprimida.ext}`;
+      fs.writeFileSync(path.join(UPLOADS_DIR, nombreArchivo), comprimida.buffer);
 
       const imagenUrl = `/uploads/medicamentos/${nombreArchivo}`;
       const actualizado = await prisma.medicamento.update({
@@ -693,8 +722,9 @@ router.post(
 
       res.json({ data: actualizado });
     } catch (error) {
-      console.error('Error subiendo imagen de medicamento:', error);
-      res.status(500).json({ error: 'Error interno del servidor' });
+      // Honra err.status 400 (imagen inválida/no decodificable) y oculta el detalle
+      // de los 500 reales.
+      responderError(res, error);
     }
   }
 );

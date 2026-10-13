@@ -1,6 +1,5 @@
-import { PrismaClient, EstadoLote } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { EstadoLote } from '@prisma/client';
+import { prisma } from '../config/prisma';
 
 export type Semaforo = 'VERDE' | 'AMARILLO' | 'ROJO' | 'VENCIDO';
 
@@ -49,8 +48,18 @@ export function diasParaVencer(fechaVencimiento: Date, hoy: Date = hoyMedianoche
 }
 
 /**
+ * Fuente única de verdad del criterio de vencimiento: un lote está vencido
+ * cuando su fecha de vencimiento es HOY o anterior (días restantes <= 0).
+ * La usan el despacho, el cron de vencimiento y la validación de entradas para
+ * evitar criterios distintos entre flujos (ver hallazgos H-01 y H-34).
+ */
+export function estaVencido(fechaVencimiento: Date, hoy: Date = hoyMedianoche()): boolean {
+  return diasParaVencer(fechaVencimiento, hoy) <= 0;
+}
+
+/**
  * Calcula el color del semáforo de vencimiento de un lote.
- * Un lote ya marcado VENCIDO o DADO_DE_BAJA, o con fecha pasada, es 'VENCIDO'.
+ * Un lote ya marcado VENCIDO o DADO_DE_BAJA, o cuya fecha es hoy o anterior, es 'VENCIDO'.
  */
 export function calcularSemaforo(
   fechaVencimiento: Date,
@@ -59,13 +68,17 @@ export function calcularSemaforo(
 ): Semaforo {
   if (estado === 'VENCIDO' || estado === 'DADO_DE_BAJA') return 'VENCIDO';
   const dias = diasParaVencer(fechaVencimiento);
-  if (dias < 0) return 'VENCIDO';
+  if (dias <= 0) return 'VENCIDO';
   if (dias <= umbrales.rojo) return 'ROJO';
   if (dias <= umbrales.amarillo) return 'AMARILLO';
   return 'VERDE';
 }
 
-/** Un lote cuenta como stock dispensable si está DISPONIBLE, no venció y tiene unidades. */
+/**
+ * Un lote cuenta como stock dispensable si está DISPONIBLE, tiene unidades y su
+ * fecha de vencimiento es futura (posterior a hoy). Un lote que vence hoy ya no
+ * es dispensable — ver estaVencido().
+ */
 export function esDispensable(
   lote: { estado: EstadoLote; fechaVencimiento: Date; cantidadActual: number },
   hoy: Date = hoyMedianoche()
@@ -73,6 +86,21 @@ export function esDispensable(
   return (
     lote.estado === 'DISPONIBLE' &&
     lote.cantidadActual > 0 &&
-    diasParaVencer(lote.fechaVencimiento, hoy) >= 0
+    !estaVencido(lote.fechaVencimiento, hoy)
   );
+}
+
+/**
+ * Valida la fecha de vencimiento de un lote que se va a registrar como DISPONIBLE.
+ * Devuelve un mensaje de error si la fecha es hoy o anterior, o null si es válida.
+ * Compartida entre el registro manual y la importación por Excel (H-34).
+ */
+export function validarFechaVencimientoEntrada(
+  fechaVencimiento: Date,
+  hoy: Date = hoyMedianoche()
+): string | null {
+  if (estaVencido(fechaVencimiento, hoy)) {
+    return 'La fecha de vencimiento ya pasó o es hoy; no se puede registrar un lote vencido como disponible';
+  }
+  return null;
 }

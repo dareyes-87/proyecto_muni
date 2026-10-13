@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient, EstadoLote } from '@prisma/client';
+import { EstadoLote } from '@prisma/client';
 import { z } from 'zod';
 import multer from 'multer';
 import ExcelJS from 'exceljs';
@@ -11,10 +11,12 @@ import {
   diasParaVencer,
   esDispensable,
   hoyMedianoche,
+  validarFechaVencimientoEntrada,
 } from '../services/inventario.service';
+import { textoQuery } from '../utils/validacion';
+import { prisma } from '../config/prisma';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // ============================================
 // Validación
@@ -54,6 +56,17 @@ router.post('/entradas', authMiddleware, async (req: Request, res: Response): Pr
     return;
   }
   const { observaciones, lotes } = parsed.data;
+
+  // Rechazar lotes con fecha de vencimiento hoy o anterior (H-34). Misma lógica
+  // que la importación por Excel vía validarFechaVencimientoEntrada.
+  const hoy = hoyMedianoche();
+  for (let i = 0; i < lotes.length; i++) {
+    const errorFecha = validarFechaVencimientoEntrada(parseFechaVencimiento(lotes[i].fechaVencimiento), hoy);
+    if (errorFecha) {
+      res.status(400).json({ error: `Lote ${i + 1} (${lotes[i].numeroLote}): ${errorFecha}` });
+      return;
+    }
+  }
 
   try {
     // Validar existencia de referencias para dar errores claros (en vez de P2003 de Prisma).
@@ -166,7 +179,9 @@ router.get('/entradas', authMiddleware, async (req: Request, res: Response): Pro
 // ============================================
 router.get('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { q, categoriaId } = req.query as Record<string, string | undefined>;
+    // Coerción segura: `?q=a&q=b` (arreglo) rompía el filtro Prisma `contains` → 500.
+    const q = textoQuery(req.query.q);
+    const categoriaId = textoQuery(req.query.categoriaId);
     const soloStockBajo = req.query.soloStockBajo === 'true';
     const page = Math.max(1, parseInt((req.query.page as string) || '1', 10));
     const pageSize = Math.min(100, Math.max(1, parseInt((req.query.pageSize as string) || '20', 10)));
@@ -659,7 +674,13 @@ function validarFila(raw: Record<CampoExcel, ExcelJS.CellValue>): { datos: FilaV
   else if (!Number.isFinite(cantidad) || cantidad <= 0) errores.push('cantidad debe ser un entero mayor a 0');
 
   const fechaVencimiento = parseFechaCelda(raw.fechaVencimiento);
-  if (!fechaVencimiento) errores.push('fechaVencimiento es requerida y debe tener formato YYYY-MM-DD o DD/MM/YYYY');
+  if (!fechaVencimiento) {
+    errores.push('fechaVencimiento es requerida y debe tener formato YYYY-MM-DD o DD/MM/YYYY');
+  } else {
+    // Misma validación que el registro manual: no se admite fecha hoy o anterior (H-34).
+    const errorFecha = validarFechaVencimientoEntrada(fechaVencimiento);
+    if (errorFecha) errores.push(errorFecha);
+  }
 
   if (errores.length > 0) return { error: errores.join('; ') };
 
@@ -769,6 +790,11 @@ router.post(
             where: { nombre: { equals: fila.categoria, mode: 'insensitive' } },
           });
           let categoriaCreada = false;
+          if (categoria && !categoria.activo) {
+            // Misma regla que el registro manual: no se carga stock sobre una
+            // categoría inactiva (H-33).
+            throw new Error(`La categoría "${fila.categoria}" existe pero está inactiva; actívela antes de importar`);
+          }
           if (!categoria) {
             categoria = await tx.categoria.create({ data: { nombre: fila.categoria } });
             categoriaCreada = true;
@@ -796,6 +822,11 @@ router.post(
           let medicamento = candidatos.find(
             (m) => (m.concentracion || '').toLowerCase().trim() === concentracionNorm
           );
+          if (medicamento && !medicamento.activo) {
+            // Misma regla que el registro manual: no se reutiliza un medicamento
+            // inactivo ni se le carga stock oculto (H-33).
+            throw new Error(`El medicamento "${fila.nombreGenerico}" existe pero está inactivo; actívelo antes de importar`);
+          }
           let medicamentoCreado = false;
           if (!medicamento) {
             medicamento = await tx.medicamento.create({

@@ -14,6 +14,8 @@ import {
 import { generarPdfTabla, type Alineacion } from '../utils/pdf';
 import { generarExcel } from '../utils/excel';
 import { formatFecha, formatFechaHora } from '../utils/formatDate';
+import { responderError } from '../utils/httpError';
+import { textoQuery } from '../utils/validacion';
 
 const router = Router();
 
@@ -29,17 +31,16 @@ router.get('/dispensaciones', authMiddleware, async (req: Request, res: Response
   try {
     const { desde, hasta, beneficiarioId, medicamentoId, page, limit } = req.query;
     const resultado = await reporteDispensaciones({
-      desde: desde as string | undefined,
-      hasta: hasta as string | undefined,
-      beneficiarioId: beneficiarioId as string | undefined,
-      medicamentoId: medicamentoId as string | undefined,
+      desde: textoQuery(desde),
+      hasta: textoQuery(hasta),
+      beneficiarioId: textoQuery(beneficiarioId),
+      medicamentoId: textoQuery(medicamentoId),
       page: parsePage(page),
       limit: parsePage(limit),
     });
     res.json(resultado);
   } catch (error) {
-    console.error('Error en reporte de dispensaciones:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    responderError(res, error);
   }
 });
 
@@ -48,16 +49,15 @@ router.get('/consumo-medicamentos', authMiddleware, async (req: Request, res: Re
   try {
     const { desde, hasta, categoriaId, page, limit } = req.query;
     const resultado = await reporteConsumoMedicamentos({
-      desde: desde as string | undefined,
-      hasta: hasta as string | undefined,
-      categoriaId: categoriaId as string | undefined,
+      desde: textoQuery(desde),
+      hasta: textoQuery(hasta),
+      categoriaId: textoQuery(categoriaId),
       page: parsePage(page),
       limit: parsePage(limit),
     });
     res.json(resultado);
   } catch (error) {
-    console.error('Error en reporte de consumo:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    responderError(res, error);
   }
 });
 
@@ -72,7 +72,7 @@ router.get('/inventario-actual', authMiddleware, async (req: Request, res: Respo
     }
 
     const resultado = await reporteInventarioActual({
-      categoriaId: categoriaId as string | undefined,
+      categoriaId: textoQuery(categoriaId),
       estado: estado as EstadoLote | undefined,
       page: parsePage(page),
       limit: parsePage(limit),
@@ -113,8 +113,7 @@ router.get('/entradas', authMiddleware, async (req: Request, res: Response): Pro
     });
     res.json(resultado);
   } catch (error) {
-    console.error('Error en reporte de entradas:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    responderError(res, error);
   }
 });
 
@@ -130,8 +129,7 @@ router.get('/medicamentos-baja', authMiddleware, async (req: Request, res: Respo
     });
     res.json(resultado);
   } catch (error) {
-    console.error('Error en reporte de medicamentos dados de baja:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    responderError(res, error);
   }
 });
 
@@ -160,10 +158,10 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
   switch (tipo) {
     case 'dispensaciones': {
       const { data } = await reporteDispensaciones({
-        desde: query.desde as string | undefined,
-        hasta: query.hasta as string | undefined,
-        beneficiarioId: query.beneficiarioId as string | undefined,
-        medicamentoId: query.medicamentoId as string | undefined,
+        desde: textoQuery(query.desde),
+        hasta: textoQuery(query.hasta),
+        beneficiarioId: textoQuery(query.beneficiarioId),
+        medicamentoId: textoQuery(query.medicamentoId),
         page: 1,
         limit: LIMITE_EXPORT,
       });
@@ -201,9 +199,9 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
 
     case 'consumo': {
       const { data } = await reporteConsumoMedicamentos({
-        desde: query.desde as string | undefined,
-        hasta: query.hasta as string | undefined,
-        categoriaId: query.categoriaId as string | undefined,
+        desde: textoQuery(query.desde),
+        hasta: textoQuery(query.hasta),
+        categoriaId: textoQuery(query.categoriaId),
         page: 1,
         limit: LIMITE_EXPORT,
       });
@@ -226,7 +224,7 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
 
     case 'inventario': {
       const { data } = await reporteInventarioActual({
-        categoriaId: query.categoriaId as string | undefined,
+        categoriaId: textoQuery(query.categoriaId),
         estado: query.estado as EstadoLote | undefined,
         page: 1,
         limit: LIMITE_EXPORT,
@@ -434,8 +432,7 @@ router.get(
       res.setHeader('Content-Disposition', `attachment; filename="${tipo}-${Date.now()}.${extension}"`);
       res.send(buffer);
     } catch (error) {
-      console.error('Error exportando reporte:', error);
-      res.status(500).json({ error: 'Error interno del servidor' });
+      responderError(res, error);
     }
   }
 );

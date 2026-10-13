@@ -1,7 +1,7 @@
-import { PrismaClient, EstadoLote } from '@prisma/client';
+import { EstadoLote } from '@prisma/client';
 import { getUmbrales, calcularSemaforo, diasParaVencer, hoyMedianoche } from './inventario.service';
-
-const prisma = new PrismaClient();
+import { prisma } from '../config/prisma';
+import { parseRangoFechas } from '../utils/fecha';
 
 export interface PaginacionParams {
   page?: number;
@@ -42,11 +42,12 @@ export interface FiltrosDispensaciones extends PaginacionParams {
 
 export async function reporteDispensaciones(filtros: FiltrosDispensaciones) {
   const p = resolverPaginacion(filtros);
+  const { desde, hasta } = parseRangoFechas(filtros.desde, filtros.hasta);
   const where: any = {};
-  if (filtros.desde || filtros.hasta) {
+  if (desde || hasta) {
     where.createdAt = {};
-    if (filtros.desde) where.createdAt.gte = new Date(filtros.desde);
-    if (filtros.hasta) where.createdAt.lte = new Date(filtros.hasta);
+    if (desde) where.createdAt.gte = desde;
+    if (hasta) where.createdAt.lte = hasta;
   }
   if (filtros.beneficiarioId) where.beneficiarioId = filtros.beneficiarioId;
   if (filtros.medicamentoId) where.detalles = { some: { medicamentoId: filtros.medicamentoId } };
@@ -97,11 +98,12 @@ export interface FiltrosConsumo extends PaginacionParams {
 
 export async function reporteConsumoMedicamentos(filtros: FiltrosConsumo) {
   const p = resolverPaginacion(filtros);
+  const { desde, hasta } = parseRangoFechas(filtros.desde, filtros.hasta);
   const where: any = {};
-  if (filtros.desde || filtros.hasta) {
+  if (desde || hasta) {
     where.dispensacion = { createdAt: {} };
-    if (filtros.desde) where.dispensacion.createdAt.gte = new Date(filtros.desde);
-    if (filtros.hasta) where.dispensacion.createdAt.lte = new Date(filtros.hasta);
+    if (desde) where.dispensacion.createdAt.gte = desde;
+    if (hasta) where.dispensacion.createdAt.lte = hasta;
   }
   if (filtros.categoriaId) where.medicamento = { categoriaId: filtros.categoriaId };
 
@@ -257,11 +259,12 @@ export interface FiltrosEntradas extends PaginacionParams {
 
 export async function reporteEntradas(filtros: FiltrosEntradas) {
   const p = resolverPaginacion(filtros);
+  const { desde, hasta } = parseRangoFechas(filtros.desde, filtros.hasta);
   const where: any = {};
-  if (filtros.desde || filtros.hasta) {
+  if (desde || hasta) {
     where.createdAt = {};
-    if (filtros.desde) where.createdAt.gte = new Date(filtros.desde);
-    if (filtros.hasta) where.createdAt.lte = new Date(filtros.hasta);
+    if (desde) where.createdAt.gte = desde;
+    if (hasta) where.createdAt.lte = hasta;
   }
 
   const [entradas, total] = await Promise.all([
@@ -318,11 +321,12 @@ export interface FiltrosBaja extends PaginacionParams {
  */
 export async function reporteMedicamentosBaja(filtros: FiltrosBaja) {
   const p = resolverPaginacion(filtros);
+  const { desde, hasta } = parseRangoFechas(filtros.desde, filtros.hasta);
   const where: any = { estado: { in: [EstadoLote.VENCIDO, EstadoLote.DADO_DE_BAJA] } };
-  if (filtros.desde || filtros.hasta) {
+  if (desde || hasta) {
     where.fechaVencimiento = {};
-    if (filtros.desde) where.fechaVencimiento.gte = new Date(filtros.desde);
-    if (filtros.hasta) where.fechaVencimiento.lte = new Date(filtros.hasta);
+    if (desde) where.fechaVencimiento.gte = desde;
+    if (hasta) where.fechaVencimiento.lte = hasta;
   }
 
   const [lotes, total, agregados] = await Promise.all([

@@ -8,7 +8,7 @@ import {
   importarExcelInventario,
   type LoteEntradaInput,
 } from '../api/inventario';
-import { listarMedicamentos, listarUbicaciones, listarCategorias, buscarPorCodigoBarras } from '../api/catalogos';
+import { listarMedicamentosTodos, listarUbicaciones, listarCategorias, buscarPorCodigoBarras } from '../api/catalogos';
 import { useAuth } from '../context/AuthContext';
 import Modal from '../components/ui/Modal';
 import PageHeader from '../components/ui/PageHeader';
@@ -70,7 +70,7 @@ export default function Entradas() {
   };
 
   useEffect(() => {
-    Promise.all([listarMedicamentos(), listarCategorias(), listarUbicaciones()])
+    Promise.all([listarMedicamentosTodos(), listarCategorias(), listarUbicaciones()])
       .then(([meds, cats, ubis]) => {
         setMedicamentos(meds);
         setCategorias(cats);

@@ -19,7 +19,7 @@ docker compose logs -f api     # Logs de un servicio (db | api | web)
 ```
 
 - **Frontend (dev):** http://localhost:5173 · **API:** http://localhost:3000/api/health
-- Credenciales seed: `admin` / `admin2026`
+- Credenciales seed: usuario `admin`; la contraseña ya **no es fija** (H-002). Se toma de `ADMIN_INITIAL_PASSWORD` (.env) o, si no se define, el seed genera una aleatoria y la imprime una vez en los logs de `api` (`docker compose logs api | grep -A4 "CREDENCIAL INICIAL"`). Instalaciones existentes conservan su contraseña.
 - `backend/src` y `frontend/src` están montados como volúmenes → hot reload sin reconstruir.
 
 **Backend (dentro del contenedor `farmag_api`, o local en `backend/`):**
