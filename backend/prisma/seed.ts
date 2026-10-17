@@ -153,9 +153,11 @@ async function main() {
   // Nunca en producción: el catálogo real lo carga la farmacia.
   // ============================================
   if (process.env.SEED_DEMO === 'true' && (await prisma.medicamento.count()) === 0) {
-    const categoriasMap = new Map(
-      (await prisma.categoria.findMany()).map((c) => [c.nombre, c.id])
-    );
+    const categorias = await prisma.categoria.findMany();
+    const categoriasMap = new Map(categorias.map((c) => [c.nombre, c.id]));
+    // Si renombraron la categoría del ejemplo y también "Otro", se usa la primera activa.
+    const activas = categorias.filter((c) => c.activo);
+    const respaldo = (activas.find((c) => c.nombre === 'Otro') ?? activas[0])?.id;
 
     const medicamentosEjemplo = [
       { nombreGenerico: 'Acetaminofén', nombreComercial: 'Tylenol', presentacion: 'Tableta', concentracion: '500mg', unidadMedida: 'Tableta', categoria: 'Analgésico', stockMinimo: 50 },
@@ -165,20 +167,24 @@ async function main() {
       { nombreGenerico: 'Metformina', nombreComercial: null, presentacion: 'Tableta', concentracion: '850mg', unidadMedida: 'Tableta', categoria: 'Antidiabético', stockMinimo: 20 },
     ];
 
-    for (const m of medicamentosEjemplo) {
-      await prisma.medicamento.create({
-        data: {
-          nombreGenerico: m.nombreGenerico,
-          nombreComercial: m.nombreComercial,
-          presentacion: m.presentacion,
-          concentracion: m.concentracion,
-          unidadMedida: m.unidadMedida,
-          categoriaId: categoriasMap.get(m.categoria) ?? categoriasMap.get('Otro')!,
-          stockMinimo: m.stockMinimo,
-        },
-      });
+    if (!respaldo) {
+      console.warn('⚠️  SEED_DEMO: no hay categorías activas, se omiten los medicamentos de ejemplo');
+    } else {
+      for (const m of medicamentosEjemplo) {
+        await prisma.medicamento.create({
+          data: {
+            nombreGenerico: m.nombreGenerico,
+            nombreComercial: m.nombreComercial,
+            presentacion: m.presentacion,
+            concentracion: m.concentracion,
+            unidadMedida: m.unidadMedida,
+            categoriaId: categoriasMap.get(m.categoria) ?? respaldo,
+            stockMinimo: m.stockMinimo,
+          },
+        });
+      }
+      console.log(`✅ ${medicamentosEjemplo.length} medicamentos de ejemplo creados`);
     }
-    console.log(`✅ ${medicamentosEjemplo.length} medicamentos de ejemplo creados`);
   }
 
   console.log('\n🎉 Seed completado exitosamente');

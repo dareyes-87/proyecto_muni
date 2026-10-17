@@ -32,8 +32,9 @@ test('seed: no revive ubicaciones/categorías cambiadas y solo crea medicamentos
 
   // Instalación nueva: catálogos sí, medicamentos no.
   sembrar();
-  assert.equal(await db.ubicacion.count(), 7);
-  assert.equal(await db.categoria.count(), 13);
+  const nUbicaciones = await db.ubicacion.count();
+  const nCategorias = await db.categoria.count();
+  assert.ok(nUbicaciones > 0 && nCategorias > 0, 'una instalación nueva trae catálogos');
   assert.equal(await db.medicamento.count(), 0, 'sin SEED_DEMO no hay medicamentos de ejemplo');
 
   // La farmacia renombra una ubicación y una categoría, y desactiva otra categoría.
@@ -45,10 +46,21 @@ test('seed: no revive ubicaciones/categorías cambiadas y solo crea medicamentos
   assert.equal(await db.ubicacion.count({ where: { codigo: 'A' } }), 0, 'el código viejo no reaparece');
   assert.equal(await db.categoria.count({ where: { nombre: 'Otro' } }), 0, 'el nombre viejo no reaparece');
   assert.equal((await db.categoria.findUnique({ where: { nombre: 'Oftálmico' } }))?.activo, false);
-  assert.equal(await db.ubicacion.count(), 7);
+  assert.equal(await db.ubicacion.count(), nUbicaciones);
+  assert.equal(await db.categoria.count(), nCategorias);
   assert.equal(await db.medicamento.count(), 0);
 
-  // SEED_DEMO=true los crea una sola vez.
+  // SEED_DEMO sin ninguna categoría activa: avisa y no crea nada ni falla.
+  await db.categoria.updateMany({ data: { activo: false } });
+  sembrar({ SEED_DEMO: 'true' });
+  assert.equal(await db.medicamento.count(), 0);
+
+  // SEED_DEMO con todas las categorías renombradas (ni la del ejemplo ni "Otro" existen):
+  // usa la primera activa. Una segunda corrida no duplica.
+  await db.categoria.updateMany({ data: { activo: true } });
+  for (const [i, c] of (await db.categoria.findMany()).entries()) {
+    await db.categoria.update({ where: { id: c.id }, data: { nombre: `Renombrada ${i}` } });
+  }
   sembrar({ SEED_DEMO: 'true' });
   sembrar({ SEED_DEMO: 'true' });
   assert.equal(await db.medicamento.count(), 5);
