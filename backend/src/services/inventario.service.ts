@@ -116,18 +116,21 @@ export function validarFechaVencimientoEntrada(
 
 /**
  * Busca un lote ya registrado con el mismo medicamento, número de lote (sin
- * distinguir mayúsculas) y fecha de vencimiento. La usa la importación por Excel
- * para no duplicar el stock cuando se sube dos veces el mismo archivo.
+ * distinguir mayúsculas) y fecha de vencimiento, creado ANTES de `creadoAntesDe`.
+ * La importación por Excel pasa el instante en que empezó: así reimportar el mismo
+ * archivo no duplica el stock, pero dos filas del mismo archivo con el mismo lote
+ * (p. ej. repartido en dos ubicaciones) sí se importan las dos.
  */
 export function buscarLoteDuplicado(
   tx: Pick<Prisma.TransactionClient, 'lote'>,
-  datos: { medicamentoId: string; numeroLote: string; fechaVencimiento: Date }
+  datos: { medicamentoId: string; numeroLote: string; fechaVencimiento: Date; creadoAntesDe: Date }
 ) {
   return tx.lote.findFirst({
     where: {
       medicamentoId: datos.medicamentoId,
       numeroLote: { equals: datos.numeroLote, mode: 'insensitive' },
       fechaVencimiento: datos.fechaVencimiento,
+      createdAt: { lt: datos.creadoAntesDe },
     },
     select: { id: true },
   });

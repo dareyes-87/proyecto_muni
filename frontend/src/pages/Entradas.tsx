@@ -186,6 +186,9 @@ export default function Entradas() {
         toast.success(`${resultado.lotesRegistrados} lote(s) importado(s) correctamente`);
         cargarEntradas();
       }
+      if (resultado.lotesOmitidos > 0) {
+        toast(`${resultado.lotesOmitidos} lote(s) omitido(s) por ya existir`, { icon: 'ℹ️' });
+      }
       if (resultado.errores.length > 0) {
         toast.error(`${resultado.errores.length} fila(s) con errores`);
       }

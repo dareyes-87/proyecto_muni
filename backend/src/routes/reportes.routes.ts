@@ -15,7 +15,7 @@ import { generarPdfTabla, type Alineacion } from '../utils/pdf';
 import { generarExcel } from '../utils/excel';
 import { formatFechaDia, formatFechaHora } from '../utils/formatDate';
 import { responderError } from '../utils/httpError';
-import { ErrorValidacion, textoQuery } from '../utils/validacion';
+import { LIMITE_EXPORT, textoQuery, verificarLimiteExport } from '../utils/validacion';
 
 const router = Router();
 
@@ -150,17 +150,6 @@ interface TablaExport {
   filasPdf: (string | number)[][];
   columnasExcel: { header: string; key: string; width?: number }[];
   filasExcel: Record<string, unknown>[];
-}
-
-const LIMITE_EXPORT = 5000;
-
-/** Un reporte más grande que el límite saldría cortado sin aviso: se rechaza en vez de truncarlo. */
-function verificarLimiteExport(total: number): void {
-  if (total > LIMITE_EXPORT) {
-    throw new ErrorValidacion(
-      `El reporte tiene ${total} registros y el máximo exportable es ${LIMITE_EXPORT}. Reduzca el rango de fechas o aplique más filtros.`
-    );
-  }
 }
 
 async function construirTabla(tipo: TipoReporte, query: Request['query']): Promise<TablaExport> {

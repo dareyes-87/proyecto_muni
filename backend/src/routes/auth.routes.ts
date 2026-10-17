@@ -78,7 +78,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // CAPA 2 — Lockout por usuario: si la cuenta está bloqueada por intentos
+    // CAPA 2 — Lockout por usuario+IP: si esa combinación está bloqueada por intentos
     // fallidos, no se verifican credenciales (H-09). Independiente del límite por IP.
     const restante = msBloqueoRestante(username, ip);
     if (restante > 0) {

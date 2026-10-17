@@ -752,6 +752,8 @@ router.post(
     let codigosBarrasVinculados = 0;
     let lotesRegistrados = 0;
     let lotesOmitidos = 0;
+    // Hora de la base (no la de Node) para compararla con lotes.created_at sin desfase de reloj.
+    const [{ ahora: inicioImportacion }] = await prisma.$queryRaw<{ ahora: Date }[]>`SELECT now() AS ahora`;
 
     for (const { fila, numeroFila } of filasValidas) {
       try {
@@ -803,6 +805,7 @@ router.post(
               medicamentoId: medicamento.id,
               numeroLote: fila.numeroLote,
               fechaVencimiento: fila.fechaVencimiento,
+              creadoAntesDe: inicioImportacion,
             }))
           ) {
             // Al lanzar, la transacción deshace también la categoría/ubicación que esta

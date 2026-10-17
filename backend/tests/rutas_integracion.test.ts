@@ -84,7 +84,7 @@ after(async () => {
     await prisma.codigoBarras.deleteMany({ where: { medicamentoId: medId } });
     await prisma.medicamento.delete({ where: { id: medId } });
   }
-  await prisma.ubicacion.deleteMany({ where: { codigo: ubicacionCodigo } });
+  await prisma.ubicacion.deleteMany({ where: { codigo: { startsWith: `QA-UBI-${sufijo}` } } });
   await prisma.$disconnect();
 });
 
@@ -95,11 +95,14 @@ test('buscarLoteDuplicado: mismo medicamento + lote + vencimiento (sin distingui
     data: { entradaId, medicamentoId: medId, cantidad: 10, cantidadActual: 10, numeroLote: 'Lote-Dup', fechaVencimiento: venc },
   });
 
+  const antes = new Date(Date.now() + 60_000); // el lote se creó antes de este instante
   await prisma.$transaction(async (tx) => {
-    assert.ok(await buscarLoteDuplicado(tx, { medicamentoId: medId, numeroLote: 'lote-dup', fechaVencimiento: venc }), 'mismo lote');
-    assert.equal(await buscarLoteDuplicado(tx, { medicamentoId: medId, numeroLote: 'Lote-Dup', fechaVencimiento: enDias(401) }), null, 'otra fecha');
-    assert.equal(await buscarLoteDuplicado(tx, { medicamentoId: medId, numeroLote: 'Otro', fechaVencimiento: venc }), null, 'otro número de lote');
-    assert.equal(await buscarLoteDuplicado(tx, { medicamentoId: '00000000-0000-0000-0000-000000000000', numeroLote: 'Lote-Dup', fechaVencimiento: venc }), null, 'otro medicamento');
+    const d = { medicamentoId: medId, numeroLote: 'Lote-Dup', fechaVencimiento: venc, creadoAntesDe: antes };
+    assert.ok(await buscarLoteDuplicado(tx, { ...d, numeroLote: 'lote-dup' }), 'mismo lote');
+    assert.equal(await buscarLoteDuplicado(tx, { ...d, fechaVencimiento: enDias(401) }), null, 'otra fecha');
+    assert.equal(await buscarLoteDuplicado(tx, { ...d, numeroLote: 'Otro' }), null, 'otro número de lote');
+    assert.equal(await buscarLoteDuplicado(tx, { ...d, medicamentoId: '00000000-0000-0000-0000-000000000000' }), null, 'otro medicamento');
+    assert.equal(await buscarLoteDuplicado(tx, { ...d, creadoAntesDe: new Date(Date.now() - 60_000) }), null, 'un lote creado después del corte no cuenta');
   });
 });
 
@@ -148,4 +151,33 @@ test('GET barcode: stockActual excluye lotes vencidos por fecha aunque sigan DIS
   assert.equal(r.status, 200);
   const { data } = (await r.json()) as any;
   assert.equal(data.stockActual, 17, 'los 100 del lote vencido no cuentan (antes daba 117)');
+});
+
+test('importar-excel: el mismo lote en dos filas (dos ubicaciones) importa ambas; reimportar omite ambas', async () => {
+  const wb = new ExcelJS.Workbook();
+  const hoja = wb.addWorksheet('Plantilla');
+  hoja.addRow(['nombreGenerico', 'nombreComercial', 'presentacion', 'concentracion', 'unidadMedida', 'categoria', 'codigoBarras', 'cantidad', 'numeroLote', 'fechaVencimiento', 'ubicacion']);
+  const fechaTxt = enDias(500).toISOString().slice(0, 10);
+  const cat = (await prisma.categoria.findUnique({ where: { id: categoriaId } }))!.nombre;
+  hoja.addRow([`QA_RUTAS_${sufijo}`, '', 'Tableta', '10mg', 'Tableta', cat, '', 3, 'Lote-Dividido', fechaTxt, `QA-UBI-${sufijo}-A`]);
+  hoja.addRow([`QA_RUTAS_${sufijo}`, '', 'Tableta', '10mg', 'Tableta', cat, '', 4, 'Lote-Dividido', fechaTxt, `QA-UBI-${sufijo}-B`]);
+  const archivo = Buffer.from(await wb.xlsx.writeBuffer());
+
+  const subir = async () => {
+    const fd = new FormData();
+    fd.append('archivo', new Blob([archivo]), 'qa.xlsx');
+    const r = await fetch(`${base}/inventario/importar-excel`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd });
+    assert.equal(r.status, 200);
+    return ((await r.json()) as any).data;
+  };
+
+  const primera = await subir();
+  assert.equal(primera.lotesRegistrados, 2, 'las dos filas del mismo lote se importan');
+  assert.equal(primera.lotesOmitidos, 0);
+  assert.equal(await prisma.lote.count({ where: { medicamentoId: medId, numeroLote: 'Lote-Dividido' } }), 2);
+
+  const segunda = await subir();
+  assert.equal(segunda.lotesRegistrados, 0, 'reimportar el archivo completo no registra nada');
+  assert.equal(segunda.lotesOmitidos, 2);
+  assert.equal(await prisma.lote.count({ where: { medicamentoId: medId, numeroLote: 'Lote-Dividido' } }), 2, 'sin copias');
 });
