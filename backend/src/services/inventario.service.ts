@@ -83,6 +83,9 @@ export function calcularSemaforo(
   return 'VERDE';
 }
 
+/** Filtro de consulta de "lote con stock": la parte de esDispensable() que se puede pedir a la base. */
+export const LOTE_CON_STOCK = { estado: 'DISPONIBLE', cantidadActual: { gt: 0 } } satisfies Prisma.LoteWhereInput;
+
 /**
  * Un lote cuenta como stock dispensable si está DISPONIBLE, tiene unidades y su
  * fecha de vencimiento es futura (posterior a hoy). Un lote que vence hoy ya no

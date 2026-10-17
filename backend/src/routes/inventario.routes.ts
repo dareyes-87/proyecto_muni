@@ -10,6 +10,7 @@ import {
   calcularSemaforo,
   diasParaVencer,
   esDispensable,
+  LOTE_CON_STOCK,
   hoyMedianoche,
   validarFechaVencimientoEntrada,
   buscarLoteDuplicado,
@@ -206,7 +207,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
         categoria: { select: { id: true, nombre: true } },
         // Solo cuenta stock dispensable: los lotes agotados/vencidos/de baja no entran al listado.
         lotes: {
-          where: { estado: 'DISPONIBLE', cantidadActual: { gt: 0 } },
+          where: LOTE_CON_STOCK,
           select: { cantidadActual: true, fechaVencimiento: true, estado: true },
         },
       },
@@ -286,7 +287,7 @@ router.get('/alertas', authMiddleware, async (_req: Request, res: Response): Pro
             presentacion: true,
             stockMinimo: true,
             lotes: {
-              where: { estado: 'DISPONIBLE', cantidadActual: { gt: 0 } },
+              where: LOTE_CON_STOCK,
               select: { cantidadActual: true, fechaVencimiento: true, estado: true },
             },
           },
@@ -664,12 +665,12 @@ function validarFila(raw: Record<CampoExcel, ExcelJS.CellValue>): { datos: FilaV
   const codigoBarras = celdaATexto(raw.codigoBarras) || null;
   const ubicacion = celdaATexto(raw.ubicacion) || null;
 
-  return {
   const avisos: string[] = [];
   if (typeof raw.codigoBarras === 'number') {
     avisos.push('El código de barras se leyó como número; si tenía ceros a la izquierda, formatee la columna como texto.');
   }
 
+  return {
     datos: {
       nombreGenerico,
       nombreComercial,
@@ -683,8 +684,8 @@ function validarFila(raw: Record<CampoExcel, ExcelJS.CellValue>): { datos: FilaV
       fechaVencimiento: fechaVencimiento!,
       ubicacion,
     },
-  };
     avisos,
+  };
 }
 
 // ============================================
@@ -753,8 +754,8 @@ router.post(
         errores.push({ fila: r, error: resultado.error });
       } else {
         filasValidas.push({ fila: resultado.datos, numeroFila: r });
-      }
         for (const aviso of resultado.avisos) avisos.push({ fila: r, aviso });
+      }
     }
 
     // Procesar filas válidas secuencialmente (para reutilizar entidades creadas por filas previas).
