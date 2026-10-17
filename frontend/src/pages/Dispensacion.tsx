@@ -18,7 +18,7 @@ import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import { Field, TextInput, inputClass } from '../components/ui/Field';
 import { obtenerConfiguracion } from '../api/inventario';
-import { formatFecha } from '../utils/formatDate';
+import { formatFecha, diasParaVencer } from '../utils/formatDate';
 
 // ============================================
 // TIPOS
@@ -79,14 +79,7 @@ function semaforo(
   umbrales: Umbrales
 ): { color: string; label: string } {
   if (!fechaVencimiento) return { color: 'gray', label: 'Sin datos' };
-  // El vencimiento llega como medianoche UTC (@db.Date): se compara su fecha de
-  // calendario UTC contra la fecha local de hoy.
-  const hoy = new Date();
-  const f = new Date(fechaVencimiento);
-  const dias = Math.round(
-    (Date.UTC(f.getUTCFullYear(), f.getUTCMonth(), f.getUTCDate()) -
-      Date.UTC(hoy.getFullYear(), hoy.getMonth(), hoy.getDate())) / 86400000
-  );
+  const dias = diasParaVencer(fechaVencimiento);
   if (dias <= 0) return { color: 'red', label: 'VENCIDO' };
   if (dias <= umbrales.rojo) return { color: 'red', label: `${dias}d` };
   if (dias <= umbrales.amarillo) return { color: 'yellow', label: `${dias}d` };
