@@ -1,5 +1,5 @@
 import { Prisma, TipoFoto } from '@prisma/client';
-import { nanoid } from 'nanoid';
+import { randomBytes } from 'node:crypto';
 import path from 'path';
 import fs from 'fs';
 import { hoyMedianoche } from './inventario.service';
@@ -467,7 +467,7 @@ export async function generarTokenCaptura(dispensacionId: string) {
     };
   }
 
-  const token = nanoid(10);
+  const token = randomBytes(8).toString('base64url'); // 11 caracteres, 64 bits; los tokens viejos (nanoid) siguen válidos
   const expiraEn = new Date(ahora.getTime() + TOKEN_VIGENCIA_MIN * 60_000);
 
   const registro = await prisma.tokenCaptura.upsert({
