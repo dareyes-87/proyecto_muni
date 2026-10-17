@@ -112,6 +112,7 @@ model Entrada {
   usuario   Usuario   @relation(fields: [usuarioId], references: [id])
   lotes     Lote[]
 
+  @@index([createdAt])
   @@map("entradas")
 }
 
@@ -141,6 +142,8 @@ model Lote {
   ubicacion   Ubicacion?  @relation(fields: [ubicacionId], references: [id])
   detalleDispensaciones DetalleDispensacion[]
 
+  // Lo usa el despacho FIFO: lotes DISPONIBLE de un medicamento por vencimiento.
+  @@index([medicamentoId, estado, fechaVencimiento])
   @@map("lotes")
 }
 
@@ -179,6 +182,7 @@ model Dispensacion {
   fotos        FotoDispensacion[]
   tokenCaptura TokenCaptura?
 
+  @@index([createdAt])
   @@map("dispensaciones")
 }
 
@@ -269,6 +273,7 @@ model LogAuditoria {
   // Relaciones
   usuario Usuario @relation(fields: [usuarioId], references: [id])
 
+  @@index([createdAt])
   @@map("log_auditoria")
 }
 
