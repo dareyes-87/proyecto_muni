@@ -14,6 +14,12 @@ export function celdaATexto(valor: ExcelJS.CellValue): string {
 }
 
 
+/** Medianoche UTC de y-m-d, o null si el día no existe (JavaScript pasaría 31/02 a marzo). */
+function fechaReal(y: number, m: number, d: number): Date | null {
+  const f = new Date(Date.UTC(y, m - 1, d));
+  return f.getUTCFullYear() === y && f.getUTCMonth() === m - 1 && f.getUTCDate() === d ? f : null;
+}
+
 /**
  * Interpreta una celda de fecha: Date nativo de Excel, 'YYYY-MM-DD' o 'DD/MM/YYYY'.
  * Devuelve medianoche UTC de la fecha de calendario (como Prisma guarda @db.Date).
@@ -29,14 +35,12 @@ export function parseFechaCelda(valor: ExcelJS.CellValue): Date | null {
 
   const isoMatch = texto.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (isoMatch) {
-    const d = new Date(`${isoMatch[0]}T00:00:00Z`);
-    return isNaN(d.getTime()) ? null : d;
+    return fechaReal(+isoMatch[1], +isoMatch[2], +isoMatch[3]);
   }
   const dmyMatch = texto.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (dmyMatch) {
     const [, dd, mm, yyyy] = dmyMatch;
-    const d = new Date(`${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}T00:00:00Z`);
-    return isNaN(d.getTime()) ? null : d;
+    return fechaReal(+yyyy, +mm, +dd);
   }
   return null;
 }

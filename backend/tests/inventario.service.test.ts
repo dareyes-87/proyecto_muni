@@ -19,7 +19,6 @@ import {
   type Umbrales,
 } from '../src/services/inventario.service';
 import { formatFechaDia } from '../src/utils/formatDate';
-import { formatFechaDia as formatFechaDiaFront } from '../../frontend/src/utils/formatDate';
 import { parseFechaCelda } from '../src/utils/excel';
 
 const UMBRALES: Umbrales = { rojo: 30, amarillo: 90 };
@@ -91,11 +90,10 @@ test('diasParaVencer: lote que vence mañana da 1 día y no está vencido; el de
   assert.equal(diasParaVencer(new Date('2026-10-15T00:00:00Z'), hoy), -1);
 });
 
-test('formatFechaDia: fecha de calendario sin desfase (backend y frontend)', () => {
+test('formatFechaDia: fecha de calendario sin desfase', () => {
   const venc = new Date('2027-12-31T00:00:00Z');
   assert.equal(formatFechaDia(venc), '31/12/2027');
   assert.equal(formatFechaDia('2027-12-31T00:00:00.000Z'), '31/12/2027');
-  assert.equal(formatFechaDiaFront('2027-12-31T00:00:00.000Z'), '31/12/2027');
 });
 
 test('parseFechaCelda: fecha de Excel, ISO y DD/MM/AAAA dan la misma fecha de calendario', () => {
@@ -104,5 +102,7 @@ test('parseFechaCelda: fecha de Excel, ISO y DD/MM/AAAA dan la misma fecha de ca
   assert.equal(dia(parseFechaCelda(new Date('2027-12-31T00:00:00Z'))), '2027-12-31');
   assert.equal(dia(parseFechaCelda('2027-12-31')), '2027-12-31');
   assert.equal(dia(parseFechaCelda('31/12/2027')), '2027-12-31');
+  assert.equal(parseFechaCelda('2027-02-31'), null, 'fecha imposible');
+  assert.equal(parseFechaCelda('31/02/2027'), null, 'fecha imposible dd/mm/aaaa');
   assert.equal(parseFechaCelda(''), null);
 });

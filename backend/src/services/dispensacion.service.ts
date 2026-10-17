@@ -178,7 +178,10 @@ export async function despachar(
   // Fecha de corte para excluir lotes vencidos del despacho. Un lote cuya fecha
   // de vencimiento sea hoy o anterior NUNCA debe descontarse (H-01), sin depender
   // de que el cron ya lo haya marcado VENCIDO ni de filtros del frontend.
-  const hoy = hoyMedianoche();
+  // Se envía como texto 'AAAA-MM-DD' (día local) para que el ::date de abajo no
+  // dependa de la zona horaria de la sesión de Postgres.
+  const h = hoyMedianoche();
+  const hoyISO = `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}-${String(h.getDate()).padStart(2, '0')}`;
 
   const ejecutarTransaccion = () => prisma.$transaction(async (tx) => {
     const detallesCreados: Array<{
@@ -213,7 +216,7 @@ export async function despachar(
         WHERE medicamento_id = ${item.medicamentoId}
           AND estado = 'DISPONIBLE'
           AND cantidad_actual > 0
-          AND fecha_vencimiento > ${hoy}::date
+          AND fecha_vencimiento > ${hoyISO}::date
         ORDER BY fecha_vencimiento ASC
         FOR UPDATE
       `;
