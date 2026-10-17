@@ -50,4 +50,5 @@ El usuario es `admin` (configurable con `ADMIN_USERNAME`). **Cambie la contrase�
 ## Documentación
 
 - `docs/FarmaG_Especificacion_Tecnica_v1.md` — Especificación técnica completa
+- `docs/seguridad/` — Informes de auditoría y seguridad · `docs/Defensa_Backend_FarmaG.md` — Defensa del backend
 - `CLAUDE.md` — Contexto del proyecto y estado de tareas por integrante
