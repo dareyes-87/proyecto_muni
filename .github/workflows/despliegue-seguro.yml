@@ -91,8 +91,8 @@ jobs:
           docker exec ${{ job.services.postgres.id }} psql -U postgres -c "ALTER DATABASE farmag SET timezone='America/Guatemala'"
           npx prisma migrate deploy
           npx prisma db seed
-          TZ=America/Guatemala node --import tsx --test tests/despacho_vencimiento.test.ts tests/rutas_integracion.test.ts tests/vencimiento_arranque.test.ts tests/seed.test.ts
-          TZ=UTC node --import tsx --test tests/despacho_vencimiento.test.ts tests/rutas_integracion.test.ts tests/vencimiento_arranque.test.ts tests/seed.test.ts
+          TZ=America/Guatemala node --import tsx --test --test-concurrency=1 tests/despacho_vencimiento.test.ts tests/rutas_integracion.test.ts tests/vencimiento_arranque.test.ts tests/seed.test.ts
+          TZ=UTC node --import tsx --test --test-concurrency=1 tests/despacho_vencimiento.test.ts tests/rutas_integracion.test.ts tests/vencimiento_arranque.test.ts tests/seed.test.ts
       - name: Avisar si una migración nueva borra datos
         run: |
           base="${{ github.event.pull_request.base.sha }}"
