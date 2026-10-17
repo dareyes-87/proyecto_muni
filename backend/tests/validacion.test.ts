@@ -6,37 +6,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { clampPaginacion, esEnteroPositivo, exigirCadena, textoQuery, ErrorValidacion, verificarLimiteExport, LIMITE_EXPORT } from '../src/utils/validacion';
-
-// --- esEnteroPositivo: núcleo del fix H-020 (cantidad de despacho) ---
-test('esEnteroPositivo: acepta enteros positivos', () => {
-  assert.equal(esEnteroPositivo(1), true);
-  assert.equal(esEnteroPositivo(100), true);
-});
-
-test('esEnteroPositivo: rechaza NaN, string, objeto, 0, negativo, float (antes creaba dispensación fantasma)', () => {
-  assert.equal(esEnteroPositivo('abc' as unknown), false);
-  assert.equal(esEnteroPositivo('5' as unknown), false);
-  assert.equal(esEnteroPositivo({ gt: 0 } as unknown), false);
-  assert.equal(esEnteroPositivo(0), false);
-  assert.equal(esEnteroPositivo(-3), false);
-  assert.equal(esEnteroPositivo(1.5), false);
-  assert.equal(esEnteroPositivo(NaN), false);
-  assert.equal(esEnteroPositivo(null as unknown), false);
-});
-
-// --- exigirCadena: fix H-021 (login) / IDs de despacho ---
-test('exigirCadena: devuelve la cadena cuando es válida', () => {
-  assert.equal(exigirCadena('sec_admin', 'username'), 'sec_admin');
-});
-
-test('exigirCadena: lanza ErrorValidacion (400) con objeto/arreglo/vacío (antes 500)', () => {
-  for (const malo of [{ a: 1 }, ['a'], '', '   ', 123, null, undefined]) {
-    assert.throws(() => exigirCadena(malo as unknown, 'campo'), (e: any) => {
-      return e instanceof ErrorValidacion && e.status === 400;
-    });
-  }
-});
+import { clampPaginacion, textoQuery, ErrorValidacion, verificarLimiteExport, LIMITE_EXPORT } from '../src/utils/validacion';
 
 // --- clampPaginacion: fix H-022 (skip negativo → 500; limit sin tope) ---
 test('clampPaginacion: page negativa no produce skip negativo', () => {

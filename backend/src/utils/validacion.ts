@@ -13,19 +13,6 @@ export class ErrorValidacion extends Error {
   }
 }
 
-/** Exige que el valor sea una cadena no vacía (rechaza objeto/arreglo/number/null). */
-export function exigirCadena(valor: unknown, campo: string): string {
-  if (typeof valor !== 'string' || valor.trim() === '') {
-    throw new ErrorValidacion(`El campo ${campo} es requerido y debe ser texto`);
-  }
-  return valor;
-}
-
-/** true solo si es un entero positivo real (no NaN, no string, no objeto, no float). */
-export function esEnteroPositivo(valor: unknown): valor is number {
-  return typeof valor === 'number' && Number.isInteger(valor) && valor > 0;
-}
-
 /**
  * Normaliza un parámetro de query que debe ser texto. Express entrega un arreglo
  * cuando el parámetro se repite (`?q=a&q=b`, HTTP Parameter Pollution); si eso
