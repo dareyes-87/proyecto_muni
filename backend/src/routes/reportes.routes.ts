@@ -13,7 +13,7 @@ import {
 } from '../services/reportes.service';
 import { generarPdfTabla, type Alineacion } from '../utils/pdf';
 import { generarExcel } from '../utils/excel';
-import { formatFecha, formatFechaHora } from '../utils/formatDate';
+import { formatFechaDia, formatFechaHora } from '../utils/formatDate';
 import { responderError } from '../utils/httpError';
 import { textoQuery } from '../utils/validacion';
 
@@ -236,7 +236,7 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
         numeroLote: l.numeroLote,
         codigoBarras: l.codigoBarras ?? '',
         cantidadActual: l.cantidadActual,
-        fechaVencimiento: formatFecha(l.fechaVencimiento),
+        fechaVencimiento: formatFechaDia(l.fechaVencimiento),
         semaforo: l.semaforo,
         ubicacion: l.ubicacion?.codigo ?? '',
       }));
@@ -274,7 +274,7 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
         numeroLote: l.numeroLote,
         codigoBarras: l.codigoBarras ?? '',
         cantidadActual: l.cantidadActual,
-        fechaVencimiento: formatFecha(l.fechaVencimiento),
+        fechaVencimiento: formatFechaDia(l.fechaVencimiento),
         diasParaVencer: l.diasParaVencer,
         semaforo: l.semaforo,
         ubicacion: l.ubicacion?.codigo ?? '',
@@ -345,7 +345,7 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
         categoria: l.medicamento.categoria ?? '',
         numeroLote: l.numeroLote,
         estado: l.estado,
-        fechaVencimiento: formatFecha(l.fechaVencimiento),
+        fechaVencimiento: formatFechaDia(l.fechaVencimiento),
         cantidadPerdida: l.cantidadPerdida,
         costoEstimado: l.costoEstimado !== null ? l.costoEstimado.toFixed(2) : '',
       }));

@@ -14,6 +14,7 @@ import {
   validarFechaVencimientoEntrada,
 } from '../services/inventario.service';
 import { textoQuery } from '../utils/validacion';
+import { celdaATexto, parseFechaCelda } from '../utils/excel';
 import { prisma } from '../config/prisma';
 
 const router = Router();
@@ -40,9 +41,9 @@ const entradaSchema = z.object({
   lotes: z.array(loteEntradaSchema).min(1, 'Debe registrar al menos un lote'),
 });
 
-/** Convierte 'YYYY-MM-DD' a un Date a medianoche local (columna @db.Date). */
+/** Convierte 'YYYY-MM-DD' a un Date a medianoche UTC, como Prisma entrega y guarda @db.Date. */
 function parseFechaVencimiento(valor: string): Date {
-  return new Date(`${valor.slice(0, 10)}T00:00:00`);
+  return new Date(`${valor.slice(0, 10)}T00:00:00Z`);
 }
 
 // ============================================
@@ -599,43 +600,6 @@ const HEADER_A_CAMPO: Record<string, CampoExcel> = Object.fromEntries(
   COLUMNAS_EXCEL.map((c) => [normalizarHeader(c), c])
 ) as Record<string, CampoExcel>;
 
-/** Convierte un valor de celda de exceljs a texto plano (soporta rich text y fórmulas). */
-function celdaATexto(valor: ExcelJS.CellValue): string {
-  if (valor === null || valor === undefined) return '';
-  if (valor instanceof Date) return valor.toISOString();
-  if (typeof valor === 'object') {
-    if ('richText' in valor) return (valor as any).richText.map((r: any) => r.text).join('');
-    if ('result' in valor) return String((valor as any).result ?? '');
-    if ('text' in valor) return String((valor as any).text ?? '');
-    return '';
-  }
-  return String(valor).trim();
-}
-
-/** Interpreta una celda de fecha: Date nativo de Excel, 'YYYY-MM-DD' o 'DD/MM/YYYY'. */
-function parseFechaCelda(valor: ExcelJS.CellValue): Date | null {
-  if (valor instanceof Date && !isNaN(valor.getTime())) {
-    const d = new Date(valor);
-    d.setHours(0, 0, 0, 0);
-    return d;
-  }
-  const texto = celdaATexto(valor).trim();
-  if (!texto) return null;
-
-  const isoMatch = texto.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (isoMatch) {
-    const d = new Date(`${isoMatch[0]}T00:00:00`);
-    return isNaN(d.getTime()) ? null : d;
-  }
-  const dmyMatch = texto.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (dmyMatch) {
-    const [, dd, mm, yyyy] = dmyMatch;
-    const d = new Date(`${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}T00:00:00`);
-    return isNaN(d.getTime()) ? null : d;
-  }
-  return null;
-}
-
 interface FilaValidada {
   nombreGenerico: string;
   nombreComercial: string | null;
@@ -992,7 +956,7 @@ router.get(
       codigoBarras: '7501234567890',
       cantidad: 100,
       numeroLote: 'L-2026-001',
-      fechaVencimiento: new Date('2027-12-31T00:00:00'),
+      fechaVencimiento: new Date('2027-12-31T00:00:00Z'),
       ubicacion: 'A-1',
     });
     filaEjemplo.getCell('fechaVencimiento').numFmt = 'yyyy-mm-dd';

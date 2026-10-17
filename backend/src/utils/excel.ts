@@ -1,5 +1,50 @@
 import ExcelJS from 'exceljs';
 
+/** Convierte un valor de celda de exceljs a texto plano (soporta rich text y fórmulas). */
+export function celdaATexto(valor: ExcelJS.CellValue): string {
+  if (valor === null || valor === undefined) return '';
+  if (valor instanceof Date) return valor.toISOString();
+  if (typeof valor === 'object') {
+    if ('richText' in valor) return (valor as any).richText.map((r: any) => r.text).join('');
+    if ('result' in valor) return String((valor as any).result ?? '');
+    if ('text' in valor) return String((valor as any).text ?? '');
+    return '';
+  }
+  return String(valor).trim();
+}
+
+
+/** Medianoche UTC de y-m-d, o null si el día no existe (JavaScript pasaría 31/02 a marzo). */
+function fechaReal(y: number, m: number, d: number): Date | null {
+  const f = new Date(Date.UTC(y, m - 1, d));
+  return f.getUTCFullYear() === y && f.getUTCMonth() === m - 1 && f.getUTCDate() === d ? f : null;
+}
+
+/**
+ * Interpreta una celda de fecha: Date nativo de Excel, 'YYYY-MM-DD' o 'DD/MM/YYYY'.
+ * Devuelve medianoche UTC de la fecha de calendario (como Prisma guarda @db.Date).
+ * exceljs entrega las fechas nativas ya en medianoche UTC: se leen con getUTC*,
+ * no con setHours local, que las movería al día anterior en Guatemala.
+ */
+export function parseFechaCelda(valor: ExcelJS.CellValue): Date | null {
+  if (valor instanceof Date && !isNaN(valor.getTime())) {
+    return new Date(Date.UTC(valor.getUTCFullYear(), valor.getUTCMonth(), valor.getUTCDate()));
+  }
+  const texto = celdaATexto(valor).trim();
+  if (!texto) return null;
+
+  const isoMatch = texto.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    return fechaReal(+isoMatch[1], +isoMatch[2], +isoMatch[3]);
+  }
+  const dmyMatch = texto.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (dmyMatch) {
+    const [, dd, mm, yyyy] = dmyMatch;
+    return fechaReal(+yyyy, +mm, +dd);
+  }
+  return null;
+}
+
 export interface ExcelTablaOptions {
   hoja: string;
   columnas: { header: string; key: string; width?: number }[];

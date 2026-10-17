@@ -77,6 +77,20 @@ jobs:
             exit 1
           fi
           exit "$rc"
+      # Prueba de integración del despacho: usa la base real de este trabajo, con
+      # el esquema de las migraciones y el seed (necesita el usuario ADMIN y una
+      # categoría). Crea sus datos y los borra al terminar.
+      # La base se pone en hora de Guatemala (la imagen usa UTC) y la prueba corre con
+      # Node en Guatemala y en UTC: así falla si el filtro de vencimiento vuelve a
+      # depender de la zona horaria de la sesión de Postgres.
+      - name: Prueba de despacho contra Postgres
+        run: |
+          docker exec ${{ job.services.postgres.id }} createdb -U postgres farmag
+          docker exec ${{ job.services.postgres.id }} psql -U postgres -c "ALTER DATABASE farmag SET timezone='America/Guatemala'"
+          npx prisma migrate deploy
+          npx prisma db seed
+          TZ=America/Guatemala node --import tsx --test tests/despacho_vencimiento.test.ts
+          TZ=UTC node --import tsx --test tests/despacho_vencimiento.test.ts
       - name: Avisar si una migración nueva borra datos
         run: |
           base="${{ github.event.pull_request.base.sha }}"
@@ -98,6 +112,13 @@ jobs:
       - name: Backend (tsc)
         working-directory: backend
         run: npm install && npx prisma generate && npx tsc --noEmit
+      # Pruebas que no necesitan base de datos. Con la zona horaria del servidor
+      # (Guatemala): en UTC no se ve el desfase de un día en las fechas de vencimiento.
+      - name: Backend (pruebas sin base de datos)
+        working-directory: backend
+        env:
+          TZ: America/Guatemala
+        run: node --import tsx --test tests/env.test.ts tests/fecha.test.ts tests/inventario.service.test.ts tests/ipRateLimit.test.ts tests/loginRateLimit.test.ts tests/validacion.test.ts
       - name: Frontend (tsc + vite build)
         working-directory: frontend
         run: npm install && npm run build
@@ -105,6 +126,12 @@ jobs:
   despliegue:
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    env:
+      # La versión anterior (bootstrap seguro, H-002) ya no crea admin/admin2026: sin
+      # esto el seed genera una contraseña aleatoria. docker compose toma la variable
+      # del entorno del shell (tiene prioridad sobre .env), así que el caso sin-env
+      # sigue sin .env.
+      ADMIN_INITIAL_PASSWORD: Despliegue-CI-2026
     strategy:
       fail-fast: false
       matrix:
@@ -160,7 +187,7 @@ jobs:
           SQL
           TOKEN=$(curl -sf -X POST http://localhost:3000/api/auth/login \
             -H 'Content-Type: application/json' \
-            -d '{"username":"admin","password":"admin2026"}' | jq -r .token)
+            -d "$(jq -nc --arg p "$ADMIN_INITIAL_PASSWORD" '{username:"admin",password:$p}')" | jq -r .token)
           [ -n "$TOKEN" ] && [ "$TOKEN" != "null" ] || { echo "::error::login falló en la versión anterior"; exit 1; }
 
       - name: Huella de datos ANTES
@@ -251,7 +278,7 @@ jobs:
           diff -u /tmp/antes.txt /tmp/reinicio.txt
           # El login va al final: actualiza ultimo_acceso y la bitácora.
           curl -sf -X POST http://localhost:3000/api/auth/login -H 'Content-Type: application/json' \
-            -d '{"username":"admin","password":"admin2026"}' | jq -e .token > /dev/null
+            -d "$(jq -nc --arg p "$ADMIN_INITIAL_PASSWORD" '{username:"admin",password:$p}')" | jq -e .token > /dev/null
 
       - name: Registros si algo falló
         if: failure()

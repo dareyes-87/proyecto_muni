@@ -15,7 +15,7 @@ import { obtenerAlertas, listarEntradas } from '../api/inventario';
 import type { Alertas } from '../types';
 import Semaforo from '../components/ui/Semaforo';
 import Card from '../components/ui/Card';
-import { formatFecha, formatFechaHora } from '../utils/formatDate';
+import { formatFecha, formatFechaDia, formatFechaHora } from '../utils/formatDate';
 
 interface EntradaReciente {
   id: string;
@@ -148,7 +148,7 @@ export default function Dashboard() {
                   {l.medicamento.nombreGenerico}
                   <span className="text-gray-400"> · lote {l.numeroLote}</span>
                 </span>
-                <span className="text-xs text-gray-500">{formatFecha(l.fechaVencimiento)}</span>
+                <span className="text-xs text-gray-500">{formatFechaDia(l.fechaVencimiento)}</span>
               </li>
             ))}
           </AlertPanel>
