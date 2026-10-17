@@ -624,7 +624,7 @@ interface FilaValidada {
   ubicacion: string | null;
 }
 
-function validarFila(raw: Record<CampoExcel, ExcelJS.CellValue>): { datos: FilaValidada } | { error: string } {
+function validarFila(raw: Record<CampoExcel, ExcelJS.CellValue>): { datos: FilaValidada; avisos: string[] } | { error: string } {
   const errores: string[] = [];
 
   const nombreGenerico = celdaATexto(raw.nombreGenerico);
@@ -643,9 +643,10 @@ function validarFila(raw: Record<CampoExcel, ExcelJS.CellValue>): { datos: FilaV
   if (!numeroLote) errores.push('numeroLote es requerido');
 
   const cantidadTexto = celdaATexto(raw.cantidad);
-  const cantidad = parseInt(cantidadTexto, 10);
+  // Number, no parseInt: parseInt('12.5') daría 12 y guardaría una cantidad distinta a la del archivo.
+  const cantidad = Number(cantidadTexto);
   if (!cantidadTexto) errores.push('cantidad es requerida');
-  else if (!Number.isFinite(cantidad) || cantidad <= 0) errores.push('cantidad debe ser un entero mayor a 0');
+  else if (!Number.isInteger(cantidad) || cantidad <= 0) errores.push('cantidad debe ser un entero mayor a 0');
 
   const fechaVencimiento = parseFechaCelda(raw.fechaVencimiento);
   if (!fechaVencimiento) {
@@ -664,6 +665,11 @@ function validarFila(raw: Record<CampoExcel, ExcelJS.CellValue>): { datos: FilaV
   const ubicacion = celdaATexto(raw.ubicacion) || null;
 
   return {
+  const avisos: string[] = [];
+  if (typeof raw.codigoBarras === 'number') {
+    avisos.push('El código de barras se leyó como número; si tenía ceros a la izquierda, formatee la columna como texto.');
+  }
+
     datos: {
       nombreGenerico,
       nombreComercial,
@@ -678,6 +684,7 @@ function validarFila(raw: Record<CampoExcel, ExcelJS.CellValue>): { datos: FilaV
       ubicacion,
     },
   };
+    avisos,
 }
 
 // ============================================
@@ -747,6 +754,7 @@ router.post(
       } else {
         filasValidas.push({ fila: resultado.datos, numeroFila: r });
       }
+        for (const aviso of resultado.avisos) avisos.push({ fila: r, aviso });
     }
 
     // Procesar filas válidas secuencialmente (para reutilizar entidades creadas por filas previas).

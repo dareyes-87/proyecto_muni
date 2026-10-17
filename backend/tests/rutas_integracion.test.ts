@@ -233,3 +233,26 @@ test('PUT medicamentos y categorías: un tipo incorrecto en activo/descripcion d
   assert.equal((await put(`/catalogos/categorias/${categoriaId}`, { nombre: '  ' })).status, 400);
   assert.equal((await put(`/catalogos/medicamentos/${medId}`, { stockMinimo: 0 })).status, 200, 'un cuerpo válido sigue pasando');
 });
+
+test('importar-excel: cantidad no entera es error de fila; código de barras numérico avisa', async () => {
+  const wb = new ExcelJS.Workbook();
+  const hoja = wb.addWorksheet('Plantilla');
+  hoja.addRow(['nombreGenerico', 'nombreComercial', 'presentacion', 'concentracion', 'unidadMedida', 'categoria', 'codigoBarras', 'cantidad', 'numeroLote', 'fechaVencimiento', 'ubicacion']);
+  const fechaTxt = enDias(450).toISOString().slice(0, 10);
+  const cat = (await prisma.categoria.findUnique({ where: { id: categoriaId } }))!.nombre;
+  hoja.addRow([`QA_RUTAS_${sufijo}`, '', 'Tableta', '10mg', 'Tableta', cat, '', 12.5, 'Lote-Decimal', fechaTxt, '']); // fila 2
+  hoja.addRow([`QA_RUTAS_${sufijo}`, '', 'Tableta', '10mg', 'Tableta', cat, sufijo, 4, 'Lote-Num', fechaTxt, '']); // fila 3: código como número
+  const fd = new FormData();
+  fd.append('archivo', new Blob([Buffer.from(await wb.xlsx.writeBuffer())]), 'qa.xlsx');
+  const r = await fetch(`${base}/inventario/importar-excel`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd });
+  assert.equal(r.status, 200);
+  const d = ((await r.json()) as any).data;
+
+  assert.equal(d.errores.length, 1);
+  assert.equal(d.errores[0].fila, 2);
+  assert.match(d.errores[0].error, /entero/);
+  assert.equal(await prisma.lote.count({ where: { medicamentoId: medId, numeroLote: 'Lote-Decimal' } }), 0, 'no se truncó a 12');
+
+  assert.equal(d.lotesRegistrados, 1);
+  assert.ok(d.avisos.some((a: any) => a.fila === 3 && /leyó como número/.test(a.aviso)));
+});
