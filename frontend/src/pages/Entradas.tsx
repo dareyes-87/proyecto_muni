@@ -404,7 +404,8 @@ export default function Entradas() {
               <p className="mb-3 text-xs text-gray-500">
                 {resultadoImport.medicamentosExistentes} medicamento(s) ya existían · {resultadoImport.categoriasCreadas}{' '}
                 categoría(s) nueva(s) · {resultadoImport.ubicacionesCreadas} ubicación(es) nueva(s) ·{' '}
-                {resultadoImport.codigosBarrasVinculados} código(s) de barras vinculado(s)
+                {resultadoImport.codigosBarrasVinculados} código(s) de barras vinculado(s) ·{' '}
+                {resultadoImport.lotesOmitidos} lote(s) omitido(s) por ya existir
               </p>
 
               {resultadoImport.errores.length > 0 && (

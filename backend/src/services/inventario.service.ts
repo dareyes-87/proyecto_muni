@@ -1,4 +1,4 @@
-import { EstadoLote } from '@prisma/client';
+import { EstadoLote, Prisma } from '@prisma/client';
 import { prisma } from '../config/prisma';
 
 export type Semaforo = 'VERDE' | 'AMARILLO' | 'ROJO' | 'VENCIDO';
@@ -112,4 +112,23 @@ export function validarFechaVencimientoEntrada(
     return 'La fecha de vencimiento ya pasó o es hoy; no se puede registrar un lote vencido como disponible';
   }
   return null;
+}
+
+/**
+ * Busca un lote ya registrado con el mismo medicamento, número de lote (sin
+ * distinguir mayúsculas) y fecha de vencimiento. La usa la importación por Excel
+ * para no duplicar el stock cuando se sube dos veces el mismo archivo.
+ */
+export function buscarLoteDuplicado(
+  tx: Pick<Prisma.TransactionClient, 'lote'>,
+  datos: { medicamentoId: string; numeroLote: string; fechaVencimiento: Date }
+) {
+  return tx.lote.findFirst({
+    where: {
+      medicamentoId: datos.medicamentoId,
+      numeroLote: { equals: datos.numeroLote, mode: 'insensitive' },
+      fechaVencimiento: datos.fechaVencimiento,
+    },
+    select: { id: true },
+  });
 }

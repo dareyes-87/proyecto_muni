@@ -12,8 +12,10 @@ import {
   esDispensable,
   hoyMedianoche,
   validarFechaVencimientoEntrada,
+  buscarLoteDuplicado,
 } from '../services/inventario.service';
 import { textoQuery } from '../utils/validacion';
+import { formatFechaDia } from '../utils/formatDate';
 import { celdaATexto, parseFechaCelda } from '../utils/excel';
 import { prisma } from '../config/prisma';
 
@@ -600,6 +602,9 @@ const HEADER_A_CAMPO: Record<string, CampoExcel> = Object.fromEntries(
   COLUMNAS_EXCEL.map((c) => [normalizarHeader(c), c])
 ) as Record<string, CampoExcel>;
 
+/** Fila omitida porque su lote ya existe: hace rollback de la fila y se reporta como aviso. */
+class LoteDuplicadoError extends Error {}
+
 interface FilaValidada {
   nombreGenerico: string;
   nombreComercial: string | null;
@@ -746,6 +751,7 @@ router.post(
     let ubicacionesCreadas = 0;
     let codigosBarrasVinculados = 0;
     let lotesRegistrados = 0;
+    let lotesOmitidos = 0;
 
     for (const { fila, numeroFila } of filasValidas) {
       try {
@@ -790,6 +796,21 @@ router.post(
             // Misma regla que el registro manual: no se reutiliza un medicamento
             // inactivo ni se le carga stock oculto (H-33).
             throw new Error(`El medicamento "${fila.nombreGenerico}" existe pero está inactivo; actívelo antes de importar`);
+          }
+          if (
+            medicamento &&
+            (await buscarLoteDuplicado(tx, {
+              medicamentoId: medicamento.id,
+              numeroLote: fila.numeroLote,
+              fechaVencimiento: fila.fechaVencimiento,
+            }))
+          ) {
+            // Al lanzar, la transacción deshace también la categoría/ubicación que esta
+            // fila hubiera creado: una fila omitida no deja nada.
+            throw new LoteDuplicadoError(
+              `Ya existe el lote ${fila.numeroLote} de ${fila.nombreGenerico} con vencimiento ${formatFechaDia(fila.fechaVencimiento)}; ` +
+                'no se importó. Si es una entrega nueva del mismo lote, regístrela desde el formulario de entradas.'
+            );
           }
           let medicamentoCreado = false;
           if (!medicamento) {
@@ -908,6 +929,11 @@ router.post(
           ipAddress: req.ip,
         });
       } catch (err) {
+        if (err instanceof LoteDuplicadoError) {
+          lotesOmitidos++;
+          avisos.push({ fila: numeroFila, aviso: err.message });
+          continue;
+        }
         errores.push({
           fila: numeroFila,
           error: err instanceof Error ? err.message : 'Error desconocido al procesar la fila',
@@ -924,6 +950,7 @@ router.post(
         ubicacionesCreadas,
         codigosBarrasVinculados,
         lotesRegistrados,
+        lotesOmitidos,
         errores,
         avisos,
       },
