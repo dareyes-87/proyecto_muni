@@ -206,7 +206,7 @@ farma-rh/
 - `inventario.service.ts` (nuevo): helpers `getUmbrales`, `calcularSemaforo`, `diasParaVencer`, `esDispensable`. Reutilizables.
 - `catalogos.routes.ts`: implementé **solo los GET de lectura** (medicamentos, categorías, proveedores, ubicaciones) que mis formularios necesitan. El CRUD/crear/editar/duplicados sigue como stub → **Audias**.
 - `auth.routes.ts`: cast `as jwt.SignOptions` en `jwt.sign` para que `npm run build` (tsc) pase. La firma JWT no cambió.
-- `prisma/seed.ts`: agregué 5 medicamentos de ejemplo (solo si no existe ninguno) para poder probar inventario. Audias puede reemplazarlos por el catálogo real.
+- `prisma/seed.ts`: los 5 medicamentos de ejemplo solo se crean con `SEED_DEMO=true` (desarrollo) y la tabla vacía; por defecto el seed no crea medicamentos. Categorías y ubicaciones iniciales se siembran solo si su tabla está vacía (no reaparece lo que la farmacia renombró o desactivó).
 - `usuarios.routes.ts`: agregué `PUT /:id` (editar) y `PUT /:id/password` (reset).
 - Convención de IDs: `const { id } = req.params as { id: string }` porque `@types/express` v5 tipa los params como `string | string[]`.
 
