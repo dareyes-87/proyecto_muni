@@ -181,3 +181,44 @@ test('importar-excel: el mismo lote en dos filas (dos ubicaciones) importa ambas
   assert.equal(segunda.lotesOmitidos, 2);
   assert.equal(await prisma.lote.count({ where: { medicamentoId: medId, numeroLote: 'Lote-Dividido' } }), 2, 'sin copias');
 });
+
+test('GET inventario y alertas: los lotes AGOTADO/VENCIDO/DADO_DE_BAJA/pasados no suman stock; el detalle sí los lista', async () => {
+  const med = await prisma.medicamento.create({
+    data: { nombreGenerico: `QA_STOCK_${sufijo}`, presentacion: 'Tableta', concentracion: '5mg', unidadMedida: 'Tableta', categoriaId, stockMinimo: 100 },
+  });
+  try {
+    const lote = (numeroLote: string, cantidadActual: number, dias: number, estado: 'DISPONIBLE' | 'AGOTADO' | 'VENCIDO' | 'DADO_DE_BAJA') =>
+      ({ entradaId, medicamentoId: med.id, cantidad: 10, cantidadActual, numeroLote, fechaVencimiento: enDias(dias), estado });
+    await prisma.lote.createMany({
+      data: [
+        lote('OK', 10, 200, 'DISPONIBLE'),
+        lote('AGOTADO', 0, 200, 'AGOTADO'),
+        lote('VENCIDO', 5, -10, 'VENCIDO'),
+        lote('BAJA', 7, 200, 'DADO_DE_BAJA'),
+        lote('PASADO', 3, -1, 'DISPONIBLE'), // el cron aún no lo marcó
+      ],
+    });
+    const get = async (ruta: string) => {
+      const r = await fetch(`${base}${ruta}`, { headers: { Authorization: `Bearer ${token}` } });
+      assert.equal(r.status, 200);
+      return ((await r.json()) as any).data;
+    };
+
+    const fila = (await get(`/inventario?q=QA_STOCK_${sufijo}`))[0];
+    assert.equal(fila.stockDisponible, 10);
+    assert.equal(fila.numeroLotes, 1);
+    assert.equal(fila.stockBajo, true);
+
+    const alertas = await get('/inventario/alertas');
+    assert.equal(alertas.stockBajo.find((m: any) => m.id === med.id)?.stockDisponible, 10);
+    const vencidos = alertas.vencidos.filter((l: any) => l.medicamento.id === med.id).map((l: any) => l.numeroLote).sort();
+    assert.deepEqual(vencidos, ['PASADO', 'VENCIDO']);
+
+    const detalle = await get(`/inventario/medicamento/${med.id}`);
+    assert.equal(detalle.lotes.length, 5, 'el detalle no filtra lotes');
+    assert.equal(detalle.stockDisponible, 10);
+  } finally {
+    await prisma.lote.deleteMany({ where: { medicamentoId: med.id } });
+    await prisma.medicamento.delete({ where: { id: med.id } });
+  }
+});

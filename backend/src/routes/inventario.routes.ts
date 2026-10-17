@@ -204,7 +204,9 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
       orderBy: { nombreGenerico: 'asc' },
       include: {
         categoria: { select: { id: true, nombre: true } },
+        // Solo cuenta stock dispensable: los lotes agotados/vencidos/de baja no entran al listado.
         lotes: {
+          where: { estado: 'DISPONIBLE', cantidadActual: { gt: 0 } },
           select: { cantidadActual: true, fechaVencimiento: true, estado: true },
         },
       },
@@ -283,7 +285,10 @@ router.get('/alertas', authMiddleware, async (_req: Request, res: Response): Pro
             nombreGenerico: true,
             presentacion: true,
             stockMinimo: true,
-            lotes: { select: { cantidadActual: true, fechaVencimiento: true, estado: true } },
+            lotes: {
+              where: { estado: 'DISPONIBLE', cantidadActual: { gt: 0 } },
+              select: { cantidadActual: true, fechaVencimiento: true, estado: true },
+            },
           },
         }),
         // Próximos a vencer: DISPONIBLE, con stock, que vencen dentro del umbral amarillo.
