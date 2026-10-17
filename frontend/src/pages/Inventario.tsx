@@ -11,7 +11,7 @@ import SearchInput from '../components/ui/SearchInput';
 import DataTable, { type Column } from '../components/ui/DataTable';
 import Button from '../components/ui/Button';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
-import { formatFecha } from '../utils/formatDate';
+import { formatFechaDia } from '../utils/formatDate';
 
 export default function Inventario() {
   const { isAdmin } = useAuth();
@@ -113,7 +113,7 @@ export default function Inventario() {
       cell: (r) => (
         <div className="flex items-center gap-2">
           <Semaforo estado={r.semaforo} dias={r.diasProximoVencimiento} />
-          <span className="text-xs text-gray-400">{r.proximoVencimiento ? formatFecha(r.proximoVencimiento) : '—'}</span>
+          <span className="text-xs text-gray-400">{r.proximoVencimiento ? formatFechaDia(r.proximoVencimiento) : '—'}</span>
         </div>
       ),
     },
@@ -238,7 +238,7 @@ export default function Inventario() {
                         <td className="px-3 py-2">
                           <div className="flex items-center gap-2">
                             <Semaforo estado={l.semaforo} dias={l.diasParaVencer} />
-                            <span className="text-xs text-gray-400">{formatFecha(l.fechaVencimiento)}</span>
+                            <span className="text-xs text-gray-400">{formatFechaDia(l.fechaVencimiento)}</span>
                           </div>
                         </td>
                         <td className="px-3 py-2 text-xs text-gray-500">{l.estado}</td>

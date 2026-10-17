@@ -18,15 +18,20 @@ import {
   validarFechaVencimientoEntrada,
   type Umbrales,
 } from '../src/services/inventario.service';
+import { formatFechaDia } from '../src/utils/formatDate';
+import { formatFechaDia as formatFechaDiaFront } from '../../frontend/src/utils/formatDate';
+import { parseFechaCelda } from '../src/utils/excel';
 
 const UMBRALES: Umbrales = { rojo: 30, amarillo: 90 };
 
-/** Devuelve un Date a medianoche a N días de hoy (N negativo = pasado). */
+/**
+ * Fecha de lote a N días de hoy (N negativo = pasado), como la entrega Prisma para
+ * una columna @db.Date: medianoche UTC del día de calendario local. Con medianoche
+ * local estas pruebas no veían el desfase de un día en zonas al oeste de UTC.
+ */
 function enDias(n: number): Date {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() + n);
-  return d;
+  const h = new Date();
+  return new Date(Date.UTC(h.getFullYear(), h.getMonth(), h.getDate() + n));
 }
 
 test('diasParaVencer: hoy = 0, futuro positivo, pasado negativo', () => {
@@ -70,4 +75,34 @@ test('validarFechaVencimientoEntrada: rechaza hoy/pasado, acepta futuro (H-34)',
   assert.ok(validarFechaVencimientoEntrada(enDias(-1)), 'pasado → mensaje de error');
   assert.ok(validarFechaVencimientoEntrada(enDias(0)), 'hoy → mensaje de error');
   assert.equal(validarFechaVencimientoEntrada(enDias(1)), null, 'mañana → válido');
+});
+
+// Estas pruebas fijan `hoy` con componentes locales y el lote como medianoche UTC,
+// así que valen en cualquier zona horaria; con el código anterior fallaban con
+// TZ=America/Guatemala (el lote caía en el día anterior).
+test('diasParaVencer: lote que vence mañana da 1 día y no está vencido; el de hoy sí está vencido', () => {
+  const hoy = new Date(2026, 9, 16); // 16/10/2026, medianoche local
+  const manana = new Date('2026-10-17T00:00:00Z');
+  const hoyLote = new Date('2026-10-16T00:00:00Z');
+  assert.equal(diasParaVencer(manana, hoy), 1);
+  assert.equal(estaVencido(manana, hoy), false);
+  assert.equal(diasParaVencer(hoyLote, hoy), 0);
+  assert.equal(estaVencido(hoyLote, hoy), true);
+  assert.equal(diasParaVencer(new Date('2026-10-15T00:00:00Z'), hoy), -1);
+});
+
+test('formatFechaDia: fecha de calendario sin desfase (backend y frontend)', () => {
+  const venc = new Date('2027-12-31T00:00:00Z');
+  assert.equal(formatFechaDia(venc), '31/12/2027');
+  assert.equal(formatFechaDia('2027-12-31T00:00:00.000Z'), '31/12/2027');
+  assert.equal(formatFechaDiaFront('2027-12-31T00:00:00.000Z'), '31/12/2027');
+});
+
+test('parseFechaCelda: fecha de Excel, ISO y DD/MM/AAAA dan la misma fecha de calendario', () => {
+  const dia = (d: Date | null) => d?.toISOString().slice(0, 10);
+  // exceljs entrega las fechas nativas como medianoche UTC
+  assert.equal(dia(parseFechaCelda(new Date('2027-12-31T00:00:00Z'))), '2027-12-31');
+  assert.equal(dia(parseFechaCelda('2027-12-31')), '2027-12-31');
+  assert.equal(dia(parseFechaCelda('31/12/2027')), '2027-12-31');
+  assert.equal(parseFechaCelda(''), null);
 });

@@ -77,6 +77,16 @@ jobs:
             exit 1
           fi
           exit "$rc"
+      # Prueba de integración del despacho: usa la base real de este trabajo, con
+      # el esquema de las migraciones y el seed (necesita el usuario ADMIN y una
+      # categoría). Crea sus datos y los borra al terminar.
+      - name: Prueba de despacho contra Postgres
+        env:
+          TZ: America/Guatemala
+        run: |
+          npx prisma migrate deploy
+          npx prisma db seed
+          node --import tsx --test tests/despacho_vencimiento.test.ts
       - name: Avisar si una migración nueva borra datos
         run: |
           base="${{ github.event.pull_request.base.sha }}"
@@ -98,6 +108,13 @@ jobs:
       - name: Backend (tsc)
         working-directory: backend
         run: npm install && npx prisma generate && npx tsc --noEmit
+      # Pruebas que no necesitan base de datos. Con la zona horaria del servidor
+      # (Guatemala): en UTC no se ve el desfase de un día en las fechas de vencimiento.
+      - name: Backend (pruebas sin base de datos)
+        working-directory: backend
+        env:
+          TZ: America/Guatemala
+        run: node --import tsx --test tests/env.test.ts tests/fecha.test.ts tests/inventario.service.test.ts tests/ipRateLimit.test.ts tests/loginRateLimit.test.ts tests/validacion.test.ts
       - name: Frontend (tsc + vite build)
         working-directory: frontend
         run: npm install && npm run build

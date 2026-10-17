@@ -13,11 +13,10 @@ import assert from 'node:assert/strict';
 import { prisma } from '../src/config/prisma';
 import { despachar, obtenerStockMedicamento } from '../src/services/dispensacion.service';
 
+// Medianoche UTC del día de calendario local, como Prisma entrega/guarda @db.Date.
 function enDias(n: number): Date {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() + n);
-  return d;
+  const h = new Date();
+  return new Date(Date.UTC(h.getFullYear(), h.getMonth(), h.getDate() + n));
 }
 
 test('despachar: un lote vencido (estado DISPONIBLE, fecha pasada/hoy) nunca es elegible (H-01)', async (t) => {

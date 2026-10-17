@@ -40,11 +40,20 @@ export function hoyMedianoche(): Date {
   return h;
 }
 
-/** Días enteros que faltan para vencer. Negativo si ya venció. */
+/**
+ * Días enteros que faltan para vencer. Negativo si ya venció.
+ * Prisma entrega @db.Date como medianoche UTC: se lee su fecha de calendario con
+ * getUTC*, y la de `hoy` (local) con get*. Pasar el lote a medianoche local lo
+ * movería al día anterior en zonas al oeste de UTC (Guatemala).
+ */
 export function diasParaVencer(fechaVencimiento: Date, hoy: Date = hoyMedianoche()): number {
-  const f = new Date(fechaVencimiento);
-  f.setHours(0, 0, 0, 0);
-  return Math.round((f.getTime() - hoy.getTime()) / 86_400_000);
+  const f = Date.UTC(
+    fechaVencimiento.getUTCFullYear(),
+    fechaVencimiento.getUTCMonth(),
+    fechaVencimiento.getUTCDate()
+  );
+  const h = Date.UTC(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+  return Math.round((f - h) / 86_400_000);
 }
 
 /**

@@ -79,11 +79,14 @@ function semaforo(
   umbrales: Umbrales
 ): { color: string; label: string } {
   if (!fechaVencimiento) return { color: 'gray', label: 'Sin datos' };
+  // El vencimiento llega como medianoche UTC (@db.Date): se compara su fecha de
+  // calendario UTC contra la fecha local de hoy.
   const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
   const f = new Date(fechaVencimiento);
-  f.setHours(0, 0, 0, 0);
-  const dias = Math.round((f.getTime() - hoy.getTime()) / 86400000);
+  const dias = Math.round(
+    (Date.UTC(f.getUTCFullYear(), f.getUTCMonth(), f.getUTCDate()) -
+      Date.UTC(hoy.getFullYear(), hoy.getMonth(), hoy.getDate())) / 86400000
+  );
   if (dias <= 0) return { color: 'red', label: 'VENCIDO' };
   if (dias <= umbrales.rojo) return { color: 'red', label: `${dias}d` };
   if (dias <= umbrales.amarillo) return { color: 'yellow', label: `${dias}d` };
