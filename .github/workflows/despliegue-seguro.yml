@@ -85,6 +85,7 @@ jobs:
       # depender de la zona horaria de la sesión de Postgres.
       - name: Prueba de despacho contra Postgres
         run: |
+          docker exec ${{ job.services.postgres.id }} createdb -U postgres farmag
           docker exec ${{ job.services.postgres.id }} psql -U postgres -c "ALTER DATABASE farmag SET timezone='America/Guatemala'"
           npx prisma migrate deploy
           npx prisma db seed
@@ -125,6 +126,12 @@ jobs:
   despliegue:
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    env:
+      # La versión anterior (bootstrap seguro, H-002) ya no crea admin/admin2026: sin
+      # esto el seed genera una contraseña aleatoria. docker compose toma la variable
+      # del entorno del shell (tiene prioridad sobre .env), así que el caso sin-env
+      # sigue sin .env.
+      ADMIN_INITIAL_PASSWORD: Despliegue-CI-2026
     strategy:
       fail-fast: false
       matrix:
@@ -180,7 +187,7 @@ jobs:
           SQL
           TOKEN=$(curl -sf -X POST http://localhost:3000/api/auth/login \
             -H 'Content-Type: application/json' \
-            -d '{"username":"admin","password":"admin2026"}' | jq -r .token)
+            -d "$(jq -nc --arg p "$ADMIN_INITIAL_PASSWORD" '{username:"admin",password:$p}')" | jq -r .token)
           [ -n "$TOKEN" ] && [ "$TOKEN" != "null" ] || { echo "::error::login falló en la versión anterior"; exit 1; }
 
       - name: Huella de datos ANTES
@@ -271,7 +278,7 @@ jobs:
           diff -u /tmp/antes.txt /tmp/reinicio.txt
           # El login va al final: actualiza ultimo_acceso y la bitácora.
           curl -sf -X POST http://localhost:3000/api/auth/login -H 'Content-Type: application/json' \
-            -d '{"username":"admin","password":"admin2026"}' | jq -e .token > /dev/null
+            -d "$(jq -nc --arg p "$ADMIN_INITIAL_PASSWORD" '{username:"admin",password:$p}')" | jq -e .token > /dev/null
 
       - name: Registros si algo falló
         if: failure()
