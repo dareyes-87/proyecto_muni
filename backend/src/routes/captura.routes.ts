@@ -13,7 +13,7 @@ import {
 // Estas rutas NO llevan authMiddleware a propósito: la encargada escanea el QR
 // desde su celular, que no tiene sesión iniciada. La credencial es el token que
 // viaja en la URL, y por eso está acotado por todos lados: es aleatorio
-// (nanoid, 10 chars), vive 30 minutos, sirve para una sola dispensación, solo
+// (randomBytes, 11 chars), vive 30 minutos, sirve para una sola dispensación, solo
 // admite 2 tipos de foto (subir el mismo tipo reemplaza, no acumula) y se marca
 // como usado en cuanto se completan las dos.
 // ============================================

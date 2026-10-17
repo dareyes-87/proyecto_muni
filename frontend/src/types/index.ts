@@ -114,6 +114,7 @@ export interface ResumenImportacionExcel {
   lotesOmitidos: number;
   errores: { fila: number; error: string }[];
   avisos: { fila: number; aviso: string }[];
+  avisosGenerales: string[];
 }
 
 export interface CodigoBarras {

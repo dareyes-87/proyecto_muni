@@ -10,6 +10,7 @@ import {
   calcularSemaforo,
   diasParaVencer,
   esDispensable,
+  LOTE_CON_STOCK,
   hoyMedianoche,
   validarFechaVencimientoEntrada,
   buscarLoteDuplicado,
@@ -206,7 +207,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
         categoria: { select: { id: true, nombre: true } },
         // Solo cuenta stock dispensable: los lotes agotados/vencidos/de baja no entran al listado.
         lotes: {
-          where: { estado: 'DISPONIBLE', cantidadActual: { gt: 0 } },
+          where: LOTE_CON_STOCK,
           select: { cantidadActual: true, fechaVencimiento: true, estado: true },
         },
       },
@@ -286,7 +287,7 @@ router.get('/alertas', authMiddleware, async (_req: Request, res: Response): Pro
             presentacion: true,
             stockMinimo: true,
             lotes: {
-              where: { estado: 'DISPONIBLE', cantidadActual: { gt: 0 } },
+              where: LOTE_CON_STOCK,
               select: { cantidadActual: true, fechaVencimiento: true, estado: true },
             },
           },
@@ -624,7 +625,7 @@ interface FilaValidada {
   ubicacion: string | null;
 }
 
-function validarFila(raw: Record<CampoExcel, ExcelJS.CellValue>): { datos: FilaValidada } | { error: string } {
+function validarFila(raw: Record<CampoExcel, ExcelJS.CellValue>): { datos: FilaValidada; codigoNumerico: boolean } | { error: string } {
   const errores: string[] = [];
 
   const nombreGenerico = celdaATexto(raw.nombreGenerico);
@@ -643,9 +644,10 @@ function validarFila(raw: Record<CampoExcel, ExcelJS.CellValue>): { datos: FilaV
   if (!numeroLote) errores.push('numeroLote es requerido');
 
   const cantidadTexto = celdaATexto(raw.cantidad);
-  const cantidad = parseInt(cantidadTexto, 10);
+  // Number, no parseInt: parseInt('12.5') daría 12 y guardaría una cantidad distinta a la del archivo.
+  const cantidad = Number(cantidadTexto);
   if (!cantidadTexto) errores.push('cantidad es requerida');
-  else if (!Number.isFinite(cantidad) || cantidad <= 0) errores.push('cantidad debe ser un entero mayor a 0');
+  else if (!Number.isInteger(cantidad) || cantidad <= 0) errores.push('cantidad debe ser un entero mayor a 0');
 
   const fechaVencimiento = parseFechaCelda(raw.fechaVencimiento);
   if (!fechaVencimiento) {
@@ -677,6 +679,7 @@ function validarFila(raw: Record<CampoExcel, ExcelJS.CellValue>): { datos: FilaV
       fechaVencimiento: fechaVencimiento!,
       ubicacion,
     },
+    codigoNumerico: typeof raw.codigoBarras === 'number',
   };
 }
 
@@ -729,6 +732,7 @@ router.post(
     const filasValidas: { fila: FilaValidada; numeroFila: number }[] = [];
     const errores: { fila: number; error: string }[] = [];
     const avisos: { fila: number; aviso: string }[] = [];
+    let filasCodigoNumerico = 0;
     let totalFilas = 0;
 
     for (let r = 2; r <= sheet.rowCount; r++) {
@@ -746,6 +750,7 @@ router.post(
         errores.push({ fila: r, error: resultado.error });
       } else {
         filasValidas.push({ fila: resultado.datos, numeroFila: r });
+        if (resultado.codigoNumerico) filasCodigoNumerico++;
       }
     }
 
@@ -757,8 +762,9 @@ router.post(
     let codigosBarrasVinculados = 0;
     let lotesRegistrados = 0;
     let lotesOmitidos = 0;
-    // Hora de la base (no la de Node) para compararla con lotes.created_at sin desfase de reloj.
-    const [{ ahora: inicioImportacion }] = await prisma.$queryRaw<{ ahora: Date }[]>`SELECT now() AS ahora`;
+    // Instante de inicio: los lotes con created_at anterior vienen de importaciones previas
+    // (Prisma fija created_at con la hora del servidor de la API, la misma que esta).
+    const inicioImportacion = new Date();
 
     for (const { fila, numeroFila } of filasValidas) {
       try {
@@ -949,6 +955,14 @@ router.post(
       }
     }
 
+    // Un solo aviso general: Excel ya borró los ceros a la izquierda al guardar la celda como número.
+    const avisosGenerales: string[] = [];
+    if (filasCodigoNumerico > 0) {
+      avisosGenerales.push(
+        `${filasCodigoNumerico} fila(s) tenían el código de barras como número; si alguno tenía ceros a la izquierda, se perdieron. Formatee la columna como texto en Excel.`
+      );
+    }
+
     res.json({
       data: {
         totalFilas,
@@ -961,6 +975,7 @@ router.post(
         lotesOmitidos,
         errores,
         avisos,
+        avisosGenerales,
       },
     });
   }

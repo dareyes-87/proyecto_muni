@@ -18,7 +18,7 @@ url.pathname = '/' + nombreDb;
 const entorno = { ...process.env, DATABASE_URL: url.toString(), ADMIN_INITIAL_PASSWORD: 'Seed-Prueba-2026', SEED_DEMO: '' };
 
 const correr = (cmd: string[], extra: Record<string, string> = {}) =>
-  execFileSync(process.execPath, cmd, { cwd: backend, env: { ...entorno, ...extra }, stdio: 'pipe' });
+  execFileSync(process.execPath, cmd, { cwd: backend, env: { ...entorno, ...extra }, stdio: ['ignore', 'pipe', 'inherit'] });
 const sembrar = (extra?: Record<string, string>) => correr(['--import', 'tsx', 'prisma/seed.ts'], extra);
 
 test('seed: no revive ubicaciones/categorías cambiadas y solo crea medicamentos con SEED_DEMO=true', async (t) => {

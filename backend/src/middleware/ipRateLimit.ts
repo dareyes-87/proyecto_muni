@@ -63,23 +63,6 @@ export function registrarIntentoIp(ip: string): {
   };
 }
 
-/** ms restantes de limitación de una IP (0 si no está limitada). No incrementa. */
-export function msLimiteIpRestante(ip: string): number {
-  const r = porIp.get(ip);
-  if (!r) return 0;
-  const ahora = Date.now();
-  if (r.ventanaExpira <= ahora) {
-    porIp.delete(ip);
-    return 0;
-  }
-  return r.conteo > MAX_INTENTOS_IP ? r.ventanaExpira - ahora : 0;
-}
-
-/** Limpia el registro de una IP (uso interno/pruebas). */
-export function limpiarIp(ip: string): void {
-  porIp.delete(ip);
-}
-
 /** Convierte ms a segundos enteros hacia arriba (cabecera Retry-After). */
 export function msASegundos(ms: number): number {
   return Math.max(1, Math.ceil(ms / 1000));

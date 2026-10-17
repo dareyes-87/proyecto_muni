@@ -20,6 +20,8 @@ import { prisma } from '../src/config/prisma';
 import { config } from '../src/config/env';
 import inventarioRoutes from '../src/routes/inventario.routes';
 import catalogosRoutes from '../src/routes/catalogos.routes';
+import capturaRoutes from '../src/routes/captura.routes';
+import { generarTokenCaptura } from '../src/services/dispensacion.service';
 import { buscarLoteDuplicado } from '../src/services/inventario.service';
 
 // Medianoche UTC del día de calendario local, como Prisma entrega/guarda @db.Date.
@@ -52,6 +54,7 @@ async function prepararAmbiente() {
   app.use(express.json());
   app.use('/api/inventario', inventarioRoutes);
   app.use('/api/catalogos', catalogosRoutes);
+  app.use('/api/captura', capturaRoutes);
   server = await new Promise<Server>((ok) => {
     const s = app.listen(0, () => ok(s));
   });
@@ -84,7 +87,9 @@ after(async () => {
     await prisma.codigoBarras.deleteMany({ where: { medicamentoId: medId } });
     await prisma.medicamento.delete({ where: { id: medId } });
   }
-  await prisma.ubicacion.deleteMany({ where: { codigo: { startsWith: `QA-UBI-${sufijo}` } } });
+  const ubicaciones = await prisma.ubicacion.findMany({ where: { codigo: { startsWith: `QA-UBI-${sufijo}` } }, select: { id: true } });
+  await prisma.logAuditoria.deleteMany({ where: { entidad: 'ubicacion', entidadId: { in: ubicaciones.map((u) => u.id) } } });
+  await prisma.ubicacion.deleteMany({ where: { id: { in: ubicaciones.map((u) => u.id) } } });
   await prisma.$disconnect();
 });
 
@@ -220,5 +225,62 @@ test('GET inventario y alertas: los lotes AGOTADO/VENCIDO/DADO_DE_BAJA/pasados n
   } finally {
     await prisma.lote.deleteMany({ where: { medicamentoId: med.id } });
     await prisma.medicamento.delete({ where: { id: med.id } });
+  }
+});
+
+test('PUT medicamentos y categorías: un tipo incorrecto en activo/descripcion da 400, no 500', async () => {
+  const put = (ruta: string, body: unknown) =>
+    fetch(`${base}${ruta}`, { method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+
+  assert.equal((await put(`/catalogos/medicamentos/${medId}`, { activo: 'no' })).status, 400);
+  assert.equal((await put(`/catalogos/categorias/${categoriaId}`, { activo: 'no' })).status, 400);
+  assert.equal((await put(`/catalogos/categorias/${categoriaId}`, { descripcion: 5 })).status, 400);
+  assert.equal((await put(`/catalogos/categorias/${categoriaId}`, { nombre: '  ' })).status, 400);
+  assert.equal((await put(`/catalogos/medicamentos/${medId}`, { stockMinimo: 0 })).status, 200, 'un cuerpo válido sigue pasando');
+});
+
+test('importar-excel: cantidad no entera es error de fila; código de barras numérico avisa', async () => {
+  const wb = new ExcelJS.Workbook();
+  const hoja = wb.addWorksheet('Plantilla');
+  hoja.addRow(['nombreGenerico', 'nombreComercial', 'presentacion', 'concentracion', 'unidadMedida', 'categoria', 'codigoBarras', 'cantidad', 'numeroLote', 'fechaVencimiento', 'ubicacion']);
+  const fechaTxt = enDias(450).toISOString().slice(0, 10);
+  const cat = (await prisma.categoria.findUnique({ where: { id: categoriaId } }))!.nombre;
+  hoja.addRow([`QA_RUTAS_${sufijo}`, '', 'Tableta', '10mg', 'Tableta', cat, '', 12.5, 'Lote-Decimal', fechaTxt, '']); // fila 2
+  hoja.addRow([`QA_RUTAS_${sufijo}`, '', 'Tableta', '10mg', 'Tableta', cat, sufijo, 4, 'Lote-Num', fechaTxt, '']); // fila 3: código como número
+  const fd = new FormData();
+  fd.append('archivo', new Blob([Buffer.from(await wb.xlsx.writeBuffer())]), 'qa.xlsx');
+  const r = await fetch(`${base}/inventario/importar-excel`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd });
+  assert.equal(r.status, 200);
+  const d = ((await r.json()) as any).data;
+
+  assert.equal(d.errores.length, 1);
+  assert.equal(d.errores[0].fila, 2);
+  assert.match(d.errores[0].error, /entero/);
+  assert.equal(await prisma.lote.count({ where: { medicamentoId: medId, numeroLote: 'Lote-Decimal' } }), 0, 'no se truncó a 12');
+
+  assert.equal(d.lotesRegistrados, 1);
+  assert.equal(d.avisosGenerales.length, 1, 'un solo aviso general, no uno por fila');
+  assert.match(d.avisosGenerales[0], /^1 fila\(s\) tenían el código de barras como número/);
+  assert.ok(!d.avisos.some((a: any) => /como número/.test(a.aviso)));
+});
+
+test('generarTokenCaptura: 11 caracteres base64url, distintos entre llamadas, y un token viejo de 10 sigue valiendo', async () => {
+  const ben = await prisma.beneficiario.create({ data: { nombreCompleto: `QA_TOKEN_${sufijo}` } });
+  const disp = await Promise.all([1, 2].map(() => prisma.dispensacion.create({ data: { beneficiarioId: ben.id, usuarioId } })));
+  try {
+    const [a, b] = await Promise.all(disp.map((x) => generarTokenCaptura(x.id)));
+    assert.match(a.token, /^[A-Za-z0-9_-]{11}$/);
+    assert.notEqual(a.token, b.token);
+
+    // Token con el formato anterior (nanoid de 10) ya guardado en la base.
+    await prisma.tokenCaptura.update({ where: { dispensacionId: disp[0].id }, data: { token: 'aB3_xY-9Zq' } });
+    const r = await fetch(`${base}/captura/aB3_xY-9Zq/info`);
+    assert.equal(r.status, 200);
+    assert.equal(((await r.json()) as any).dispensacionId, disp[0].id);
+  } finally {
+    const ids = disp.map((x) => x.id);
+    await prisma.tokenCaptura.deleteMany({ where: { dispensacionId: { in: ids } } });
+    await prisma.dispensacion.deleteMany({ where: { id: { in: ids } } });
+    await prisma.beneficiario.delete({ where: { id: ben.id } });
   }
 });
