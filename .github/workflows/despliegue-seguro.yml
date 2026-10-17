@@ -83,7 +83,7 @@ jobs:
       # La base se pone en hora de Guatemala (la imagen usa UTC) y la prueba corre con
       # Node en Guatemala y en UTC: así falla si el filtro de vencimiento vuelve a
       # depender de la zona horaria de la sesión de Postgres.
-      - name: Pruebas contra Postgres (despacho, importación, lector de códigos)
+      - name: Pruebas contra Postgres (despacho, importación, lector de códigos, vencimiento, seed)
         env:
           JWT_SECRET: ci-jwt-secret-solo-para-pruebas
         run: |
@@ -91,8 +91,8 @@ jobs:
           docker exec ${{ job.services.postgres.id }} psql -U postgres -c "ALTER DATABASE farmag SET timezone='America/Guatemala'"
           npx prisma migrate deploy
           npx prisma db seed
-          TZ=America/Guatemala node --import tsx --test tests/despacho_vencimiento.test.ts tests/rutas_integracion.test.ts
-          TZ=UTC node --import tsx --test tests/despacho_vencimiento.test.ts tests/rutas_integracion.test.ts
+          TZ=America/Guatemala node --import tsx --test tests/despacho_vencimiento.test.ts tests/rutas_integracion.test.ts tests/vencimiento_arranque.test.ts tests/seed.test.ts
+          TZ=UTC node --import tsx --test tests/despacho_vencimiento.test.ts tests/rutas_integracion.test.ts tests/vencimiento_arranque.test.ts tests/seed.test.ts
       - name: Avisar si una migración nueva borra datos
         run: |
           base="${{ github.event.pull_request.base.sha }}"

@@ -89,14 +89,14 @@ async function main() {
     { nombre: 'Otro', descripcion: 'Otros medicamentos no clasificados' },
   ];
 
-  for (const cat of categorias) {
-    await prisma.categoria.upsert({
-      where: { nombre: cat.nombre },
-      update: {},
-      create: cat,
-    });
+  // Solo en instalación nueva: si la tabla ya tiene filas, lo que la farmacia
+  // renombró o desactivó no debe reaparecer en cada arranque.
+  if ((await prisma.categoria.count()) === 0) {
+    await prisma.categoria.createMany({ data: categorias });
+    console.log(`✅ ${categorias.length} categorías creadas`);
+  } else {
+    console.log('ℹ️  Ya hay categorías, no se tocan');
   }
-  console.log(`✅ ${categorias.length} categorías creadas/verificadas`);
 
   // ============================================
   // Ubicaciones (estantes)
@@ -111,14 +111,12 @@ async function main() {
     { codigo: 'BOD', descripcion: 'Bodega' },
   ];
 
-  for (const ub of ubicaciones) {
-    await prisma.ubicacion.upsert({
-      where: { codigo: ub.codigo },
-      update: {},
-      create: ub,
-    });
+  if ((await prisma.ubicacion.count()) === 0) {
+    await prisma.ubicacion.createMany({ data: ubicaciones });
+    console.log(`✅ ${ubicaciones.length} ubicaciones creadas`);
+  } else {
+    console.log('ℹ️  Ya hay ubicaciones, no se tocan');
   }
-  console.log(`✅ ${ubicaciones.length} ubicaciones creadas/verificadas`);
 
   // ============================================
   // Configuración del sistema
@@ -151,11 +149,10 @@ async function main() {
   console.log(`✅ ${configs.length} configuraciones creadas/verificadas`);
 
   // ============================================
-  // Medicamentos de ejemplo (solo si no existe ninguno)
-  // Datos de prueba para el módulo de Inventario. El CRUD real es de Catálogos.
+  // Medicamentos de ejemplo: solo para desarrollo (SEED_DEMO=true) y con la tabla vacía.
+  // Nunca en producción: el catálogo real lo carga la farmacia.
   // ============================================
-  const totalMedicamentos = await prisma.medicamento.count();
-  if (totalMedicamentos === 0) {
+  if (process.env.SEED_DEMO === 'true' && (await prisma.medicamento.count()) === 0) {
     const categoriasMap = new Map(
       (await prisma.categoria.findMany()).map((c) => [c.nombre, c.id])
     );
