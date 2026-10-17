@@ -421,10 +421,13 @@ export default function Entradas() {
                   </ul>
                 </div>
               )}
-              {resultadoImport.avisos.length > 0 && (
+              {(resultadoImport.avisosGenerales.length > 0 || resultadoImport.avisos.length > 0) && (
                 <div>
                   <h4 className="mb-1 text-xs font-semibold uppercase text-amber-600">Avisos</h4>
                   <ul className="max-h-32 space-y-1 overflow-y-auto rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800">
+                    {resultadoImport.avisosGenerales.map((g, i) => (
+                      <li key={`g${i}`}>{g}</li>
+                    ))}
                     {resultadoImport.avisos.map((a, i) => (
                       <li key={i}><strong>Fila {a.fila}:</strong> {a.aviso}</li>
                     ))}

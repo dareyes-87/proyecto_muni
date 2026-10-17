@@ -625,7 +625,7 @@ interface FilaValidada {
   ubicacion: string | null;
 }
 
-function validarFila(raw: Record<CampoExcel, ExcelJS.CellValue>): { datos: FilaValidada; avisos: string[] } | { error: string } {
+function validarFila(raw: Record<CampoExcel, ExcelJS.CellValue>): { datos: FilaValidada; codigoNumerico: boolean } | { error: string } {
   const errores: string[] = [];
 
   const nombreGenerico = celdaATexto(raw.nombreGenerico);
@@ -665,11 +665,6 @@ function validarFila(raw: Record<CampoExcel, ExcelJS.CellValue>): { datos: FilaV
   const codigoBarras = celdaATexto(raw.codigoBarras) || null;
   const ubicacion = celdaATexto(raw.ubicacion) || null;
 
-  const avisos: string[] = [];
-  if (typeof raw.codigoBarras === 'number') {
-    avisos.push('El código de barras se leyó como número; si tenía ceros a la izquierda, formatee la columna como texto.');
-  }
-
   return {
     datos: {
       nombreGenerico,
@@ -684,7 +679,7 @@ function validarFila(raw: Record<CampoExcel, ExcelJS.CellValue>): { datos: FilaV
       fechaVencimiento: fechaVencimiento!,
       ubicacion,
     },
-    avisos,
+    codigoNumerico: typeof raw.codigoBarras === 'number',
   };
 }
 
@@ -737,6 +732,7 @@ router.post(
     const filasValidas: { fila: FilaValidada; numeroFila: number }[] = [];
     const errores: { fila: number; error: string }[] = [];
     const avisos: { fila: number; aviso: string }[] = [];
+    let filasCodigoNumerico = 0;
     let totalFilas = 0;
 
     for (let r = 2; r <= sheet.rowCount; r++) {
@@ -754,7 +750,7 @@ router.post(
         errores.push({ fila: r, error: resultado.error });
       } else {
         filasValidas.push({ fila: resultado.datos, numeroFila: r });
-        for (const aviso of resultado.avisos) avisos.push({ fila: r, aviso });
+        if (resultado.codigoNumerico) filasCodigoNumerico++;
       }
     }
 
@@ -959,6 +955,14 @@ router.post(
       }
     }
 
+    // Un solo aviso general: Excel ya borró los ceros a la izquierda al guardar la celda como número.
+    const avisosGenerales: string[] = [];
+    if (filasCodigoNumerico > 0) {
+      avisosGenerales.push(
+        `${filasCodigoNumerico} fila(s) tenían el código de barras como número; si alguno tenía ceros a la izquierda, se perdieron. Formatee la columna como texto en Excel.`
+      );
+    }
+
     res.json({
       data: {
         totalFilas,
@@ -971,6 +975,7 @@ router.post(
         lotesOmitidos,
         errores,
         avisos,
+        avisosGenerales,
       },
     });
   }

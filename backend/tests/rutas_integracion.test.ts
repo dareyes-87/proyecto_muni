@@ -20,6 +20,8 @@ import { prisma } from '../src/config/prisma';
 import { config } from '../src/config/env';
 import inventarioRoutes from '../src/routes/inventario.routes';
 import catalogosRoutes from '../src/routes/catalogos.routes';
+import capturaRoutes from '../src/routes/captura.routes';
+import { generarTokenCaptura } from '../src/services/dispensacion.service';
 import { buscarLoteDuplicado } from '../src/services/inventario.service';
 
 // Medianoche UTC del día de calendario local, como Prisma entrega/guarda @db.Date.
@@ -52,6 +54,7 @@ async function prepararAmbiente() {
   app.use(express.json());
   app.use('/api/inventario', inventarioRoutes);
   app.use('/api/catalogos', catalogosRoutes);
+  app.use('/api/captura', capturaRoutes);
   server = await new Promise<Server>((ok) => {
     const s = app.listen(0, () => ok(s));
   });
@@ -256,5 +259,28 @@ test('importar-excel: cantidad no entera es error de fila; código de barras num
   assert.equal(await prisma.lote.count({ where: { medicamentoId: medId, numeroLote: 'Lote-Decimal' } }), 0, 'no se truncó a 12');
 
   assert.equal(d.lotesRegistrados, 1);
-  assert.ok(d.avisos.some((a: any) => a.fila === 3 && /leyó como número/.test(a.aviso)));
+  assert.equal(d.avisosGenerales.length, 1, 'un solo aviso general, no uno por fila');
+  assert.match(d.avisosGenerales[0], /^1 fila\(s\) tenían el código de barras como número/);
+  assert.ok(!d.avisos.some((a: any) => /como número/.test(a.aviso)));
+});
+
+test('generarTokenCaptura: 11 caracteres base64url, distintos entre llamadas, y un token viejo de 10 sigue valiendo', async () => {
+  const ben = await prisma.beneficiario.create({ data: { nombreCompleto: `QA_TOKEN_${sufijo}` } });
+  const disp = await Promise.all([1, 2].map(() => prisma.dispensacion.create({ data: { beneficiarioId: ben.id, usuarioId } })));
+  try {
+    const [a, b] = await Promise.all(disp.map((x) => generarTokenCaptura(x.id)));
+    assert.match(a.token, /^[A-Za-z0-9_-]{11}$/);
+    assert.notEqual(a.token, b.token);
+
+    // Token con el formato anterior (nanoid de 10) ya guardado en la base.
+    await prisma.tokenCaptura.update({ where: { dispensacionId: disp[0].id }, data: { token: 'aB3_xY-9Zq' } });
+    const r = await fetch(`${base}/captura/aB3_xY-9Zq/info`);
+    assert.equal(r.status, 200);
+    assert.equal(((await r.json()) as any).dispensacionId, disp[0].id);
+  } finally {
+    const ids = disp.map((x) => x.id);
+    await prisma.tokenCaptura.deleteMany({ where: { dispensacionId: { in: ids } } });
+    await prisma.dispensacion.deleteMany({ where: { id: { in: ids } } });
+    await prisma.beneficiario.delete({ where: { id: ben.id } });
+  }
 });
