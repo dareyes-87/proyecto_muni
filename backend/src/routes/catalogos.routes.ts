@@ -314,7 +314,7 @@ router.put('/medicamentos/:id', authMiddleware, requireRole('ADMIN'), async (req
 
     // Validación de los campos enviados (H-15): no permite dejar en blanco los
     // campos requeridos al editar.
-    const parsedEdit = medicamentoSchema.partial().safeParse(req.body);
+    const parsedEdit = medicamentoSchema.extend({ activo: z.boolean() }).partial().safeParse(req.body);
     if (!parsedEdit.success) {
       res.status(400).json({ error: 'Datos inválidos', detalles: parsedEdit.error.flatten() });
       return;
@@ -326,8 +326,9 @@ router.put('/medicamentos/:id', authMiddleware, requireRole('ADMIN'), async (req
       return;
     }
 
-    if (req.body.categoriaId !== undefined) {
-      const categoria = await prisma.categoria.findUnique({ where: { id: req.body.categoriaId } });
+    const cambios: Record<string, unknown> = parsedEdit.data;
+    if (cambios.categoriaId !== undefined) {
+      const categoria = await prisma.categoria.findUnique({ where: { id: cambios.categoriaId as string } });
       if (!categoria) {
         res.status(400).json({ error: 'La categoría especificada no existe' });
         return;
@@ -339,10 +340,10 @@ router.put('/medicamentos/:id', authMiddleware, requireRole('ADMIN'), async (req
     const datosNuevos: Record<string, unknown> = {};
 
     for (const campo of CAMPOS_EDITABLES_MEDICAMENTO) {
-      if (campo in req.body && req.body[campo] !== (existente as Record<string, unknown>)[campo]) {
-        datosActualizados[campo] = req.body[campo];
+      if (campo in cambios && cambios[campo] !== (existente as Record<string, unknown>)[campo]) {
+        datosActualizados[campo] = cambios[campo];
         datosAnteriores[campo] = (existente as Record<string, unknown>)[campo];
-        datosNuevos[campo] = req.body[campo];
+        datosNuevos[campo] = cambios[campo];
       }
     }
 
@@ -509,10 +510,24 @@ router.post('/categorias', authMiddleware, requireRole('ADMIN'), async (req: Req
   }
 });
 
+const categoriaEditSchema = z
+  .object({
+    nombre: z.string().trim().min(1, 'El nombre de la categoría no puede quedar vacío'),
+    descripcion: z.string().nullable(),
+    activo: z.boolean(),
+  })
+  .partial();
+
 // PUT /api/catalogos/categorias/:id
 router.put('/categorias/:id', authMiddleware, requireRole('ADMIN'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params as { id: string };
+
+    const parsed = categoriaEditSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0].message, detalles: parsed.error.flatten() });
+      return;
+    }
 
     const existente = await prisma.categoria.findUnique({ where: { id } });
     if (!existente) {
@@ -520,15 +535,7 @@ router.put('/categorias/:id', authMiddleware, requireRole('ADMIN'), async (req: 
       return;
     }
 
-    const { nombre, descripcion, activo } = req.body;
-    if (nombre !== undefined && (typeof nombre !== 'string' || !nombre.trim())) {
-      res.status(400).json({ error: 'El nombre de la categoría no puede quedar vacío' });
-      return;
-    }
-    const datosActualizados: Record<string, unknown> = {};
-    if (nombre !== undefined) datosActualizados.nombre = nombre.trim();
-    if (descripcion !== undefined) datosActualizados.descripcion = descripcion;
-    if (activo !== undefined) datosActualizados.activo = activo;
+    const datosActualizados = parsed.data;
 
     const categoria = await prisma.categoria.update({ where: { id }, data: datosActualizados });
 

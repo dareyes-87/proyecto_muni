@@ -222,3 +222,14 @@ test('GET inventario y alertas: los lotes AGOTADO/VENCIDO/DADO_DE_BAJA/pasados n
     await prisma.medicamento.delete({ where: { id: med.id } });
   }
 });
+
+test('PUT medicamentos y categorías: un tipo incorrecto en activo/descripcion da 400, no 500', async () => {
+  const put = (ruta: string, body: unknown) =>
+    fetch(`${base}${ruta}`, { method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+
+  assert.equal((await put(`/catalogos/medicamentos/${medId}`, { activo: 'no' })).status, 400);
+  assert.equal((await put(`/catalogos/categorias/${categoriaId}`, { activo: 'no' })).status, 400);
+  assert.equal((await put(`/catalogos/categorias/${categoriaId}`, { descripcion: 5 })).status, 400);
+  assert.equal((await put(`/catalogos/categorias/${categoriaId}`, { nombre: '  ' })).status, 400);
+  assert.equal((await put(`/catalogos/medicamentos/${medId}`, { stockMinimo: 0 })).status, 200, 'un cuerpo válido sigue pasando');
+});
