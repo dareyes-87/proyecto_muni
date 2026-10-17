@@ -15,7 +15,7 @@ import { generarPdfTabla, type Alineacion } from '../utils/pdf';
 import { generarExcel } from '../utils/excel';
 import { formatFechaDia, formatFechaHora } from '../utils/formatDate';
 import { responderError } from '../utils/httpError';
-import { textoQuery } from '../utils/validacion';
+import { LIMITE_EXPORT, textoQuery, verificarLimiteExport } from '../utils/validacion';
 
 const router = Router();
 
@@ -153,11 +153,9 @@ interface TablaExport {
 }
 
 async function construirTabla(tipo: TipoReporte, query: Request['query']): Promise<TablaExport> {
-  const LIMITE_EXPORT = 5000;
-
   switch (tipo) {
     case 'dispensaciones': {
-      const { data } = await reporteDispensaciones({
+      const { data, pagination } = await reporteDispensaciones({
         desde: textoQuery(query.desde),
         hasta: textoQuery(query.hasta),
         beneficiarioId: textoQuery(query.beneficiarioId),
@@ -165,6 +163,7 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
         page: 1,
         limit: LIMITE_EXPORT,
       });
+      verificarLimiteExport(pagination.total);
       const filas = data.flatMap((d) =>
         d.medicamentos.map((m) => ({
           fecha: formatFechaHora(d.createdAt),
@@ -198,13 +197,14 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
     }
 
     case 'consumo': {
-      const { data } = await reporteConsumoMedicamentos({
+      const { data, pagination } = await reporteConsumoMedicamentos({
         desde: textoQuery(query.desde),
         hasta: textoQuery(query.hasta),
         categoriaId: textoQuery(query.categoriaId),
         page: 1,
         limit: LIMITE_EXPORT,
       });
+      verificarLimiteExport(pagination.total);
       return {
         titulo: 'Reporte de Consumo por Medicamento',
         columnasPdf: ['Medicamento', 'Presentación', 'Categoría', 'Cant. total dispensada', 'N.º dispensaciones'],
@@ -223,12 +223,13 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
     }
 
     case 'inventario': {
-      const { data } = await reporteInventarioActual({
+      const { data, pagination } = await reporteInventarioActual({
         categoriaId: textoQuery(query.categoriaId),
         estado: query.estado as EstadoLote | undefined,
         page: 1,
         limit: LIMITE_EXPORT,
       });
+      verificarLimiteExport(pagination.total);
       const filas = data.map((l) => ({
         medicamento: l.medicamento.nombreGenerico,
         presentacion: l.medicamento.presentacion,
@@ -262,11 +263,12 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
     }
 
     case 'por-vencer': {
-      const { data } = await reportePorVencer({
+      const { data, pagination } = await reportePorVencer({
         dias: query.dias ? parseInt(query.dias as string, 10) : undefined,
         page: 1,
         limit: LIMITE_EXPORT,
       });
+      verificarLimiteExport(pagination.total);
       const filas = data.map((l) => ({
         medicamento: l.medicamento.nombreGenerico,
         presentacion: l.medicamento.presentacion,
@@ -302,12 +304,13 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
     }
 
     case 'entradas': {
-      const { data } = await reporteEntradas({
+      const { data, pagination } = await reporteEntradas({
         desde: query.desde as string | undefined,
         hasta: query.hasta as string | undefined,
         page: 1,
         limit: LIMITE_EXPORT,
       });
+      verificarLimiteExport(pagination.total);
       const filas = data.map((e) => ({
         fecha: formatFechaHora(e.createdAt),
         usuario: e.usuario,
@@ -333,12 +336,13 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
     }
 
     case 'baja': {
-      const { data } = await reporteMedicamentosBaja({
+      const { data, pagination } = await reporteMedicamentosBaja({
         desde: query.desde as string | undefined,
         hasta: query.hasta as string | undefined,
         page: 1,
         limit: LIMITE_EXPORT,
       });
+      verificarLimiteExport(pagination.total);
       const filas = data.map((l) => ({
         medicamento: l.medicamento.nombreGenerico,
         presentacion: l.medicamento.presentacion,

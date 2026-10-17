@@ -8,6 +8,7 @@ import { registrarAuditoria } from '../middleware/audit';
 import { comprimirImagen } from '../utils/imagen';
 import { responderError } from '../utils/httpError';
 import { textoQuery } from '../utils/validacion';
+import { obtenerStockMedicamento } from '../services/dispensacion.service';
 import { prisma } from '../config/prisma';
 
 const router = Router();
@@ -94,15 +95,14 @@ router.get('/medicamentos/barcode/:codigo', authMiddleware, async (req: Request,
       return;
     }
 
-    const stockActual = await prisma.lote.aggregate({
-      where: { medicamentoId: codigoBarras.medicamentoId, estado: 'DISPONIBLE' },
-      _sum: { cantidadActual: true },
-    });
+    // Mismo criterio que el despacho: excluye lotes vencidos por fecha aunque el cron
+    // aún no los haya marcado VENCIDO.
+    const { stockTotal } = await obtenerStockMedicamento(codigoBarras.medicamentoId);
 
     res.json({
       data: {
         ...codigoBarras.medicamento,
-        stockActual: stockActual._sum.cantidadActual || 0,
+        stockActual: stockTotal,
       },
     });
   } catch (error) {

@@ -21,7 +21,7 @@ const router = Router();
  * auditan porque usuarioId es una FK obligatoria.
  */
 async function responderFallo(res: Response, username: string, usuarioId?: string, ip?: string): Promise<void> {
-  const resultado = registrarFallo(username);
+  const resultado = registrarFallo(username, ip ?? 'desconocida');
 
   if (usuarioId) {
     await registrarAuditoria({
@@ -78,9 +78,9 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // CAPA 2 — Lockout por usuario: si la cuenta está bloqueada por intentos
+    // CAPA 2 — Lockout por usuario+IP: si esa combinación está bloqueada por intentos
     // fallidos, no se verifican credenciales (H-09). Independiente del límite por IP.
-    const restante = msBloqueoRestante(username);
+    const restante = msBloqueoRestante(username, ip);
     if (restante > 0) {
       res.set('Retry-After', String(msASegundos(restante)));
       res.status(429).json({
@@ -105,7 +105,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     }
 
     // Login correcto: se reinicia el contador de intentos del usuario.
-    limpiarIntentos(username);
+    limpiarIntentos(username, ip);
 
     // Actualizar último acceso
     await prisma.usuario.update({

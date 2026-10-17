@@ -6,7 +6,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { clampPaginacion, esEnteroPositivo, exigirCadena, textoQuery, ErrorValidacion } from '../src/utils/validacion';
+import { clampPaginacion, esEnteroPositivo, exigirCadena, textoQuery, ErrorValidacion, verificarLimiteExport, LIMITE_EXPORT } from '../src/utils/validacion';
 
 // --- esEnteroPositivo: núcleo del fix H-020 (cantidad de despacho) ---
 test('esEnteroPositivo: acepta enteros positivos', () => {
@@ -79,4 +79,15 @@ test('textoQuery: objeto / número / undefined → undefined (no se pasa a Prism
   assert.equal(textoQuery(123 as unknown), undefined);
   assert.equal(textoQuery(undefined), undefined);
   assert.equal(textoQuery([] as unknown), undefined);
+});
+
+// --- verificarLimiteExport: una exportación más grande que el límite no debe salir truncada ---
+test('verificarLimiteExport: 5000 pasa; 5001 se rechaza con el total y el máximo en el mensaje (400)', () => {
+  assert.equal(LIMITE_EXPORT, 5000);
+  assert.doesNotThrow(() => verificarLimiteExport(0));
+  assert.doesNotThrow(() => verificarLimiteExport(5000));
+  assert.throws(
+    () => verificarLimiteExport(5001),
+    (e: any) => e instanceof ErrorValidacion && e.status === 400 && e.message.includes('5001') && e.message.includes('5000')
+  );
 });

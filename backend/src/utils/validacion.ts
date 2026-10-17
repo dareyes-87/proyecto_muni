@@ -63,3 +63,15 @@ export function clampPaginacion(
 
   return { page: p, limit: l, skip: (p - 1) * l };
 }
+
+/** Máximo de registros que se exportan a PDF/Excel. */
+export const LIMITE_EXPORT = 5000;
+
+/** Un reporte más grande que el límite saldría cortado sin aviso: se rechaza en vez de truncarlo. */
+export function verificarLimiteExport(total: number): void {
+  if (total > LIMITE_EXPORT) {
+    throw new ErrorValidacion(
+      `El reporte tiene ${total} registros y el máximo exportable es ${LIMITE_EXPORT}. Reduzca el rango de fechas o aplique más filtros.`
+    );
+  }
+}
