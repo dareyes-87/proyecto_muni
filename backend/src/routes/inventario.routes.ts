@@ -765,8 +765,9 @@ router.post(
     let codigosBarrasVinculados = 0;
     let lotesRegistrados = 0;
     let lotesOmitidos = 0;
-    // Hora de la base (no la de Node) para compararla con lotes.created_at sin desfase de reloj.
-    const [{ ahora: inicioImportacion }] = await prisma.$queryRaw<{ ahora: Date }[]>`SELECT now() AS ahora`;
+    // Instante de inicio: los lotes con created_at anterior vienen de importaciones previas
+    // (Prisma fija created_at con la hora del servidor de la API, la misma que esta).
+    const inicioImportacion = new Date();
 
     for (const { fila, numeroFila } of filasValidas) {
       try {

@@ -84,7 +84,9 @@ after(async () => {
     await prisma.codigoBarras.deleteMany({ where: { medicamentoId: medId } });
     await prisma.medicamento.delete({ where: { id: medId } });
   }
-  await prisma.ubicacion.deleteMany({ where: { codigo: { startsWith: `QA-UBI-${sufijo}` } } });
+  const ubicaciones = await prisma.ubicacion.findMany({ where: { codigo: { startsWith: `QA-UBI-${sufijo}` } }, select: { id: true } });
+  await prisma.logAuditoria.deleteMany({ where: { entidad: 'ubicacion', entidadId: { in: ubicaciones.map((u) => u.id) } } });
+  await prisma.ubicacion.deleteMany({ where: { id: { in: ubicaciones.map((u) => u.id) } } });
   await prisma.$disconnect();
 });
 
