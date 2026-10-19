@@ -460,7 +460,7 @@ export default function Dispensacion() {
           medicamentoId: i.medicamento.id,
           cantidad: i.cantidad,
         })),
-      });
+      }, { timeout: 30000 }); // sin tope, una petición colgada deja el modal bloqueado
 
       const nuevaId: string = data.dispensacion.id;
       setDispensacionId(nuevaId);
@@ -477,7 +477,18 @@ export default function Dispensacion() {
         toast.error('No se pudo generar el código QR para las fotos');
       }
     } catch (error: any) {
-      const msg = error.response?.data?.error || 'Error al registrar dispensación';
+      // Sin respuesta (red caída, tiempo agotado, 502+) no se sabe si el servidor llegó a registrarla:
+      // reintentar podría duplicarla. Se avisa, se refresca el historial y Enter deja de reintentar (el clic sí).
+      const sinRespuesta = !error.response || error.response.status >= 502;
+      const msg = sinRespuesta
+        ? 'No se recibió respuesta del servidor. La dispensación pudo haberse registrado: revise "Últimas dispensaciones" del beneficiario antes de reintentar.'
+        : error.response?.data?.error || 'Error al registrar dispensación';
+      if (sinRespuesta) {
+        teclaAjenaRef.current = true;
+        api.get(`/dispensacion/beneficiarios/${beneficiario.id}`)
+          .then(({ data }) => setHistorialReciente((data.dispensaciones || []).slice(0, 5)))
+          .catch(() => { /* sin red tampoco se puede refrescar: el aviso ya lo dice */ });
+      }
       toast.error(msg);
       setErrorDespacho(msg);
     } finally {
