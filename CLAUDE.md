@@ -351,6 +351,7 @@ El sistema soporta 4 usuarios simultáneos. Para evitar inconsistencias de inven
 2. **Al iniciar una sesión de Claude:** Pega el prompt inicial que se te asignó. Claude leerá este archivo para entender el contexto.
 3. **Al terminar una sesión:** Actualiza tu sección con lo que completaste y lo que queda pendiente. Haz commit y push de este archivo.
 4. **Si otro compañero completó algo:** Haz `git pull` antes de empezar. Revisa si sus cambios afectan tu módulo.
+5. **Skills de Claude Code:** antes de usar una skill (ponytail, impeccable, mattpocock, addyosmani), lee `docs/HERRAMIENTAS_IA.md`: cuál usar para qué y qué reglas del proyecto no cambian.
 
 ---
 
