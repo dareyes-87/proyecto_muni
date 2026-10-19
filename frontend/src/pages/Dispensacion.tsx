@@ -267,6 +267,8 @@ export default function Dispensacion() {
   // El estado de arriba llega tarde para un segundo Enter o clic en el mismo instante: la guarda real es esta.
   const despachandoRef = useRef(false);
   const confirmarRef = useRef<HTMLButtonElement>(null);
+  // Se tecleó algo (p. ej. una lectura de pistola) desde que se abrió el modal: Enter deja de confirmar.
+  const teclaAjenaRef = useRef(false);
   const [errorDespacho, setErrorDespacho] = useState<string | null>(null);
   const [exitoso, setExitoso] = useState(false);
   const [showConfirmacion, setShowConfirmacion] = useState(false);
@@ -490,14 +492,20 @@ export default function Dispensacion() {
     if (showConfirmacion && !despachando) confirmarRef.current?.focus();
   }, [showConfirmacion, despachando]);
 
-  // Escape cancela la confirmación, salvo mientras la petición está en curso.
+  // Teclado con el modal abierto. Escape cancela, salvo mientras la petición está en curso.
+  // Cualquier otra tecla (menos Enter, Tab y los modificadores solos) se anota: una lectura
+  // de pistola son dígitos + Enter, y ese Enter no debe confirmar una dispensación.
   useEffect(() => {
     if (!showConfirmacion) return;
     const alTeclear = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !e.repeat && !despachando) setShowConfirmacion(false);
+      if (e.key === 'Escape') {
+        if (!e.repeat && !despachando) setShowConfirmacion(false);
+      } else if (!['Enter', 'Tab', 'Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) {
+        teclaAjenaRef.current = true;
+      }
     };
-    document.addEventListener('keydown', alTeclear);
-    return () => document.removeEventListener('keydown', alTeclear);
+    document.addEventListener('keydown', alTeclear, true); // en captura: antes que cualquier otro manejador
+    return () => document.removeEventListener('keydown', alTeclear, true);
   }, [showConfirmacion, despachando]);
 
   // Polling del estado de las fotos mientras la pantalla de éxito está visible.
@@ -974,7 +982,7 @@ export default function Dispensacion() {
 
         <Button
           size="lg"
-          onClick={() => { setErrorDespacho(null); setShowConfirmacion(true); }}
+          onClick={() => { setErrorDespacho(null); teclaAjenaRef.current = false; setShowConfirmacion(true); }}
           disabled={!beneficiario || carrito.length === 0 || despachando}
           className="w-full"
         >
@@ -1030,8 +1038,9 @@ export default function Dispensacion() {
               <Button
                 ref={confirmarRef}
                 onClick={confirmarDispensacion}
-                // Una tecla mantenida repite el Enter y volvería a activar el botón.
-                onKeyDown={(e) => { if (e.repeat) e.preventDefault(); }}
+                // Sin esto, una tecla mantenida repetiría el Enter, y un Enter tras otras teclas
+                // (pistola) confirmaría sin querer. El clic sigue funcionando siempre.
+                onKeyDown={(e) => { if (e.repeat || (e.key === 'Enter' && teclaAjenaRef.current)) e.preventDefault(); }}
                 disabled={despachando}
               >
                 <CheckCircle size={18} />
