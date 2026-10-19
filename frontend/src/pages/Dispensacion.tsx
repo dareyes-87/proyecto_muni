@@ -269,6 +269,7 @@ export default function Dispensacion() {
   const confirmarRef = useRef<HTMLButtonElement>(null);
   // Se tecleó algo (p. ej. una lectura de pistola) desde que se abrió el modal: Enter deja de confirmar.
   const teclaAjenaRef = useRef(false);
+  const [avisoTeclado, setAvisoTeclado] = useState(false); // se mostró que Enter se ignoró por esa guarda
   const [errorDespacho, setErrorDespacho] = useState<string | null>(null);
   const [exitoso, setExitoso] = useState(false);
   const [showConfirmacion, setShowConfirmacion] = useState(false);
@@ -452,6 +453,7 @@ export default function Dispensacion() {
     despachandoRef.current = true;
     setDespachando(true);
     setErrorDespacho(null);
+    setAvisoTeclado(false);
     try {
       const { data } = await api.post('/dispensacion/despachar', {
         beneficiarioId: beneficiario.id,
@@ -993,7 +995,7 @@ export default function Dispensacion() {
 
         <Button
           size="lg"
-          onClick={() => { setErrorDespacho(null); teclaAjenaRef.current = false; setShowConfirmacion(true); }}
+          onClick={() => { setErrorDespacho(null); setAvisoTeclado(false); teclaAjenaRef.current = false; setShowConfirmacion(true); }}
           disabled={!beneficiario || carrito.length === 0 || despachando}
           className="w-full"
         >
@@ -1044,6 +1046,12 @@ export default function Dispensacion() {
               </p>
             )}
 
+            {avisoTeclado && (
+              <p role="status" className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">
+                Para confirmar, haga clic en Dispensar
+              </p>
+            )}
+
             <div className="mt-5 flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setShowConfirmacion(false)} disabled={despachando}>Cancelar</Button>
               <Button
@@ -1051,7 +1059,13 @@ export default function Dispensacion() {
                 onClick={confirmarDispensacion}
                 // Sin esto, una tecla mantenida repetiría el Enter, y un Enter tras otras teclas
                 // (pistola) confirmaría sin querer. El clic sigue funcionando siempre.
-                onKeyDown={(e) => { if (e.repeat || (e.key === 'Enter' && teclaAjenaRef.current)) e.preventDefault(); }}
+                onKeyDown={(e) => {
+                  if (e.repeat) { e.preventDefault(); return; }
+                  if (e.key === 'Enter' && teclaAjenaRef.current) {
+                    e.preventDefault();
+                    if (!despachandoRef.current) setAvisoTeclado(true);
+                  }
+                }}
                 disabled={despachando}
               >
                 <CheckCircle size={18} />
