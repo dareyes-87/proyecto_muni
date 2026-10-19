@@ -259,6 +259,7 @@ function InputCantidad({
 export default function Dispensacion() {
   // --- Estado del flujo ---
   const [beneficiario, setBeneficiario] = useState<Beneficiario | null>(null);
+  const beneficiarioIdRef = useRef<string | null>(null); // para descartar respuestas tardías de otro beneficiario
   const [umbrales, setUmbrales] = useState<Umbrales>({ rojo: 30, amarillo: 90 });
   const [historialReciente, setHistorialReciente] = useState<DispensacionReciente[]>([]);
   const [carrito, setCarrito] = useState<ItemCarrito[]>([]);
@@ -269,6 +270,7 @@ export default function Dispensacion() {
   const confirmarRef = useRef<HTMLButtonElement>(null);
   // Se tecleó algo (p. ej. una lectura de pistola) desde que se abrió el modal: Enter deja de confirmar.
   const teclaAjenaRef = useRef(false);
+  beneficiarioIdRef.current = beneficiario?.id ?? null;
   const [avisoTeclado, setAvisoTeclado] = useState(false); // se mostró que Enter se ignoró por esa guarda
   const [errorDespacho, setErrorDespacho] = useState<string | null>(null);
   const [exitoso, setExitoso] = useState(false);
@@ -462,7 +464,7 @@ export default function Dispensacion() {
           medicamentoId: i.medicamento.id,
           cantidad: i.cantidad,
         })),
-      }, { timeout: 30000 }); // sin tope, una petición colgada deja el modal bloqueado
+      }, { timeout: 60000 }); // sin tope una petición colgada bloquea el modal; 60 s = tope por defecto de nginx
 
       const nuevaId: string = data.dispensacion.id;
       setDispensacionId(nuevaId);
@@ -487,8 +489,11 @@ export default function Dispensacion() {
         : error.response?.data?.error || 'Error al registrar dispensación';
       if (sinRespuesta) {
         teclaAjenaRef.current = true;
-        api.get(`/dispensacion/beneficiarios/${beneficiario.id}`)
-          .then(({ data }) => setHistorialReciente((data.dispensaciones || []).slice(0, 5)))
+        const idConsultado = beneficiario.id;
+        api.get(`/dispensacion/beneficiarios/${idConsultado}`)
+          .then(({ data }) => {
+            if (beneficiarioIdRef.current === idConsultado) setHistorialReciente((data.dispensaciones || []).slice(0, 5));
+          })
           .catch(() => { /* sin red tampoco se puede refrescar: el aviso ya lo dice */ });
       }
       toast.error(msg);
@@ -513,7 +518,7 @@ export default function Dispensacion() {
     const alTeclear = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (!e.repeat && !despachando) setShowConfirmacion(false);
-      } else if (!['Enter', 'Tab', 'Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) {
+      } else if (!['Enter', 'Tab', ' ', 'Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) {
         teclaAjenaRef.current = true;
       }
     };
@@ -1061,7 +1066,8 @@ export default function Dispensacion() {
                 // (pistola) confirmaría sin querer. El clic sigue funcionando siempre.
                 onKeyDown={(e) => {
                   if (e.repeat) { e.preventDefault(); return; }
-                  if (e.key === 'Enter' && teclaAjenaRef.current) {
+                  // Space también activa un botón: un código con espacio no debe confirmar con la guarda activa.
+                  if ((e.key === 'Enter' || e.key === ' ') && teclaAjenaRef.current) {
                     e.preventDefault();
                     if (!despachandoRef.current) setAvisoTeclado(true);
                   }
