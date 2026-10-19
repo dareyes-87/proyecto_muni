@@ -238,6 +238,7 @@ export default function Medicamentos() {
     <div>
       <div className="mb-4">
         <SearchInput
+          autoFocus
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Buscar por nombre genérico o comercial..."
