@@ -1139,3 +1139,19 @@ Registrar entrada); el catálogo conserva la edición.
 `docker compose up --build` correspondiente). Verificación visual con un browser real de las páginas
 que aún no se han click-through en navegador de forma exhaustiva (Catálogos/Auditoría) sigue
 pendiente como antes.
+
+---
+
+## Agent skills
+
+### Issue tracker
+
+Los issues viven en GitHub Issues (`dareyes-87/proyecto_muni`), vía el CLI `gh`. Ver `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Vocabulario por defecto: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. Ver `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: un `GLOSSARY.md` + `docs/adr/` en la raíz (se crean al usarse). Ver `docs/agents/domain.md`.
