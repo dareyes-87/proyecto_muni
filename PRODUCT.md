@@ -8,7 +8,7 @@ web
 
 ## Users
 
-- **Encargada de beneficencia** (rol `ENCARGADO_BENEFICENCIA`): dispensa medicamentos gratuitos a beneficiarios en un escritorio de la Farmacia Municipal de Gualán, con gente esperando. Personal con poca experiencia técnica; usa teclado. El uso de pistola de código de barras está **por confirmar con el personal** (el sistema la soporta, pero no se ha verificado que la usen).
+- **Encargada de beneficencia** (rol `ENCARGADO_BENEFICENCIA`): dispensa medicamentos gratuitos a beneficiarios en un escritorio de la Farmacia Municipal de Gualán, con gente esperando. Personal con poca experiencia técnica; usa teclado. La pistola de código de barras **existe** (confirmado por el equipo de desarrollo); su modelo, el sufijo que envía al terminar la lectura (Enter o Tab) y la frecuencia de uso están **por confirmar con el personal**.
 - **Administrador** (rol `ADMIN`): gestiona inventario, entradas, catálogos, usuarios, auditoría y reportes.
 - Hasta 4 usuarios simultáneos. Equipos de escritorio en red local. Sistema operativo, procesador, memoria, resolución de pantalla, navegador y rendimiento de la red: **por confirmar con el personal** (no se han verificado).
 - El celular se usa **solo** para la captura de fotos de evidencia (ruta pública `/captura/:token` vía QR); el resto del sistema no se usa en móvil.
@@ -46,7 +46,7 @@ Hecho a la medida de una farmacia municipal de beneficencia: dispensación gratu
 
 ## Product Principles
 
-1. **Velocidad sobre ceremonia en el mostrador:** el flujo de dispensación debe poder hacerse con teclado (y con pistola de códigos, si el personal la usa; por confirmar), sin pasos innecesarios.
+1. **Velocidad sobre ceremonia en el mostrador:** el flujo de dispensación debe poder hacerse con teclado y con pistola de códigos (modelo, sufijo y frecuencia de uso por confirmar), sin pasos innecesarios.
 2. **Nada de errores silenciosos con medicamentos:** vencimiento, stock insuficiente y confirmaciones deben ser inequívocos.
 3. **Trazabilidad por defecto:** cada acción que modifica datos queda auditada y es visible.
 4. **Sobrio e institucional:** herramienta de trabajo para una oficina municipal, no un producto de consumo.
