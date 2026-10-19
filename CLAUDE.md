@@ -351,6 +351,7 @@ El sistema soporta 4 usuarios simultáneos. Para evitar inconsistencias de inven
 2. **Al iniciar una sesión de Claude:** Pega el prompt inicial que se te asignó. Claude leerá este archivo para entender el contexto.
 3. **Al terminar una sesión:** Actualiza tu sección con lo que completaste y lo que queda pendiente. Haz commit y push de este archivo.
 4. **Si otro compañero completó algo:** Haz `git pull` antes de empezar. Revisa si sus cambios afectan tu módulo.
+5. **Skills de Claude Code:** antes de usar una skill (ponytail, impeccable, mattpocock, addyosmani), lee `docs/HERRAMIENTAS_IA.md`: cuál usar para qué y qué reglas del proyecto no cambian.
 
 ---
 
@@ -1138,3 +1139,19 @@ Registrar entrada); el catálogo conserva la edición.
 `docker compose up --build` correspondiente). Verificación visual con un browser real de las páginas
 que aún no se han click-through en navegador de forma exhaustiva (Catálogos/Auditoría) sigue
 pendiente como antes.
+
+---
+
+## Agent skills
+
+### Issue tracker
+
+Los issues viven en GitHub Issues (`dareyes-87/proyecto_muni`), vía el CLI `gh`. Ver `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Vocabulario por defecto: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. Ver `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: un `GLOSSARY.md` + `docs/adr/` en la raíz (se crean al usarse). Ver `docs/agents/domain.md`.
