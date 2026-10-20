@@ -372,7 +372,7 @@ Las reglas de negocio son las condiciones que el sistema aplica a los datos y a 
 análisis del código se registraron 77 reglas (RN-01 a RN-77), de las cuales 76 están vigentes y una
 fue eliminada. La Tabla 46 resume las 30 que más afectan el trabajo del usuario, con su identificador
 original; la lista completa, con el mensaje que muestra el sistema y la fuente de cada regla, se
-presenta en el anexo [COMPLETAR: identificador del anexo de reglas de negocio].
+presenta en el Anexo C.
 
 Tabla 46.
 Reglas de negocio principales

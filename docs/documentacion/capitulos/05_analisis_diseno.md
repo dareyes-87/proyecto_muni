@@ -743,8 +743,7 @@ Fuente: Elaboración propia con base en `middleware/auth.ts` y `middleware/error
 Las Tablas 89 a 96 resumen los endpoints de cada módulo. En la columna "Roles", "Ambos" significa
 cualquier usuario con sesión, "ADMIN" el rol Administrador y "Público" un acceso sin sesión. Las rutas
 se escriben sin el prefijo `/api`. La especificación completa de cada endpoint, con sus parámetros,
-cuerpos, tablas que lee y escribe y registros de auditoría, se presenta en el anexo [COMPLETAR:
-identificador del anexo de especificación de la API].
+cuerpos, tablas que lee y escribe y registros de auditoría, se presenta en el Anexo D.
 
 Tabla 89.
 Endpoints de autenticación y estado del servicio
