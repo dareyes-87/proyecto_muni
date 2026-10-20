@@ -48,6 +48,12 @@ antes, `FRONTEND_TARGET=development`). No se hicieron en el equipo de la municip
 | P-21 | Abierta | ¿Se debe obligar a cambiar la contraseña del administrador inicial en el primer inicio de sesión? ¿Debe existir un cambio de contraseña propio para cada usuario? | El seed pide cambiarla en un mensaje de consola, pero no hay campo ni control que lo exija, y no existe endpoint para que un usuario cambie su propia contraseña (solo el ADMIN restablece). La contraseña aleatoria queda en el registro del contenedor (H-39). | backend/prisma/seed.ts, líneas 16–20 y 59–67; backend/src/routes/usuarios.routes.ts, líneas 186–221; backend/src/routes/auth.routes.ts |
 | P-22 | Abierta | ¿Cuál es la política de contraseñas oficial del sistema? | Conviven tres reglas: mínimo 6 caracteres al crear o restablecer usuarios; mínimo 8 y una lista de 6 valores prohibidos para el administrador inicial; ninguna regla de complejidad ni caducidad. La especificación solo dice "Login con usuario y contraseña (hash bcrypt)". Según la respuesta, la tesis describirá la regla como intencional o como brecha (RNF de seguridad). | backend/src/routes/usuarios.routes.ts, líneas 53–57 y 193–196; backend/prisma/seed.ts, líneas 8 y 31–38; Espec. línea 91; H-16, H-41 |
 
+## Actualización de la extracción al commit bdf1187 — parte 2 (2026-10-20)
+
+| ID | Estado | Pregunta | Contexto | Fuente |
+|----|--------|----------|----------|--------|
+| P-23 | Abierta | ¿Qué código debe responder `POST /dispensacion/despachar` cuando el beneficiario o un medicamento están inactivos: 400 (dato no válido para dispensar) o 404 (no encontrado)? | La ruta declara una regla `inactivo → 400`, pero los mensajes del servicio (`… no encontrado o inactivo`) coinciden antes con la regla `no encontrado → 404`, así que hoy siempre responde 404 y no se distingue un id inexistente de un registro inactivo. Afecta a la especificación de la API y a los casos de prueba del despacho. | backend/src/routes/dispensacion.routes.ts, líneas 209–213; backend/src/services/dispensacion.service.ts, líneas 174–176 y 206–208; `04_api.md`, sección 2.5 |
+
 ## Respuestas del responsable
 
 | ID | Tema | Respuesta | Fuente |
