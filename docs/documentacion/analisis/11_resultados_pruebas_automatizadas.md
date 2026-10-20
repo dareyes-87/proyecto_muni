@@ -44,8 +44,8 @@ El workflow `.github/workflows/despliegue-seguro.yml` no ejecuta `npm test`. En 
   `America/Guatemala` (línea 91).
 
 La ejecución local corrió las 10 en un solo proceso, una vez, con `TZ=America/Guatemala` en Node y la
-base en `UTC`. **No se repitió con `TZ=UTC`**, así que este documento no comprueba el comportamiento
-en esa zona horaria.
+base en `UTC`. Después se repitieron con `TZ=UTC` las cuatro pruebas de Postgres que corre el job
+`esquema` (ver sección 6).
 
 ### 1.2 Efectos sobre la base de datos
 
@@ -119,5 +119,59 @@ Ninguna. Las 53 pruebas terminaron con `ok`. No se modificó ninguna prueba ni c
   Node los toma como ruta de archivo. Ese intento no ejecutó ninguna prueba. El resultado de este
   documento corresponde a `npm test` sin argumentos.
 - La cifra de 53 casos coincide con el conteo estático de `10_material_calidad.md` (sección 1).
-- `[COMPLETAR: si se quiere citar en el Cap. 8 una ejecución con TZ=UTC o del workflow en GitHub
-  Actions, adjuntar enlace o captura de esa ejecución]`.
+- La ejecución con `TZ=UTC` se registra en la sección 6.
+- `[COMPLETAR: si se quiere citar en el Cap. 8 una ejecución del workflow en GitHub Actions, adjuntar
+  enlace o captura de esa ejecución]`.
+
+## 6. Ejecución con TZ=UTC
+
+- **Fecha y hora:** 2026-10-20, de 02:58:19 a 02:58:26 (hora de Guatemala, UTC−6).
+- **Código y entorno:** los mismos de la sección 1 (código de `bdf1187`, contenedor `farmag_api`,
+  Node.js v20.20.2, PostgreSQL 16.14, misma base `farmag_db`), con `TZ=UTC` forzada en el proceso.
+  Dentro del contenedor `date` devolvió `Tue Oct 20 08:58:19 UTC 2026`.
+- **Archivos:** los cuatro que corre el job `esquema` con `TZ=UTC` (fuente:
+  .github/workflows/despliegue-seguro.yml, línea 95), en el mismo orden.
+- **Comando exacto** (desde la raíz del repositorio):
+
+  ```
+  docker compose exec -T -e TZ=UTC api sh -c 'cd /app && node --import tsx --test --test-concurrency=1 tests/despacho_vencimiento.test.ts tests/rutas_integracion.test.ts tests/vencimiento_arranque.test.ts tests/seed.test.ts'
+  ```
+
+- **Diferencia con el workflow:** en el workflow la base `farmag` tiene la zona horaria
+  `America/Guatemala` (línea 91); aquí la base de desarrollo seguía en `UTC`. Así, tanto Node como la
+  sesión de Postgres estaban en UTC.
+
+En la Tabla 9 se presentan los resultados de esta ejecución. Los casos se asociaron a cada archivo y
+la duración se calculó igual que en la Tabla 8.
+
+Tabla 9.
+Resultados de las pruebas de Postgres con `TZ=UTC` por archivo (commit `bdf1187`)
+
+| Archivo de prueba | N.º de casos | Aprobados | Fallidos | Duración (ms) |
+|-------------------|-------------:|----------:|---------:|--------------:|
+| despacho_vencimiento.test.ts | 1 | 1 | 0 | 172 |
+| rutas_integracion.test.ts | 8 | 8 | 0 | 560 |
+| vencimiento_arranque.test.ts | 1 | 1 | 0 | 119 |
+| seed.test.ts | 1 | 1 | 0 | 3 430 |
+| **Total** | **11** | **11** | **0** | **4 281** |
+
+Fuente: Elaboración propia a partir de la salida TAP de la ejecución con `TZ=UTC` (2026-10-20).
+
+Resumen final de la salida TAP:
+
+```
+1..11
+# tests 11
+# suites 0
+# pass 11
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6178.247293
+```
+
+Código de salida del proceso: 0. No falló ninguna prueba, así que no se agregó ningún hallazgo a
+`hallazgos_defectos.md`. Al terminar, la base volvió a quedar con 0 medicamentos, 0 lotes, 0 entradas
+y 0 dispensaciones, sin bases `farmag_seed_test_*`, y con los mismos 2 registros en `log_auditoria`
+que había antes.
