@@ -1,2 +1,2 @@
-Cada responsable filtra `FarmaG_Pendientes.xlsx` por su nombre y escribe en las celdas amarillas (Respuesta, Comentario) o, en Correcciones, cambia el Estado con la lista y anota el número de PR; no se borran ni se reordenan filas.
-Al devolverlo, Audias Guevara pasa las respuestas a `analisis/` y a los capítulos y regenera el archivo; la pestaña Resumen se actualiza sola con fórmulas.
+`FarmaG_Pendientes.xlsx` tiene dos pestañas. En **Prioritario**, cada responsable filtra por su nombre y escribe en la columna amarilla Respuesta; no se borran ni se reordenan filas. **Trabajo posterior** es solo de lectura: correcciones que se entregan después del 24/10.
+Al devolverlo, Audias Guevara pasa las respuestas a `analisis/` y a los capítulos. Los [COMPLETAR] que no entran en el libro están en `omitidos.md`.
