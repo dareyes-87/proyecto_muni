@@ -72,11 +72,11 @@ Interesados del proyecto
 | Interesado | Descripción | Responsabilidades |
 |------------|-------------|-------------------|
 | Alcalde Municipal de Gualán | Patrocinador y cliente del proyecto; expresó la solicitud que dio origen al sistema | Definir la necesidad, aprobar la delimitación del alcance a la farmacia de dispensación gratuita y confirmar las decisiones pendientes con la municipalidad |
-| Municipalidad de Gualán | Institución propietaria de la farmacia y del sistema instalado | Proveer el equipo y la red local donde opera el sistema, y recibir los reportes de la farmacia. [COMPLETAR: unidad o persona de la municipalidad responsable del equipo servidor] |
-| Persona que opera la farmacia | Única persona que despacha medicamentos y consulta los reportes en la operación actual | Registrar entradas y dispensaciones, mantener los datos de los beneficiarios y revisar las alertas. [COMPLETAR: cargo de esta persona] |
+| Municipalidad de Gualán | Institución propietaria de la farmacia y del sistema instalado | Proveer el equipo y la red local donde opera el sistema, y recibir los reportes de la farmacia |
+| Persona que opera la farmacia | Única persona que despacha medicamentos y consulta los reportes en la operación actual | Registrar entradas y dispensaciones, mantener los datos de los beneficiarios y revisar las alertas |
 | Beneficiarios | Ciudadanos que reciben medicamentos sin costo; no usan el sistema | Presentar su identificación y la receta al recibir los medicamentos |
 | Equipo de desarrollo | Daniel Reyes (Inventario, configuración base y administración), Jorge Vargas (Dispensación) y Audias Guevara (Catálogos y documentación) | Analizar, diseñar, construir, instalar y documentar el sistema |
-| Asesor del curso de Seminario | Docente que supervisa el proyecto en la Universidad Mariano Gálvez de Guatemala | Revisar y aprobar la documentación. [COMPLETAR: nombre del asesor] |
+| Asesor del curso de Seminario | Docente que supervisa el proyecto en la Universidad Mariano Gálvez de Guatemala | Revisar y aprobar la documentación |
 
 Fuente: Elaboración propia.
 
@@ -164,8 +164,7 @@ plan de correcciones del proyecto.
 
 Los riesgos abiertos de mayor impacto (2, 3 y 12) dependen de la configuración del servidor de la
 farmacia y no del código, por lo que el plan de correcciones los asigna a una revisión en sitio que
-debe hacerse antes de integrar cambios que modifiquen variables obligatorias. [COMPLETAR: resultado
-de la revisión en sitio del servidor, cuando se realice].
+debe hacerse antes de integrar cambios que modifiquen variables obligatorias.
 
 ## 3.5 Factibilidad
 
@@ -173,13 +172,12 @@ de la revisión en sitio del servidor, cuando se realice].
 
 Las tecnologías del sistema, descritas en el capítulo 2, son de código abierto, cuentan con
 documentación oficial y se ejecutan en contenedores Docker, de modo que el servidor solo necesita
-Docker y un equipo conectado a la red local. El equipo de desarrollo tenía conocimiento de las
-herramientas utilizadas [COMPLETAR: experiencia previa del equipo con el stack, si se desea
-declarar]. La factibilidad técnica quedó demostrada en la práctica: el sistema fue instalado en la
+Docker y un equipo conectado a la red local. La factibilidad técnica quedó demostrada en la práctica: el sistema fue instalado en la
 Farmacia Municipal de Gualán y opera en su red local.
 
-[COMPLETAR: características del equipo servidor de la farmacia (procesador, memoria, almacenamiento
-y sistema operativo), de la red local y de los equipos cliente].
+Las características del equipo servidor de la farmacia (procesador, memoria, almacenamiento y
+sistema operativo), de su red local y de los equipos cliente no se verificaron como parte de este
+trabajo.
 
 ### 3.5.2 Factibilidad operativa
 
@@ -191,34 +189,18 @@ forma automática.
 
 En la operación actual, una sola persona realiza el despacho y consulta los reportes, con una cuenta
 de Administrador. Esto simplifica la adopción, pero concentra en una cuenta todos los permisos del
-sistema (riesgo 11 de la Tabla 9). [COMPLETAR: capacitación impartida a la persona que opera la
-farmacia, aceptación del sistema por parte de la municipalidad y fecha desde la que se usa en la
-operación diaria].
+sistema (riesgo 11 de la Tabla 9).
 
 ### 3.5.3 Factibilidad económica
 
 Las bibliotecas, el motor de base de datos y el servidor web del sistema son de código abierto y no
-requieren pago de licencias [COMPLETAR: confirmar la licencia de cada tecnología si se desea
-detallarla]. [COMPLETAR: indicar si el servidor de la farmacia ejecuta Docker Desktop y, en ese caso,
+requieren pago de licencias. [COMPLETAR: indicar si el servidor de la farmacia ejecuta Docker Desktop y, en ese caso,
 si los términos de licencia de Docker exigen una suscripción para la municipalidad]. El
-desarrollo lo realizó el equipo de estudiantes como proyecto académico. Los costos del proyecto que no
-constan en las fuentes del repositorio se resumen en la Tabla 10 para ser completados por el
-responsable.
+desarrollo lo realizó el equipo de estudiantes como proyecto académico.
 
-Tabla 10.
-Costos del proyecto
-
-| Rubro | Descripción | Costo (Q) |
-|-------|-------------|-----------|
-| Equipo servidor | Computadora de la farmacia donde se ejecuta el sistema | [COMPLETAR: costo, o indicar si es equipo existente de la municipalidad] |
-| Red local y equipos cliente | Conexión de red y equipos desde los que se usa el sistema | [COMPLETAR] |
-| Escáner de código de barras | Lector usado en entradas y dispensación | [COMPLETAR: si se adquirió y su costo] |
-| Licencias de software | Tecnologías de código abierto | [COMPLETAR: confirmar que es 0] |
-| Horas de desarrollo | Trabajo del equipo de tres estudiantes | [COMPLETAR: horas estimadas y criterio de valoración, si se desea incluir] |
-| Instalación y capacitación | Traslados, instalación en sitio y capacitación | [COMPLETAR] |
-| Total | | [COMPLETAR] |
-
-Fuente: Elaboración propia.
-
-[COMPLETAR: comparación con el costo de operar con el registro manual o con una alternativa comercial,
-si la municipalidad dispone de esos datos].
+Los rubros de costo del proyecto son el equipo servidor de la farmacia, donde se ejecuta el sistema;
+la red local y los equipos cliente desde los que se usa; el lector de código de barras usado en
+entradas y dispensación; las licencias de software; las horas de desarrollo del equipo de tres
+estudiantes, y la instalación en sitio y la capacitación. Las fuentes del repositorio no registran el
+monto de estos rubros, por lo que no se presenta una estimación de costos ni una comparación con el
+registro manual o con una alternativa comercial.

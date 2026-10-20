@@ -2,14 +2,12 @@
 
 # INFORME DE PRUEBAS DE PENETRACIÓN
 
-[COMPLETAR: se incorpora el informe de pruebas de penetración elaborado por \<integrante\>]
+En este anexo se incorpora el informe de pruebas de penetración del sistema.
 
 El informe se respalda en los documentos de la carpeta `docs/seguridad/` del repositorio, que se
 presentan en la Tabla 200. Los documentos se elaboraron entre el 7 y el 8 de octubre de 2026 sobre el
 entorno de desarrollo, antes de las correcciones integradas en los *pull requests* 4 a 9, por lo que
-algunos datos ya no coinciden con el código del commit `bdf1187`. [COMPLETAR: autor de los informes
-y si se elaboraron con asistencia de una herramienta de inteligencia artificial, para citarlos
-correctamente].
+algunos datos ya no coinciden con el código del commit `bdf1187`. Los informes no identifican a su autor.
 
 Tabla 200.
 Informes de seguridad que respaldan las pruebas de penetración

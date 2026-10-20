@@ -26,19 +26,20 @@ puertos, volúmenes y clientes se representa en el diagrama de despliegue (véas
 El sistema se ejecuta como un conjunto de contenedores de Docker orquestados con Docker Compose, por
 lo que el servidor no requiere instalar Node.js, PostgreSQL ni nginx de forma directa: cada componente
 se obtiene de una imagen. La Tabla 22 distingue los requisitos que se deducen de los archivos del
-repositorio de las características del equipo instalado, que deben registrarse por separado.
+repositorio de las características del equipo instalado; las que no se verificaron como parte de
+este trabajo se indican así.
 
 Tabla 22.
 Requisitos técnicos del servidor
 
 | Aspecto | Requisito deducido del sistema | Equipo instalado en la farmacia |
 |---------|--------------------------------|---------------------------------|
-| Sistema operativo | Cualquier sistema capaz de ejecutar contenedores Linux con Docker. Las imágenes base son `node:20-alpine`, `postgres:16-alpine` y `nginx:alpine`. El `Dockerfile` del backend indica que el servidor de la municipalidad es Windows y normaliza los finales de línea del script de arranque por ese motivo | [COMPLETAR: sistema operativo y versión del servidor de la farmacia] |
+| Sistema operativo | Cualquier sistema capaz de ejecutar contenedores Linux con Docker. Las imágenes base son `node:20-alpine`, `postgres:16-alpine` y `nginx:alpine`. El `Dockerfile` del backend indica que el servidor de la municipalidad es Windows y normaliza los finales de línea del script de arranque por ese motivo | Windows, según el `Dockerfile` del backend; la versión no se verificó |
 | Docker | Docker con el complemento Compose en su versión que admite el comando `docker compose` | [COMPLETAR: plataforma Docker y versiones de Docker y Docker Compose (`docker compose version`)] |
-| Git | Necesario para clonar el repositorio y para la actualización automática, que ejecuta `git pull origin main` | [COMPLETAR: versión de Git instalada] |
-| Memoria | El repositorio no establece un valor mínimo. Deben ejecutarse en simultáneo cuatro contenedores: PostgreSQL, la API de Node.js, nginx y el servicio de respaldos | [COMPLETAR: memoria RAM del servidor] |
-| Disco | El repositorio no establece un valor mínimo. El disco aloja el volumen de la base de datos (`pgdata`), hasta 28 respaldos periódicos y 10 respaldos previos con la configuración por defecto, las fotografías de `backend/uploads/` y las imágenes de Docker | [COMPLETAR: capacidad y espacio libre del disco del servidor] |
-| Procesador | El repositorio no establece un requisito | [COMPLETAR: marca, modelo y procesador del servidor] |
+| Git | Necesario para clonar el repositorio y para la actualización automática, que ejecuta `git pull origin main` | No verificado |
+| Memoria | El repositorio no establece un valor mínimo. Deben ejecutarse en simultáneo cuatro contenedores: PostgreSQL, la API de Node.js, nginx y el servicio de respaldos | No verificado |
+| Disco | El repositorio no establece un valor mínimo. El disco aloja el volumen de la base de datos (`pgdata`), hasta 28 respaldos periódicos y 10 respaldos previos con la configuración por defecto, las fotografías de `backend/uploads/` y las imágenes de Docker | No verificado |
+| Procesador | El repositorio no establece un requisito | No verificado |
 | Red | Conexión a la red local de la farmacia con una dirección IP accesible desde los equipos cliente y el celular de captura. En producción, solo el puerto 80 queda publicado hacia la red; la base de datos (5432) y la API (3000) se publican únicamente en `127.0.0.1`. La actualización automática y la consulta de OpenFDA requieren acceso a Internet | [COMPLETAR: dirección de acceso, configuración del cortafuegos y puertos abiertos] |
 
 Fuente: Elaboración propia con base en `docker-compose.prod.yml`, `backend/Dockerfile`,
@@ -52,10 +53,9 @@ El frontend se sirve como una aplicación de una sola página que se comunica co
 origen, a través del proxy de nginx. Los dispositivos de apoyo son los siguientes:
 
 1. Equipo de escritorio: navegador web conectado a la red local de la farmacia, con acceso a la
-   dirección IP del servidor. [COMPLETAR: número de equipos cliente y navegadores utilizados].
+   dirección IP del servidor.
 2. Lector de código de barras: conectado por USB y configurado en modo teclado, de forma que cada
-   lectura se recibe como texto escrito en el campo activo de la pantalla. [COMPLETAR: marca y modelo
-   del lector].
+   lectura se recibe como texto escrito en el campo activo de la pantalla.
 3. Celular para la captura de evidencia: el teléfono que fotografía la receta y la entrega abre el
    enlace del código QR en su navegador, por lo que debe estar conectado a la misma red que el
    servidor. La URL del QR se forma con la dirección desde la que el equipo de escritorio accede al
@@ -312,8 +312,7 @@ aplica el contenido de `main`, la vuelta atrás del código consiste en integrar
 *pull request*, un commit que revierta el cambio (`git revert`), que el servidor aplicará en la
 siguiente ejecución. `prisma migrate deploy` solo aplica migraciones pendientes y no deshace las ya
 aplicadas, por lo que un cambio de esquema se corrige con una migración nueva o, si hubo pérdida de
-datos, restaurando el respaldo previo correspondiente (sección 7.6.2). [COMPLETAR: procedimiento de
-reversión acordado por el equipo, si se define uno].
+datos, restaurando el respaldo previo correspondiente (sección 7.6.2).
 
 ## 7.6 Respaldo y restauración
 
@@ -433,7 +432,8 @@ siguientes medios:
 ### 7.7.2 Tareas periódicas
 
 La Tabla 27 reúne las tareas de mantenimiento que se derivan de las guías del repositorio. Las tareas
-que el sistema ejecuta por sí mismo se indican como automáticas.
+que el sistema ejecuta por sí mismo se indican como automáticas; en las demás, la frecuencia y el
+responsable que las guías no definen se indican así.
 
 Tabla 27.
 Tareas periódicas de mantenimiento
@@ -444,20 +444,18 @@ Tareas periódicas de mantenimiento
 | Respaldo previo al arranque | En cada actualización o reinicio | Automática (`docker-entrypoint.sh`) | Existe un `predeploy_*.dump` reciente y `ESTADO_ARRANQUE.txt` registra "respaldo previo OK" |
 | Marcado de lotes vencidos y limpieza de tokens de captura vencidos | Diaria a las 00:05 y al arrancar la API | Automática (tarea programada de la API) | Los lotes vencidos aparecen con estado `VENCIDO` en Inventario |
 | Actualización desde `main` | Cada 30 minutos | Automática (`auto-update.cmd`) | `ESTADO_ARRANQUE.txt` sin "ERROR", "ATENCION" ni "SIN RESPALDO" |
-| Revisión del estado del arranque y de los respaldos | [COMPLETAR: frecuencia] | [COMPLETAR] | Lectura de `ESTADO_ARRANQUE.txt`, `ULTIMO_RESPALDO.txt` e `historial_respaldos.log` |
+| Revisión del estado del arranque y de los respaldos | No definida | No definido | Lectura de `ESTADO_ARRANQUE.txt`, `ULTIMO_RESPALDO.txt` e `historial_respaldos.log` |
 | Copia de `backups/` y `backend/uploads/` fuera del servidor | [COMPLETAR: frecuencia] | [COMPLETAR] | Fecha del último respaldo presente en el medio externo |
-| Revisión del espacio libre en disco | [COMPLETAR: frecuencia] | [COMPLETAR] | Espacio libre suficiente para los respaldos, las fotografías y el crecimiento de la base |
-| Revisión de las fotografías de dispensación acumuladas | [COMPLETAR: frecuencia] | [COMPLETAR] | Tamaño de `backend/uploads/dispensaciones/`; los archivos no se borran al corregir una dispensación |
+| Revisión del espacio libre en disco | No definida | No definido | Espacio libre suficiente para los respaldos, las fotografías y el crecimiento de la base |
+| Revisión de las fotografías de dispensación acumuladas | No definida | No definido | Tamaño de `backend/uploads/dispensaciones/`; los archivos no se borran al corregir una dispensación |
 
 Fuente: Elaboración propia con base en `docs/RESPALDOS.md`, `docs/DESPLIEGUE.md`,
 `docker-compose.prod.yml` y `backend/docker-entrypoint.sh`.
 
 ## 7.8 Capacitación y entrega al usuario
 
-[COMPLETAR: fecha o fechas de la capacitación, duración, número de asistentes por puesto y temas
-tratados].
-
-[COMPLETAR: fecha de entrega del sistema a la municipalidad y forma de aceptación].
+La capacitación impartida y la entrega formal del sistema a la municipalidad no se documentaron como
+parte de este trabajo.
 
 El uso de cada pantalla del sistema se describe en el manual de usuario, que se incluye como Anexo A de
 este documento.

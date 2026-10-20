@@ -7,19 +7,15 @@
 La Municipalidad de Gualán, departamento de Zacapa, Guatemala, opera dos farmacias: una de venta de
 medicamentos al público y otra de dispensación gratuita de medicamentos donados. Esta segunda, la
 Farmacia Municipal de Gualán, entrega medicamentos sin costo a la población como beneficio social.
-[COMPLETAR: año de fundación de la farmacia, unidad municipal de la que depende, ubicación física y
-población atendida].
 
 Según el documento de análisis de requerimientos inicial del proyecto, la farmacia operaba de forma
 manual, sin herramientas digitales para el control de inventario, lo que generaba pérdida de
 información, dificultad para auditar las existencias y falta de trazabilidad en las dispensaciones.
 El mismo documento no registra datos cuantitativos de la operación, como el volumen de medicamentos
-en existencia, el número de dispensaciones diarias o el personal asignado. [COMPLETAR: datos
-cuantitativos de la operación de la farmacia antes del sistema, si se dispone de ellos].
+en existencia, el número de dispensaciones diarias o el personal asignado.
 
 El proyecto se originó en una reunión presencial de levantamiento de requerimientos entre el Alcalde
-Municipal de Gualán y el equipo de desarrollo, realizada durante el primer trimestre de 2026
-[COMPLETAR: fecha exacta de la reunión y nombres de los participantes]. En ella, el Alcalde expresó
+Municipal de Gualán y el equipo de desarrollo, realizada durante el primer trimestre de 2026. En ella, el Alcalde expresó
 la siguiente solicitud, transcrita textualmente en el documento de análisis: "Tener un control de
 inventario de medicina. Parte que se regala y parte de la farmacia de la que se vende. Control de lo
 que sale y entra de la farmacia. Tanto pagado como no pagado."
@@ -34,7 +30,6 @@ funciones de venta, tickets, anulaciones y devoluciones quedaron fuera del alcan
 El sistema resultante, denominado FarmaG, se desarrolló como proyecto del curso de Seminario de la
 carrera de Ingeniería en Sistemas de la Universidad Mariano Gálvez de Guatemala, por un equipo de
 tres estudiantes, y fue instalado en la Farmacia Municipal de Gualán, donde opera en la red local.
-[COMPLETAR: fecha de instalación y de inicio de operación en la farmacia].
 
 ## 1.2 Planteamiento del problema
 
@@ -144,7 +139,7 @@ Funcionalidades del análisis inicial excluidas del alcance y motivo de la exclu
 |------------------------|-----------------------------------|------------------------|
 | Venta de medicamentos con tickets, anulación de tickets, devoluciones de venta, reportes y tableros de ventas, rol de Farmacéutico/Cajero y precio de venta | CUO-06 a CUO-13, CUO-20, CUO-22, CUO-24 y CUO-35 | La municipalidad opera dos farmacias; por decisión unánime del equipo de desarrollo y la municipalidad, el sistema se delimitó a la farmacia de dispensación gratuita. Las funciones de venta corresponden a la farmacia de venta. |
 | Registro de proveedores y del origen de los medicamentos (donante o presupuesto municipal) | CUO-30 y la vinculación de entradas a proveedor de CUO-01 | La recepción y verificación de donaciones corresponde a un proceso administrativo externo a la farmacia. Registrar su origen sin controlar ese proceso trasladaría al sistema la responsabilidad sobre información no verificable. |
-| Ajuste manual de la cantidad en existencia | CUO-03 | Las correcciones de inventario se limitan a dar de baja lotes completos. [COMPLETAR: motivo de la exclusión, pendiente de confirmación con el equipo]. |
+| Ajuste manual de la cantidad en existencia | CUO-03 | Las correcciones de inventario se limitan a dar de baja lotes completos. El motivo de la exclusión no quedó registrado en las fuentes del proyecto. |
 | Devolución de medicamentos dispensados | CUO-17 | No aplica por regla de negocio: los medicamentos se dispensan con receta y no se aceptan devoluciones. |
 
 Fuente: Elaboración propia con base en las decisiones de alcance del proyecto.

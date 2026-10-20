@@ -277,7 +277,7 @@ Requerimientos no funcionales de fiabilidad
 | RNF-18 | Las actualizaciones del sistema no pierden datos | Los cambios de esquema se aplican solo con migraciones versionadas; la huella de los datos (conteo y md5 por tabla) no cambia al desplegar una versión nueva | Trabajos `esquema` y `despliegue` del workflow "Despliegue seguro", con 200 beneficiarios de prueba |
 | RNF-19 | El sistema recupera su estado tras un reinicio | El proceso de vencimiento se ejecuta también al arrancar la API | Prueba automatizada `vencimiento_arranque.test.ts`, aprobada |
 | RNF-20 | Un fallo secundario no interrumpe la operación principal | Un error al registrar la auditoría no anula la operación; un error al generar el código QR no anula la dispensación; la consulta a OpenFDA se abandona a los 5 segundos por intento | Inspección de `middleware/audit.ts`, `Dispensacion.tsx` y `catalogos.routes.ts` |
-| RNF-21 | El estado de los servicios se puede comprobar | La base de datos se verifica cada 5 segundos con `pg_isready`; la API expone `/api/health`. [COMPLETAR: horario de operación y disponibilidad esperada por la farmacia] | `docker compose ps` |
+| RNF-21 | El estado de los servicios se puede comprobar | La base de datos se verifica cada 5 segundos con `pg_isready`; la API expone `/api/health` | `docker compose ps` |
 
 Fuente: Elaboración propia.
 
@@ -313,7 +313,7 @@ Requerimientos no funcionales de eficiencia de desempeño
 | RNF-29 | Las consultas de inventario leen solo los datos necesarios | Índices de consulta (migración `20261017052535_indices_consultas`); los listados de inventario y alertas cargan solo los lotes con stock | Caso de `rutas_integracion.test.ts` sobre los listados de inventario y alertas |
 | RNF-30 | Las imágenes ocupan poco espacio en el servidor | Toda imagen se guarda en WebP con calidad 80 y un lado máximo de 1600 px (evidencia) o 1000 px (medicamentos) | Inspección de `utils/imagen.ts` y de los archivos guardados |
 | RNF-31 | La exportación de reportes tiene un tamaño acotado | Máximo de 5000 registros por exportación; un reporte mayor se rechaza con un mensaje | Prueba automatizada `validacion.test.ts` (`verificarLimiteExport`) |
-| RNF-32 | El sistema atiende a varios usuarios simultáneos | Diseñado para 4 usuarios simultáneos. [COMPLETAR: tiempo de respuesta medido con esa carga] | [COMPLETAR: prueba de carga, si se realiza] |
+| RNF-32 | El sistema atiende a varios usuarios simultáneos | Diseñado para 4 usuarios simultáneos; el tiempo de respuesta con esa carga no se midió | No se realizó una prueba de carga |
 
 Fuente: Elaboración propia.
 
@@ -344,7 +344,7 @@ Requerimientos no funcionales de portabilidad
 | ID | Requerimiento | Criterio verificable | Verificación |
 |----|---------------|----------------------|--------------|
 | RNF-38 | El sistema se instala en cualquier equipo con Docker | Servicios en contenedores orquestados por Docker Compose (`db`, `api` y `web`, más `backup` en la composición de producción); el esquema y los datos iniciales se crean al arrancar | Trabajo `instalacion` del workflow, que instala desde cero |
-| RNF-39 | Los equipos cliente no requieren instalación | Acceso desde un navegador web de la red local, incluido el teléfono de captura. [COMPLETAR: navegadores y versiones usados en la farmacia] | Acceso desde los equipos de la farmacia |
+| RNF-39 | Los equipos cliente no requieren instalación | Acceso desde un navegador web de la red local, incluido el teléfono de captura; los navegadores usados en la farmacia no se verificaron como parte de este trabajo | Acceso desde los equipos de la farmacia |
 | RNF-40 | Las fechas no dependen de la zona horaria del equipo | Contenedor de la API con `TZ=America/Guatemala`; la fecha del despacho se envía a la base como texto `AAAA-MM-DD` | Trabajo `esquema` del workflow, que ejecuta las pruebas de base de datos con la zona de Guatemala y con UTC |
 | RNF-41 | La instalación se adapta por configuración, sin cambiar el código | Variables de entorno para secretos, modo de ejecución, orígenes CORS, intervalo y retención de respaldos y contraseña inicial del administrador | Inspección de `.env.example` y de los archivos de Compose |
 

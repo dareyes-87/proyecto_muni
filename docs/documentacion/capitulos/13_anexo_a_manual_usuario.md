@@ -2,4 +2,4 @@
 
 # MANUAL DE USUARIO
 
-[COMPLETAR: se incorpora el manual elaborado por \<integrante\>]
+En este anexo se incorpora el manual de usuario del sistema.

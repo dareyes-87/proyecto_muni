@@ -5,15 +5,13 @@
 Este capítulo describe los conceptos del dominio, el proceso de desarrollo, los estándares y las
 tecnologías en los que se basa el sistema FarmaG. Para cada tecnología se indica qué es, según su
 documentación oficial, y qué función cumple en el sistema. El equipo de desarrollo no dejó un registro
-escrito de los criterios con que eligió cada tecnología [COMPLETAR: criterios de selección del stack,
-si el equipo los documentó o puede declararlos], por lo que la justificación se expresa en función de
+escrito de los criterios con que eligió cada tecnología, por lo que la justificación se expresa en función de
 lo que cada tecnología resuelve en el sistema implementado.
 
 ## 2.1 Dispensación de medicamentos
 
 La dispensación es el acto de entregar un medicamento a un paciente o beneficiario.
-[COMPLETAR: definición de dispensación de medicamentos tomada de la normativa guatemalteca o de una
-fuente oficial, con su referencia]. En la Farmacia Municipal de Gualán la dispensación es gratuita y
+En la Farmacia Municipal de Gualán la dispensación es gratuita y
 se realiza con receta; la farmacia no acepta devoluciones de medicamentos dispensados.
 
 En FarmaG, una dispensación registra al beneficiario que recibe los medicamentos, el usuario que los
@@ -116,8 +114,8 @@ Fuente: Elaboración propia con base en los archivos `package.json`, los Dockerf
 instaladas en los contenedores del equipo de desarrollo (20 de octubre de 2026).
 
 Las versiones de Docker corresponden al equipo de desarrollo; la versión de Nginx no pudo verificarse
-porque en modo de desarrollo el frontend no se sirve con Nginx. [COMPLETAR: versiones de Docker y de
-Nginx en el equipo de la municipalidad].
+porque en modo de desarrollo el frontend no se sirve con Nginx. Las versiones instaladas en el equipo de la municipalidad
+no se verificaron como parte de este trabajo.
 
 ### 2.7.1 React
 
@@ -293,5 +291,3 @@ documentation*. Recuperado el 20 de octubre de 2026 de
 https://www.postgresql.org/docs/16/intro-whatis.html
 
 Vite. (s.f.). *Getting started*. Recuperado el 20 de octubre de 2026 de https://vite.dev/guide/
-
-[COMPLETAR: referencia normativa u oficial sobre dispensación de medicamentos en Guatemala].

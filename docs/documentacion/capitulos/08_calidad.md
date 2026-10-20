@@ -284,7 +284,6 @@ Fuente: Elaboración propia con base en `.github/workflows/despliegue-seguro.yml
 
 Para que el workflow impida integrar un cambio con errores, la protección de la rama `main` debe estar
 activada en GitHub. [COMPLETAR: confirmar si la protección de `main` está activada en GitHub].
-[COMPLETAR: enlace o captura de una ejecución exitosa del workflow sobre `main`].
 
 ### 8.3.3 Resultados
 
@@ -567,9 +566,9 @@ Verificación de los requerimientos no funcionales
 | RNF-44 Consulta a OpenFDA | Consulta con el código de barras de un producto conocido, 4 de agosto de 2026 | Cumple para los formatos de NDC 4-4-2, 5-3-2 y 5-4-1 |
 | RNF-01, RNF-11, RNF-15, RNF-20, RNF-30, RNF-36, RNF-37, RNF-41, RNF-42, RNF-45 | Inspección del código y de la configuración (capítulo 4) | Conformes en la inspección; sin prueba en ejecución |
 | RNF-03, RNF-05, RNF-22, RNF-24, RNF-25, RNF-27, RNF-43 | Casos de prueba funcionales (sección 8.2) | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| RNF-16, RNF-17, RNF-18, RNF-34, RNF-35, RNF-38 | Trabajos del workflow "Despliegue seguro" | [COMPLETAR: enlace o captura de una ejecución exitosa del workflow sobre `main`] |
-| RNF-21, RNF-23, RNF-39 | Comprobación en la instalación de la farmacia | [COMPLETAR: resultado de la verificación en el servidor y los equipos de la farmacia] |
-| RNF-32 Varios usuarios simultáneos | Prueba de carga | [COMPLETAR: prueba de carga con 4 usuarios simultáneos, si se realiza] |
+| RNF-16, RNF-17, RNF-18, RNF-34, RNF-35, RNF-38 | Trabajos del workflow "Despliegue seguro" | Sin evidencia de una ejecución sobre `main` incluida en este documento |
+| RNF-21, RNF-23, RNF-39 | Comprobación en la instalación de la farmacia | No verificado en la instalación de la farmacia |
+| RNF-32 Varios usuarios simultáneos | Prueba de carga | No medido: no se realizó una prueba de carga |
 
 Fuente: Elaboración propia con base en el capítulo 4 (sección 4.3),
 `analisis/09_seguimiento_correcciones.md` (sección 5) y

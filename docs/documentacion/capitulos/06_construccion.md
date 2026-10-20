@@ -175,8 +175,7 @@ Fuente: Elaboración propia con base en `git log --merges`.
 Dos commits con el mensaje "ajustes de la revisión" (`71dcd15` en el PR #5 y `0f288c5` en el PR #6)
 muestran correcciones hechas dentro del PR a partir de una revisión. `docs/HERRAMIENTAS_IA.md`
 establece como obligatoria la revisión de la rama con la herramienta `ponytail` antes de abrir un PR.
-El repositorio no registra quién revisó cada PR. [COMPLETAR: revisores de los pull requests #2 a #9,
-según GitHub].
+El repositorio no registra quién revisó cada PR.
 
 ### 6.3.3 Integración continua
 
@@ -202,8 +201,7 @@ Fuente: Elaboración propia con base en `.github/workflows/despliegue-seguro.yml
 El comentario de cabecera del workflow indica que, para que bloquee integraciones, debe configurarse
 en GitHub una regla de protección de la rama `main` que exija estos trabajos. Esa configuración no
 se puede verificar desde el repositorio. [COMPLETAR: confirmar si la regla de protección de `main`
-exige los cuatro trabajos del workflow]. [COMPLETAR: resultado de las ejecuciones del workflow en los
-PR #2 a #9, según GitHub Actions].
+exige los cuatro trabajos del workflow].
 
 ## 6.4 Iteraciones del proyecto
 
@@ -254,7 +252,7 @@ que el historial no registra en esas fechas trabajo de instalación.
 La relación de la iteración I4 con la fase de Transición se sustenta en el commit `fd912a4`
 ("preparar para despliegue en producción"). El sistema estaba instalado en la farmacia a más tardar
 el 25 de septiembre de 2026, fecha en que el responsable de la documentación confirmó la instalación
-(R-02). [COMPLETAR: fecha de instalación del sistema en la Farmacia Municipal de Gualán].
+(R-02).
 
 La iteración I5 pertenece a la fase de Transición porque sus cambios se orientan a que el sistema
 instalado se actualice sin pérdida de datos y sin intervención en sitio, condición descrita en
@@ -324,7 +322,7 @@ Cambios del diseño entre la especificación técnica y la implementación
 |------|------------------------|----------------|------------------------|------------|
 | Proveedores y procedencia | Catálogo de proveedores y donantes; cada entrada con proveedor y origen (donación o presupuesto municipal); reporte de entradas por proveedor | Se eliminaron el modelo `Proveedor`, los campos de origen y los filtros de procedencia; el reporte se llama "Entradas". Se conservó el costo unitario como dato opcional del lote | La recepción y verificación de donaciones corresponde a un proceso administrativo externo a la farmacia; registrar su origen sin controlar ese proceso trasladaría al sistema la responsabilidad sobre información no verificable. Eliminación en `194f8fb` (2026-09-07) | R-01; D-01, D-02, D-03, D-05, D-21 |
 | Módulo de ventas | Fuera de la fase 1, previsto como ampliación futura | No implementado | La municipalidad opera dos farmacias y el sistema se delimitó a la de dispensación gratuita, por decisión unánime del equipo y la municipalidad | R-04 |
-| Ajuste manual de existencias | Previsto en el análisis inicial (CUO-03) | No implementado; las correcciones se limitan a dar de baja lotes completos | [COMPLETAR: motivo de la exclusión, pendiente de confirmación con el equipo] | R-05 |
+| Ajuste manual de existencias | Previsto en el análisis inicial (CUO-03) | No implementado; las correcciones se limitan a dar de baja lotes completos | El motivo de la exclusión no quedó registrado en las fuentes del proyecto | R-05 |
 | Devoluciones | Fuera de la fase 1 | No implementadas | No aplica por regla de negocio: los medicamentos se dispensan con receta y no se aceptan devoluciones | R-06 |
 | Gestión del esquema de datos | Prisma con "migraciones como código" | Hasta octubre, sincronización con `prisma db push --accept-data-loss` en cada arranque, sin migraciones. Desde el PR #2, migraciones versionadas aplicadas con `prisma migrate deploy` tras un respaldo | El método anterior borraba datos al eliminar columnas o tablas, como ocurrió con `proveedores` el 7 de septiembre; con la actualización automática del servidor, ese riesgo llegaba a producción sin revisión (`319ebd3`) | D-13 (resuelta); H-05 |
 | Servicios de Docker Compose | Tres servicios: nginx, API y base de datos | Cuatro servicios (`db`, `api`, `web`, `backup`) y dos archivos de composición, de desarrollo y de producción | El servicio `backup` se agregó con el despliegue seguro para tener respaldos periódicos verificados | D-28 |
