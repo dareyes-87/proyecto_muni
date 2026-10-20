@@ -1,0 +1,4 @@
+# Opcional: agrega LibreOffice para convertir el .docx a PDF y contar páginas.
+FROM farmag-docx:1
+RUN apt-get update && apt-get install -y --no-install-recommends libreoffice-writer-nogui fonts-liberation \
+    && rm -rf /var/lib/apt/lists/*
