@@ -1,0 +1,20 @@
+CP-14 — Desactivar y reactivar usuario (CU-02)
+Ejecutado: 2026-10-20 17:25 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+> PUT /usuarios/b09fd2a0-2ad6-4c6b-8e4f-a8d45ebe125a/toggle   [sesión: qa_admin2, ADMIN]
+< 200  Content-Type: application/json
+< {"id": "b09fd2a0-2ad6-4c6b-8e4f-a8d45ebe125a", "username": "qa_nuevo", "activo": false}
+
+qa_nuevo en la lista tras desactivar: sí, activo=False
+> POST /auth/login   [sin Authorization]
+> cuerpo: {"username": "qa_nuevo", "password": "***"}
+< 401  Content-Type: application/json
+< {"error": "Credenciales inválidas", "intentosRestantes": 2}
+
+> PUT /usuarios/b09fd2a0-2ad6-4c6b-8e4f-a8d45ebe125a/toggle   [sesión: qa_admin2, ADMIN]
+< 200  Content-Type: application/json
+< {"id": "b09fd2a0-2ad6-4c6b-8e4f-a8d45ebe125a", "username": "qa_nuevo", "activo": true}
+
+Bitácora: DESACTIVAR 0→1, ACTIVAR 0→1. La pantalla muestra "Usuario desactivado"/"Usuario activado" según el estado previo (Usuarios.tsx:101).
+RESULTADO: Aprobado
+Obtenido: Desactivado (activo=false, sigue en la lista); inicio de sesión 401 "Credenciales inválidas"; reactivado; DESACTIVAR y ACTIVAR en la bitácora

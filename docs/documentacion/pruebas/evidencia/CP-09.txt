@@ -1,0 +1,17 @@
+CP-09 — Crear usuario qa_nuevo (CU-02)
+Ejecutado: 2026-10-20 17:25 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+> POST /usuarios   [sesión: qa_admin2, ADMIN]
+> cuerpo: {"username": "qa_nuevo", "password": "***", "nombreCompleto": "Usuario Prueba Nuevo", "email": "qa_nuevo@example.com", "rol": "ENCARGADO_BENEFICENCIA"}
+< 201  Content-Type: application/json
+< {"id": "b09fd2a0-2ad6-4c6b-8e4f-a8d45ebe125a", "username": "qa_nuevo", "nombreCompleto": "Usuario Prueba Nuevo", "email": "qa_nuevo@example.com", "rol": "ENCARGADO_BENEFICENCIA", "activo": true, "createdAt": "2026-10-20T23:25:20.114Z"}
+
+> GET /usuarios   [sesión: qa_admin2, ADMIN]
+< 200  Content-Type: application/json
+< [{"id": "b09fd2a0-2ad6-4c6b-8e4f-a8d45ebe125a", "username": "qa_nuevo", "nombreCompleto": "Usuario Prueba Nuevo", "email": "qa_nuevo@example.com", "rol": "ENCARGADO_BENEFICENCIA", "activo": true, "ultimoAcceso": null, "createdAt": "2026-10-20T23:25:20.114Z"}, {"id": "0bdb2244-33de-43d8-a4aa-8d17f3feeeef", "username": "qa_temporal", "nombreCompleto": "Temporal Prueba", "email": null, "rol": "ENCARG …
+
+Campos de cada usuario en GET /api/usuarios: ['activo', 'createdAt', 'email', 'id', 'nombreCompleto', 'rol', 'ultimoAcceso', 'username']
+Registros CREAR de entidad usuario en la bitácora: antes 3, después 4.
+La pantalla muestra "Usuario creado" tras el 201 (frontend/src/pages/Usuarios.tsx:87) y recarga la lista desde GET /api/usuarios.
+RESULTADO: Aprobado
+Obtenido: 201; qa_nuevo activo con rol ENCARGADO_BENEFICENCIA; la respuesta no incluye contraseña ni hash; un CREAR de usuario en la bitácora

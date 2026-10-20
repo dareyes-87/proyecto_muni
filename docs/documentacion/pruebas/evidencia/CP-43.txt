@@ -1,0 +1,10 @@
+CP-43 — Importación de medicamento activo con categoría inactiva (hallazgo abierto H-48)
+Ejecutado: 2026-10-20 17:30 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+> POST /inventario/importar-excel   [sesión: qa_admin2, ADMIN]
+> archivo(s): archivo=import_h48.xlsx
+< 200  Content-Type: application/json
+< {"data": {"totalFilas": 1, "medicamentosCreados": 0, "medicamentosExistentes": 0, "categoriasCreadas": 0, "ubicacionesCreadas": 0, "codigosBarrasVinculados": 0, "lotesRegistrados": 0, "lotesOmitidos": 0, "errores": [{"fila": 2, "error": "La categoría \"QA Categoría Inactiva\" existe pero está inactiva; actívela antes de importar"}], "avisos": [], "avisosGenerales": []}}
+
+RESULTADO: Fallido
+Obtenido: lotesRegistrados 0; error fila 2: "La categoría "QA Categoría Inactiva" existe pero está inactiva; actívela antes de importar"

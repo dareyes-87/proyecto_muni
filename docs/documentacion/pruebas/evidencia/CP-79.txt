@@ -1,0 +1,25 @@
+CP-79 — Reemplazo de foto auditado sin IP ni EDITAR (hallazgo abierto H-35)
+Ejecutado: 2026-10-20 17:35 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+Dispensación auxiliar de 1 unidad de QA Ácido Fólico (importado en CP-39) en lugar de QA Enalapril, para conservar las 50 unidades de QA Enalapril que CP-63 espera en la ejecución manual.
+> POST /captura/Wnh…/foto   [sin Authorization]
+> archivo(s): foto=receta.jpg
+> campos: {"tipo": "RECETA"}
+< 200  Content-Type: application/json
+< {"success": true, "dispensacionId": "392bfc95-2059-4906-919b-cc8d287ba5a2", "fotosSubidas": ["RECETA"], "completo": false}
+
+> POST /captura/Wnh…/foto   [sin Authorization]
+> archivo(s): foto=receta.jpg
+> campos: {"tipo": "RECETA"}
+< 200  Content-Type: application/json
+< {"success": true, "dispensacionId": "392bfc95-2059-4906-919b-cc8d287ba5a2", "fotosSubidas": ["RECETA"], "completo": false}
+
+$ psql: SELECT l.accion, l.entidad, u.username, l.ip_address, l.datos_anteriores, l.datos_nuevos FROM log_auditoria l JOIN usuarios u ON u.id = l.usuario_id WHERE l.entidad = 'FotoDispensacion' AND l.entidad_id = '392bfc95-2059-4906-919b-cc8d287ba5a2' ORDER BY l.created_at
+ accion |     entidad      |   username   | ip_address | datos_anteriores |                datos_nuevos                
+--------+------------------+--------------+------------+------------------+--------------------------------------------
+ CREAR  | FotoDispensacion | qa_encargado |            |                  | {"via": "captura-token", "tipo": "RECETA"}
+ CREAR  | FotoDispensacion | qa_encargado |            |                  | {"via": "captura-token", "tipo": "RECETA"}
+(2 rows)
+
+RESULTADO: Fallido
+Obtenido: Acciones ['CREAR', 'CREAR']; IP [None, None]; usuario {'qa_encargado'}

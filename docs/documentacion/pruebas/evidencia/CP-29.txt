@@ -1,0 +1,10 @@
+CP-29 — Categoría con espacios (hallazgo abierto H-42)
+Ejecutado: 2026-10-20 17:28 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+> POST /catalogos/categorias   [sesión: qa_admin2, ADMIN]
+> cuerpo: {"nombre": " Analgésico "}
+< 500  Content-Type: application/json
+< {"error": "Error interno del servidor"}
+
+RESULTADO: Fallido
+Obtenido: 500 "Error interno del servidor"

@@ -1,0 +1,27 @@
+CP-28 — Categoría repetida o vacía (CU-05)
+Ejecutado: 2026-10-20 17:27 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+Dato preparado para los pasos 3 y 4: categoría "QA Categoría Edición" (creada por la API) en lugar de "QA Antisépticos", que crea y renombra CP-27 desde la pantalla.
+> POST /catalogos/categorias   [sesión: qa_admin2, ADMIN]
+> cuerpo: {"nombre": "Analgésico"}
+< 409  Content-Type: application/json
+< {"error": "Ya existe una categoría con ese nombre"}
+
+> POST /catalogos/categorias   [sesión: qa_admin2, ADMIN]
+> cuerpo: {"nombre": ""}
+< 400  Content-Type: application/json
+< {"error": "El nombre de la categoría es requerido"}
+
+> PUT /catalogos/categorias/4c00da8c-6fea-4064-9c96-83717a248481   [sesión: qa_admin2, ADMIN]
+> cuerpo: {"nombre": "Analgésico"}
+< 409  Content-Type: application/json
+< {"error": "Ya existe un registro con el mismo nombre"}
+
+> PUT /catalogos/categorias/4c00da8c-6fea-4064-9c96-83717a248481   [sesión: qa_admin2, ADMIN]
+> cuerpo: {"nombre": ""}
+< 400  Content-Type: application/json
+< {"error": "El nombre de la categoría no puede quedar vacío", "detalles": {"formErrors": [], "fieldErrors": {"nombre": ["El nombre de la categoría no puede quedar vacío"]}}}
+
+Categorías antes 15, después 15.
+RESULTADO: Aprobado
+Obtenido: 409 "Ya existe una categoría con ese nombre"; 400 "El nombre de la categoría es requerido"; 409 "Ya existe un registro con el mismo nombre"; 400 "El nombre de la categoría no puede quedar vacío"

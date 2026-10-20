@@ -1,0 +1,16 @@
+CP-58 — DPI repetido al registrar y al editar (CU-13)
+Ejecutado: 2026-10-20 17:33 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+> POST /dispensacion/beneficiarios   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+> cuerpo: {"nombreCompleto": "Beneficiario Prueba Repetido", "dpi": "0000000000001"}
+< 409  Content-Type: application/json
+< {"error": "Ya existe un beneficiario con DPI 0000000000001"}
+
+> PUT /dispensacion/beneficiarios/ecd47019-4db4-4861-85de-80186207cd58   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+> cuerpo: {"dpi": "0000000000001"}
+< 409  Content-Type: application/json
+< {"error": "Ya existe un beneficiario con DPI 0000000000001"}
+
+Beneficiarios antes 4, después 4; DPI de Beneficiario Prueba Dos después del paso 2: 0000000000002
+RESULTADO: Aprobado
+Obtenido: 409 "Ya existe un beneficiario con DPI 0000000000001" en ambos casos; no se guardó nada

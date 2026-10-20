@@ -1,0 +1,18 @@
+CP-35 — Entrada con un lote vencido hoy o ayer (CU-07)
+Ejecutado: 2026-10-20 17:29 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+Dato preparado: se usa "QA Diclofenaco API" en lugar de QA Diclofenaco (lo crea CP-17 desde la pantalla).
+> POST /inventario/entradas   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+> cuerpo: {"lotes": [{"medicamentoId": "96b3f63e-fb33-4dca-8f43-d193ca1c9098", "cantidad": 10, "numeroLote": "QA-E-3", "fechaVencimiento": "2027-01-18"}, {"medicamentoId": "96b3f63e-fb33-4dca-8f43-d193ca1c9098", "cantidad": 10, "numeroLote": "QA-E-4", "fechaVencimiento": "2026-10-20"}]}
+< 400  Content-Type: application/json
+< {"error": "Lote 2 (QA-E-4): La fecha de vencimiento ya pasó o es hoy; no se puede registrar un lote vencido como disponible"}
+
+Lotes de QA Diclofenaco API después del paso 1: []
+> POST /inventario/entradas   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+> cuerpo: {"lotes": [{"medicamentoId": "96b3f63e-fb33-4dca-8f43-d193ca1c9098", "cantidad": 10, "numeroLote": "QA-E-3", "fechaVencimiento": "2027-01-18"}, {"medicamentoId": "96b3f63e-fb33-4dca-8f43-d193ca1c9098", "cantidad": 10, "numeroLote": "QA-E-4", "fechaVencimiento": "2026-10-19"}]}
+< 400  Content-Type: application/json
+< {"error": "Lote 2 (QA-E-4): La fecha de vencimiento ya pasó o es hoy; no se puede registrar un lote vencido como disponible"}
+
+Lotes después del paso 3: []. Entradas registradas antes 1, después 1.
+RESULTADO: Aprobado
+Obtenido: 400 "Lote 2 (QA-E-4): La fecha de vencimiento ya pasó o es hoy; no se puede registrar un lote vencido como disponible" con fecha de hoy y con fecha de ayer; no se registró QA-E-3 ni QA-E-4

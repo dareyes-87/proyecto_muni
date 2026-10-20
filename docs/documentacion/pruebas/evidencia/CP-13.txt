@@ -1,0 +1,16 @@
+CP-13 — Cambiar el propio rol y desactivar la propia cuenta (CU-02)
+Ejecutado: 2026-10-20 17:25 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+Se ejecuta con qa_admin2 (Administrador de prueba) sobre su propia fila.
+> PUT /usuarios/6243acd1-ed72-4243-a74a-9999b84c3da7   [sesión: qa_admin2, ADMIN]
+> cuerpo: {"rol": "ENCARGADO_BENEFICENCIA"}
+< 400  Content-Type: application/json
+< {"error": "No puede cambiar su propio rol de administrador"}
+
+> PUT /usuarios/6243acd1-ed72-4243-a74a-9999b84c3da7/toggle   [sesión: qa_admin2, ADMIN]
+< 400  Content-Type: application/json
+< {"error": "No puede desactivar su propia cuenta"}
+
+Estado final de qa_admin2: activo=True, rol=ADMIN
+RESULTADO: Aprobado
+Obtenido: 400 "No puede cambiar su propio rol de administrador" y 400 "No puede desactivar su propia cuenta"; la cuenta sigue activa y ADMIN

@@ -1,0 +1,27 @@
+CP-48 — Cambiar umbrales del semáforo por la API (CU-09, RF-31)
+Ejecutado: 2026-10-20 17:31 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+> PUT /inventario/configuracion   [sesión: qa_admin2, ADMIN]
+> cuerpo: {"rojo": 45, "amarillo": 90}
+< 200  Content-Type: application/json
+< {"data": {"rojo": 45, "amarillo": 90}}
+
+QA-S-31 con rojo = 45: ROJO
+> PUT /inventario/configuracion   [sesión: qa_admin2, ADMIN]
+> cuerpo: {"rojo": 90, "amarillo": 30}
+< 400  Content-Type: application/json
+< {"error": "El umbral rojo debe ser menor que el amarillo"}
+
+> PUT /inventario/configuracion   [sesión: qa_admin2, ADMIN]
+> cuerpo: {"rojo": -1, "amarillo": 90}
+< 400  Content-Type: application/json
+< {"error": "Datos inválidos", "detalles": {"formErrors": [], "fieldErrors": {"rojo": ["Number must be greater than 0"]}}}
+
+> PUT /inventario/configuracion   [sesión: qa_admin2, ADMIN]
+> cuerpo: {"rojo": 30, "amarillo": 90}
+< 200  Content-Type: application/json
+< {"data": {"rojo": 30, "amarillo": 90}}
+
+Semáforos tras restablecer: {'QA-S-30': 'ROJO', 'QA-S-31': 'AMARILLO', 'QA-S-90': 'AMARILLO', 'QA-S-91': 'VERDE'}
+RESULTADO: Aprobado
+Obtenido: 200; QA-S-31 pasa a Urgente; 400 "El umbral rojo debe ser menor que el amarillo"; 400 "Datos inválidos"; 200 al restablecer y semáforos como en CP-45

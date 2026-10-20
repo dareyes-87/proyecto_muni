@@ -1,0 +1,22 @@
+CP-31 — Ubicación repetida o vacía (CU-06)
+Ejecutado: 2026-10-20 17:28 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+Paso 3: se usa la ubicación QA-01 (datos_prueba.md) en lugar de QA-02, que crea CP-30 desde la pantalla.
+> POST /catalogos/ubicaciones   [sesión: qa_admin2, ADMIN]
+> cuerpo: {"codigo": "A"}
+< 409  Content-Type: application/json
+< {"error": "Ya existe una ubicación con ese código"}
+
+> POST /catalogos/ubicaciones   [sesión: qa_admin2, ADMIN]
+> cuerpo: {"codigo": ""}
+< 400  Content-Type: application/json
+< {"error": "El código de ubicación es requerido"}
+
+> PUT /catalogos/ubicaciones/44b1f756-9aca-4bb7-9366-067467206d4d   [sesión: qa_admin2, ADMIN]
+> cuerpo: {"codigo": ""}
+< 400  Content-Type: application/json
+< {"error": "El código de ubicación no puede quedar vacío"}
+
+Ubicaciones antes 8, después 8.
+RESULTADO: Aprobado
+Obtenido: 409 "Ya existe una ubicación con ese código"; 400 "El código de ubicación es requerido"; 400 "El código de ubicación no puede quedar vacío"

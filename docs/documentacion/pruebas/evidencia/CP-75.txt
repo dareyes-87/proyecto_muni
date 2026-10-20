@@ -1,0 +1,30 @@
+CP-75 — Reemplazo de la receta y evidencia completa no reabrible (CU-16)
+Ejecutado: 2026-10-20 17:34 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+Dispensación auxiliar de 1 unidad de QA Ácido Fólico (importado en CP-39) en lugar de QA Enalapril, para conservar las 50 unidades de QA Enalapril que CP-63 espera en la ejecución manual.
+> POST /captura/J-P…/foto   [sin Authorization]
+> archivo(s): foto=receta.jpg
+> campos: {"tipo": "RECETA"}
+< 200  Content-Type: application/json
+< {"success": true, "dispensacionId": "46f33e1b-d844-4f61-9016-4d38d10bc99c", "fotosSubidas": ["RECETA"], "completo": false}
+
+> POST /captura/J-P…/foto   [sin Authorization]
+> archivo(s): foto=receta2.jpg
+> campos: {"tipo": "RECETA"}
+< 200  Content-Type: application/json
+< {"success": true, "dispensacionId": "46f33e1b-d844-4f61-9016-4d38d10bc99c", "fotosSubidas": ["RECETA"], "completo": false}
+
+$ psql: SELECT tipo, imagen_url FROM fotos_dispensacion WHERE dispensacion_id = '46f33e1b-d844-4f61-9016-4d38d10bc99c'
+  tipo  |                                imagen_url                                
+--------+--------------------------------------------------------------------------
+ RECETA | /uploads/dispensaciones/46f33e1b-d844-4f61-9016-4d38d10bc99c/RECETA.webp
+(1 row)
+
+Archivos en uploads/dispensaciones/<id>: ['RECETA.webp']
+Paso 4: dispensación preparada con las dos fotos (equivalente a la de CP-72, que se ejecuta desde la pantalla): Dispensación auxiliar de 1 unidad de QA Ácido Fólico (importado en CP-39) en lugar de QA Enalapril, para conservar las 50 unidades de QA Enalapril que CP-63 espera en la ejecución manual.
+> POST /dispensacion/2a8971da-1014-40f3-9d25-f18f27d92efa/generar-token   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+< 409  Content-Type: application/json
+< {"error": "La evidencia de esta dispensación ya está completa; no se pueden reemplazar las fotos"}
+
+RESULTADO: Aprobado
+Obtenido: La segunda receta reemplaza a la primera: un solo registro RECETA y un solo archivo (RECETA.webp); generar-token sobre una dispensación completa → 409 con el mensaje esperado. La dispensación queda solo con la receta (para CP-61).

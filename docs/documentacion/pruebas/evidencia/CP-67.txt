@@ -1,0 +1,10 @@
+CP-67 — Dos dispensaciones simultáneas de 15 unidades con 20 en stock (CU-15)
+Ejecutado: 2026-10-20 17:34 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+> POST /dispensacion/despachar (simultánea, qa_admin2 → Beneficiario Prueba Uno, 15 u de QA Ibuprofeno)
+< 409  Stock insuficiente para QA Ibuprofeno. Solicitado: 15, Disponible: 5
+> POST /dispensacion/despachar (simultánea, qa_encargado → Beneficiario Prueba Dos, 15 u de QA Ibuprofeno)
+< 201  dispensación creada, stockActualizado [{'medicamentoId': '12465866-500a-4f21-8357-32d8bd6388c8', 'nombreGenerico': 'QA Ibuprofeno', 'stockDisponible': 5}]
+Stock QA Ibuprofeno 20→5; dispensaciones 2→3
+RESULTADO: Aprobado
+Obtenido: Códigos [201, 409]; 409 "Stock insuficiente para QA Ibuprofeno. Solicitado: 15, Disponible: 5"; ninguna 500; stock final 5; una sola dispensación nueva

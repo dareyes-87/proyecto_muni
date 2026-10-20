@@ -1,0 +1,11 @@
+CP-65 — Stock insuficiente (CU-15)
+Ejecutado: 2026-10-20 17:33 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+> POST /dispensacion/despachar   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+> cuerpo: {"beneficiarioId": "7b77f0e4-125a-4900-9bc2-acaace3ea1bb", "items": [{"medicamentoId": "d7ee3b3c-990c-41a7-a133-59cfc58555f2", "cantidad": 11}]}
+< 409  Content-Type: application/json
+< {"error": "Stock insuficiente para QA Metformina. Solicitado: 11, Disponible: 10"}
+
+Stock QA Metformina 10→10; dispensaciones 2→2; DISPENSAR en bitácora 2→2
+RESULTADO: Aprobado
+Obtenido: 409 "Stock insuficiente para QA Metformina. Solicitado: 11, Disponible: 10"; stock 10 sin cambios; sin dispensación ni DISPENSAR nuevos

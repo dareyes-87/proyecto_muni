@@ -1,0 +1,52 @@
+00_preparacion_datos — Carga de datos de prueba (datos_prueba.md)
+Ejecutado: 2026-10-20 17:21 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+Fecha de carga ("hoy" de los cálculos): 2026-10-20 (America/Guatemala).
+Usuarios qa_admin2 (ADMIN), qa_encargado y qa_temporal (ENCARGADO_BENEFICENCIA) creados con POST /api/usuarios como admin; contraseñas fuera del repositorio.
+Categoría "QA Categoría Inactiva" creada y desactivada; ubicación QA-01; medicamentos M1 a M10 con POST /api/catalogos/medicamentos; códigos 7790000000011, 7790000000028 y 7790000000035; 17 lotes en una entrada (POST /api/inventario/entradas como qa_encargado); QA Ranitidina desactivado después de cargar QA-R-1; beneficiarios Uno, Dos y Tres como qa_encargado.
+
+Comprobación de que la API no acepta un lote con fecha de hoy (por eso QA-V-HOY y QA-V-AGO se registraron con hoy + 1 y se ajustaron con SQL):
+> POST /inventario/entradas   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+> cuerpo: {"lotes": [{"medicamentoId": "130e77d2-aef3-4889-90f3-752e2be71129", "cantidad": 1, "numeroLote": "QA-PRUEBA-HOY", "fechaVencimiento": "2026-10-20"}]}
+< 400  Content-Type: application/json
+< {"error": "Lote 1 (QA-PRUEBA-HOY): La fecha de vencimiento ya pasó o es hoy; no se puede registrar un lote vencido como disponible"}
+
+DATOS PREPARADOS CON SQL (no por la API):
+$ psql: UPDATE lotes SET fecha_vencimiento = (now() AT TIME ZONE 'America/Guatemala')::date WHERE numero_lote = 'QA-V-HOY'
+UPDATE 1
+
+$ psql: UPDATE lotes SET fecha_vencimiento = (now() AT TIME ZONE 'America/Guatemala')::date - 1, cantidad_actual = 0, estado = 'AGOTADO' WHERE numero_lote = 'QA-V-AGO'
+UPDATE 1
+
+$ psql: SELECT l.numero_lote, m.nombre_generico, l.cantidad_actual, l.fecha_vencimiento, l.estado FROM lotes l JOIN medicamentos m ON m.id=l.medicamento_id ORDER BY m.nombre_generico, l.fecha_vencimiento
+ numero_lote | nombre_generico | cantidad_actual | fecha_vencimiento |   estado   
+-------------+-----------------+-----------------+-------------------+------------
+ QA-V-AGO    | QA Amoxicilina  |               0 | 2026-10-19        | AGOTADO
+ QA-V-HOY    | QA Amoxicilina  |               4 | 2026-10-20        | DISPONIBLE
+ QA-V-OK     | QA Amoxicilina  |               6 | 2027-01-28        | DISPONIBLE
+ QA-B-1      | QA Cetirizina   |              10 | 2027-03-19        | DISPONIBLE
+ QA-B-2      | QA Cetirizina   |               5 | 2027-04-18        | DISPONIBLE
+ QA-EN-1     | QA Enalapril    |              50 | 2027-11-24        | DISPONIBLE
+ QA-C-1      | QA Ibuprofeno   |              20 | 2027-08-16        | DISPONIBLE
+ QA-S-30     | QA Loratadina   |               2 | 2026-11-19        | DISPONIBLE
+ QA-S-31     | QA Loratadina   |               2 | 2026-11-20        | DISPONIBLE
+ QA-S-90     | QA Loratadina   |               2 | 2027-01-18        | DISPONIBLE
+ QA-S-91     | QA Loratadina   |               2 | 2027-01-19        | DISPONIBLE
+ QA-MF-1     | QA Metformina   |              10 | 2027-08-16        | DISPONIBLE
+ QA-O-1      | QA Omeprazol    |               9 | 2027-08-16        | DISPONIBLE
+ QA-F-A      | QA Paracetamol  |               5 | 2026-11-09        | DISPONIBLE
+ QA-F-B      | QA Paracetamol  |              10 | 2026-12-19        | DISPONIBLE
+ QA-F-C      | QA Paracetamol  |              10 | 2027-05-08        | DISPONIBLE
+ QA-R-1      | QA Ranitidina   |              10 | 2027-08-16        | DISPONIBLE
+(17 rows)
+
+Comprobación (sección 7): GET /api/inventario?pageSize=100 como qa_encargado
+  QA Amoxicilina: stock 6, lotes 1, semáforo VERDE
+  QA Cetirizina: stock 15, lotes 2, semáforo VERDE
+  QA Enalapril: stock 50, lotes 1, semáforo VERDE
+  QA Ibuprofeno: stock 20, lotes 1, semáforo VERDE
+  QA Loratadina: stock 8, lotes 4, semáforo ROJO
+  QA Metformina: stock 10, lotes 1, semáforo VERDE
+  QA Omeprazol: stock 9, lotes 1, semáforo VERDE
+  QA Paracetamol: stock 25, lotes 3, semáforo ROJO
+  QA Salbutamol: stock 0, lotes 0, semáforo None

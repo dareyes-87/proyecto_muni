@@ -1,0 +1,10 @@
+CP-26 — Código ya registrado en el mismo medicamento (hallazgo abierto H-31)
+Ejecutado: 2026-10-20 17:27 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+> POST /catalogos/medicamentos/809b36a4-65a7-47de-8eff-7d5992056272/codigos   [sesión: qa_admin2, ADMIN]
+> cuerpo: {"codigo": "7790000000011"}
+< 409  Content-Type: application/json
+< {"error": "Este código de barras ya está registrado en otro medicamento"}
+
+RESULTADO: Fallido
+Obtenido: 409 "Este código de barras ya está registrado en otro medicamento"

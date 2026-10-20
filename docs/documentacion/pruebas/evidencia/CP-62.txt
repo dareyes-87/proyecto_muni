@@ -1,0 +1,23 @@
+CP-62 — Historial vacío y fotos protegidas (CU-14)
+Ejecutado: 2026-10-20 17:35 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+> GET /dispensacion/beneficiarios/1224e66e-a146-4a7d-8b9a-d84a293b10c0   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+< 200  Content-Type: application/json
+< {"id": "1224e66e-a146-4a7d-8b9a-d84a293b10c0", "nombreCompleto": "Beneficiario Prueba Tres", "dpi": null, "telefono": null, "direccion": null, "observaciones": null, "activo": true, "createdAt": "2026-10-20T23:21:37.116Z", "updatedAt": "2026-10-20T23:21:37.116Z", "dispensaciones": []}
+
+> GET /dispensacion/46f33e1b-d844-4f61-9016-4d38d10bc99c/foto/RECETA   [sin Authorization]
+< 401  Content-Type: application/json
+< {"error": "Token de autenticación requerido"}
+
+> GET /dispensacion/46f33e1b-d844-4f61-9016-4d38d10bc99c/foto/EVIDENCIA_ENTREGA   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+< 404  Content-Type: application/json
+< {"error": "Foto no encontrada"}
+
+> GET /uploads/dispensaciones/46f33e1b-d844-4f61-9016-4d38d10bc99c/RECETA.webp   [sin Authorization]
+< 404  Content-Type: application/json
+< {"error": "Ruta no encontrada"}
+
+Control: con sesión, GET /dispensacion/<id>/foto/RECETA → 200 image/webp (4504 bytes).
+Paso 1 en pantalla: dispensaciones vacías → "No hay dispensaciones registradas" (texto del detalle en Beneficiarios.tsx).
+RESULTADO: Aprobado
+Obtenido: Beneficiario Prueba Tres sin dispensaciones; foto sin sesión → 401; entrega inexistente → 404 "Foto no encontrada"; ruta estática por el puerto 5173 → 404

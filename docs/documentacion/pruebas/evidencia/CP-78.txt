@@ -1,0 +1,19 @@
+CP-78 — generar-token dos veces audita dos CREAR (hallazgo abierto H-38)
+Ejecutado: 2026-10-20 17:35 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+Dispensación auxiliar de 1 unidad de QA Ácido Fólico (importado en CP-39) en lugar de QA Enalapril, para conservar las 50 unidades de QA Enalapril que CP-63 espera en la ejecución manual.
+> POST /dispensacion/1e8c8179-25c1-4d69-a6c5-9511ad0a3892/generar-token   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+< 200  Content-Type: application/json
+< {"token": "hK3…", "url": "/captura/hK3…", "expiraEn": "2026-10-21T00:05:13.230Z"}
+
+> POST /dispensacion/1e8c8179-25c1-4d69-a6c5-9511ad0a3892/generar-token   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+< 200  Content-Type: application/json
+< {"token": "hK3…", "url": "/captura/hK3…", "expiraEn": "2026-10-21T00:05:13.230Z"}
+
+> GET /auditoria?entidad=TokenCaptura&limit=100   [sesión: qa_admin2, ADMIN]
+< 200  Content-Type: application/json
+< {"data": [ …
+
+Registros CREAR de TokenCaptura para esta dispensación: 2
+RESULTADO: Fallido
+Obtenido: Ambas devuelven el mismo token; hay 2 registros CREAR de TokenCaptura

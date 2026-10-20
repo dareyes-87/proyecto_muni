@@ -1,0 +1,21 @@
+CP-55 — Panel de alertas con la base vacía (CU-12)
+Ejecutado: 2026-10-20 17:20 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+Precondición: base sin medicamentos, lotes ni entradas (consulta previa).
+$ psql: select (select count(*) from medicamentos) medicamentos,(select count(*) from lotes) lotes,(select count(*) from entradas) entradas
+ medicamentos | lotes | entradas 
+--------------+-------+----------
+            0 |     0 |        0
+(1 row)
+
+> GET /inventario/alertas   [sesión: admin, ADMIN]
+< 200  Content-Type: application/json
+< {"data": {"stockBajo": [], "porVencer": [], "vencidos": [], "resumen": {"totalMedicamentos": 0, "stockBajo": 0, "porVencer": 0, "vencidos": 0, "dispensacionesHoy": 0, "beneficiarios": 0}}}
+
+> GET /inventario/entradas   [sesión: admin, ADMIN]
+< 200  Content-Type: application/json
+< {"data": [], "pagination": {"page": 1, "pageSize": 20, "total": 0, "totalPages": 0}}
+
+Textos de pantalla derivados de estas respuestas (frontend/src/pages/Dashboard.tsx): totalAtencion = 0 → líneas 76-78 "Todo en orden. No hay alertas de inventario que requieran atención."; listas vacías → textos vacíos de los paneles (líneas 118, 132, 144) y "No hay entradas registradas todavía" (línea 165).
+RESULTADO: Aprobado
+Obtenido: alertas con stockBajo, porVencer y vencidos vacíos y entradas vacías; el panel muestra "Todo en orden…" y los cuatro textos de panel vacío

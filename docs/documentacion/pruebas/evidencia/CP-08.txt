@@ -1,0 +1,14 @@
+CP-08 — El cierre de sesión no registra LOGOUT (hallazgo abierto H-10)
+Ejecutado: 2026-10-20 17:25 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+El botón "Cerrar sesión" llama a logout() de frontend/src/context/AuthContext.tsx (líneas 79-84), que solo borra localStorage; no envía ninguna petición a la API.
+> POST /auth/logout   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+< 404  Content-Type: application/json
+< {"error": "Ruta no encontrada"}
+
+> GET /auditoria?accion=LOGOUT   [sesión: qa_admin2, ADMIN]
+< 200  Content-Type: application/json
+< {"data": [], "pagination": {"page": 1, "limit": 50, "total": 0, "totalPages": 0}}
+
+RESULTADO: Fallido
+Obtenido: No existe endpoint de cierre de sesión (POST /api/auth/logout → 404 "Ruta no encontrada"); GET /api/auditoria?accion=LOGOUT devuelve total 0. El cierre de sesión no se registra.

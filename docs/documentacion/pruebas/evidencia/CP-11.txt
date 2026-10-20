@@ -1,0 +1,26 @@
+CP-11 — Contraseña corta, rol ausente y rol inválido (CU-02)
+Ejecutado: 2026-10-20 17:25 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+> POST /usuarios   [sesión: qa_admin2, ADMIN]
+> cuerpo: {"username": "qa_corta", "password": "***", "nombreCompleto": "Clave Corta", "rol": "ENCARGADO_BENEFICENCIA"}
+< 400  Content-Type: application/json
+< {"error": "La contraseña debe tener al menos 6 caracteres"}
+
+> PUT /usuarios/b09fd2a0-2ad6-4c6b-8e4f-a8d45ebe125a/password   [sesión: qa_admin2, ADMIN]
+> cuerpo: {"password": "***"}
+< 400  Content-Type: application/json
+< {"error": "La contraseña debe tener al menos 6 caracteres"}
+
+> POST /usuarios   [sesión: qa_admin2, ADMIN]
+> cuerpo: {"username": "qa_sinrol", "password": "***", "nombreCompleto": "Sin Rol"}
+< 400  Content-Type: application/json
+< {"error": "Campos requeridos: username, password, nombreCompleto, rol"}
+
+> POST /usuarios   [sesión: qa_admin2, ADMIN]
+> cuerpo: {"username": "qa_super", "password": "***", "nombreCompleto": "Super", "rol": "SUPERUSUARIO"}
+< 400  Content-Type: application/json
+< {"error": "Rol inválido"}
+
+Usuarios antes 5, después 5. La pantalla valida la longitud con el mismo texto (frontend/src/pages/Usuarios.tsx:78 y 111).
+RESULTADO: Aprobado
+Obtenido: Pasos 1 y 2: 400 "La contraseña debe tener al menos 6 caracteres"; paso 3: 400 "Campos requeridos…"; paso 4: 400 "Rol inválido"; no se creó ningún usuario

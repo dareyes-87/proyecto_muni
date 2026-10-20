@@ -1,0 +1,11 @@
+CP-10 — Usuario repetido (CU-02)
+Ejecutado: 2026-10-20 17:25 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+> POST /usuarios   [sesión: qa_admin2, ADMIN]
+> cuerpo: {"username": "qa_encargado", "password": "***", "nombreCompleto": "Repetido", "rol": "ENCARGADO_BENEFICENCIA"}
+< 409  Content-Type: application/json
+< {"error": "El nombre de usuario ya existe"}
+
+Usuarios antes 5, después 5.
+RESULTADO: Aprobado
+Obtenido: 409 "El nombre de usuario ya existe"; no se creó usuario

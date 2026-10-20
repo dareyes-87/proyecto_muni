@@ -1,0 +1,24 @@
+CP-56 — Registrar y buscar beneficiario (CU-13)
+Ejecutado: 2026-10-20 17:33 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+> POST /dispensacion/beneficiarios   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+> cuerpo: {"nombreCompleto": "Beneficiario Prueba Cuatro", "dpi": "0000000000004", "telefono": "5555-0004"}
+< 201  Content-Type: application/json
+< {"id": "ee517693-516f-49b7-a81e-d9bcc5b1a628", "nombreCompleto": "Beneficiario Prueba Cuatro", "dpi": "0000000000004", "telefono": "5555-0004", "direccion": null, "observaciones": null, "activo": true, "createdAt": "2026-10-20T23:33:32.697Z", "updatedAt": "2026-10-20T23:33:32.697Z"}
+
+> GET /dispensacion/beneficiarios/buscar?q=00000000000   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+< 200  Content-Type: application/json
+< {"data": [{"id": "ee517693-516f-49b7-a81e-d9bcc5b1a628", "nombreCompleto": "Beneficiario Prueba Cuatro", "dpi": "0000000000004", "telefono": "5555-0004", "direccion": null, "observaciones": null, "act …
+
+> GET /dispensacion/beneficiarios/buscar?q=prueba cua   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+< 200  Content-Type: application/json
+< {"data": [{"id": "ee517693-516f-49b7-a81e-d9bcc5b1a628", "nombreCompleto": "Beneficiario Prueba Cuatro", "dpi": "0000000000004", "telefono": "5555-0004", "direccion": null, "observaciones": null, "act …
+
+> GET /dispensacion/beneficiarios/buscar?q=zzz   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+< 200  Content-Type: application/json
+< {"data": []}
+
+Búsqueda "00000000000": ['Beneficiario Prueba Cuatro', 'Beneficiario Prueba Dos', 'Beneficiario Prueba Uno']; "prueba cua": ['Beneficiario Prueba Cuatro']; "zzz": []. Bitácora CREAR Beneficiario 3→4.
+Pantalla: "Beneficiario registrado" tras el 201 (Beneficiarios.tsx:342); lista vacía con texto de búsqueda → "No se encontraron resultados" (Beneficiarios.tsx:275).
+RESULTADO: Aprobado
+Obtenido: 201; la búsqueda por DPI parcial devuelve Uno, Dos y Cuatro; "prueba cua" devuelve Cuatro; "zzz" vacío; CREAR en la bitácora

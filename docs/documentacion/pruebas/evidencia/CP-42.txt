@@ -1,0 +1,11 @@
+CP-42 — Importación con lote repetido, medicamento inactivo y código ajeno (CU-08)
+Ejecutado: 2026-10-20 17:30 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+> POST /inventario/importar-excel   [sesión: qa_admin2, ADMIN]
+> archivo(s): archivo=import_repetidos.xlsx
+< 200  Content-Type: application/json
+< {"data": {"totalFilas": 3, "medicamentosCreados": 1, "medicamentosExistentes": 0, "categoriasCreadas": 0, "ubicacionesCreadas": 0, "codigosBarrasVinculados": 0, "lotesRegistrados": 1, "lotesOmitidos": 1, "errores": [{"fila": 3, "error": "El medicamento \"QA Ranitidina\" existe pero está inactivo; actívelo antes de importar"}], "avisos": [{"fila": 2, "aviso": "Ya existe el lote QA-F-B de QA Paracetamol con vencimiento 19/12/2026; no se importó. Si es una entrega nueva del mismo lote, regístrela desde el formulario de entradas."}, {"fila": 4, "aviso": "El código de barras \"7790000000011\" ya pertenece a otro medicamento; no se vinculó"}], "avisosGenerales": []}}
+
+QA Nistatina en inventario: [('QA Nistatina', 10)]; el código 7790000000011 sigue en: QA Paracetamol. La pantalla muestra "1 lote(s) omitido(s) por ya existir" (Entradas.tsx:190).
+RESULTADO: Aprobado
+Obtenido: Fila 2 omitida con el aviso de lote existente; fila 3 con el error de medicamento inactivo; fila 4 importada (QA Nistatina) con el aviso de código ajeno

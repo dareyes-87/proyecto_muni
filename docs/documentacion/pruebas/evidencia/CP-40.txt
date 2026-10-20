@@ -1,0 +1,11 @@
+CP-40 — Importación con filas inválidas (CU-08)
+Ejecutado: 2026-10-20 17:29 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+> POST /inventario/importar-excel   [sesión: qa_admin2, ADMIN]
+> archivo(s): archivo=import_errores.xlsx
+< 200  Content-Type: application/json
+< {"data": {"totalFilas": 5, "medicamentosCreados": 0, "medicamentosExistentes": 2, "categoriasCreadas": 0, "ubicacionesCreadas": 0, "codigosBarrasVinculados": 0, "lotesRegistrados": 2, "lotesOmitidos": 0, "errores": [{"fila": 4, "error": "cantidad debe ser un entero mayor a 0"}, {"fila": 5, "error": "fechaVencimiento es requerida y debe tener formato YYYY-MM-DD o DD/MM/YYYY"}, {"fila": 6, "error": "La fecha de vencimiento ya pasó o es hoy; no se puede registrar un lote vencido como disponible"}], "avisos": [], "avisosGenerales": []}}
+
+Lotes nuevos de QA Ácido Fólico: ['QA-I-4', 'QA-I-5']. La pantalla muestra "3 fila(s) con errores" (Entradas.tsx:193) y la lista "Errores por fila".
+RESULTADO: Aprobado
+Obtenido: 2 lotes importados (QA-I-4, QA-I-5); errores en filas [4, 5, 6] con los mensajes esperados; las filas inválidas no dejaron registros

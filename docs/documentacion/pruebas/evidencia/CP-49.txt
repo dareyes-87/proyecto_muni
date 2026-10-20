@@ -1,0 +1,13 @@
+CP-49 — Paginación no numérica (hallazgo abierto H-43)
+Ejecutado: 2026-10-20 17:31 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+> GET /inventario/entradas?page=abc   [sesión: qa_admin2, ADMIN]
+< 500  Content-Type: application/json
+< {"error": "Error interno del servidor"}
+
+> GET /inventario?pageSize=x   [sesión: qa_admin2, ADMIN]
+< 200  Content-Type: application/json
+< {"data": [], "pagination": {"page": 1, "pageSize": null, "total": 13, "totalPages": null}}
+
+RESULTADO: Fallido
+Obtenido: Paso 1: 500; paso 2: 200 con 0 filas y pagination {'page': 1, 'pageSize': None, 'total': 13, 'totalPages': None}

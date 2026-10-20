@@ -1,0 +1,29 @@
+CP-53 — Lote que vence hoy, aún DISPONIBLE, no se dispensa (CU-11, CU-15)
+Ejecutado: 2026-10-20 17:31 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+Precondición: QA-V-HOY con fecha de hoy y estado DISPONIBLE (preparado con SQL, ver 00_preparacion_datos.txt); la API no se reinició desde entonces.
+$ psql: SELECT numero_lote, cantidad_actual, fecha_vencimiento, estado FROM lotes WHERE numero_lote IN ('QA-V-HOY','QA-V-OK','QA-V-AGO') ORDER BY numero_lote
+ numero_lote | cantidad_actual | fecha_vencimiento |   estado   
+-------------+-----------------+-------------------+------------
+ QA-V-AGO    |               0 | 2026-10-19        | AGOTADO
+ QA-V-HOY    |               4 | 2026-10-20        | DISPONIBLE
+ QA-V-OK     |               6 | 2027-01-28        | DISPONIBLE
+(3 rows)
+
+GET /api/inventario?q=QA Amoxicilina → stock 6; detalle: {'QA-V-AGO': (0, 'VENCIDO', 'AGOTADO'), 'QA-V-HOY': (4, 'VENCIDO', 'DISPONIBLE'), 'QA-V-OK': (6, 'VERDE', 'DISPONIBLE')}
+> GET /dispensacion/stock/130e77d2-aef3-4889-90f3-752e2be71129   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+< 200  Content-Type: application/json
+< {"stockTotal": 6, "vencimientoProximo": "2027-01-28T00:00:00.000Z", "lotes": [{"id": "90039663-5c1e-4fd7-a971-f9c1fb9d96f4", "cantidadActual": 6, "fechaVencimiento": "2027-01-28T00:00:00.000Z", "numeroLote": "QA-V-OK"}]}
+
+> POST /dispensacion/despachar   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+> cuerpo: {"beneficiarioId": "7b77f0e4-125a-4900-9bc2-acaace3ea1bb", "items": [{"medicamentoId": "130e77d2-aef3-4889-90f3-752e2be71129", "cantidad": 5}]}
+< 201  Content-Type: application/json
+< {"dispensacion": {"id": "171ad07f-b826-4502-b5d0-afe051441f7b", "beneficiarioId": "7b77f0e4-125a-4900-9bc2-acaace3ea1bb", "usuarioId": "5803c9c3-c664-423c-849e-8604e91cea21", "observaciones": null, "createdAt": "2026-10-20T23:31:51.340Z", "beneficiario": {"nombreCompleto": "Beneficiario Prueba Uno", "dpi": "0000000000001"}, "usuario": {"nombreCompleto": "Encargado Prueba"}, "detalles": [{"id": "1dd89b1c-f708-4144-be48-7f5c845acdc6", "dispensacionId": "171ad07f-b826-4502-b5d0-afe051441f7b", "lote …
+
+> GET /dispensacion/171ad07f-b826-4502-b5d0-afe051441f7b   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+< 200  Content-Type: application/json
+< {"id": "171ad07f-b826-4502-b5d0-afe051441f7b", "beneficiarioId": "7b77f0e4-125a-4900-9bc2-acaace3ea1bb", "usuarioId": "5803c9c3-c664-423c-849e-8604e91cea21", "observaciones": null, "createdAt": "2026- …
+
+Después: {'QA-V-AGO': (0, 'AGOTADO'), 'QA-V-HOY': (4, 'DISPONIBLE'), 'QA-V-OK': (1, 'DISPONIBLE')}; detalles de la dispensación (lote, cantidad): [('QA-V-OK', 5)]. La pantalla muestra "Dispensación registrada correctamente" tras el 201 (Dispensacion.tsx:408).
+RESULTADO: Aprobado
+Obtenido: Stock 6 (no 10) y QA-V-HOY con semáforo VENCIDO; /stock 6; dispensación 201; las 5 unidades salieron de QA-V-OK (queda 1); QA-V-HOY sigue con 4

@@ -1,0 +1,31 @@
+CP-69 — Datos inválidos en el despacho (CU-15)
+Ejecutado: 2026-10-20 17:34 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+> POST /dispensacion/despachar   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+> cuerpo: {"beneficiarioId": "7b77f0e4-125a-4900-9bc2-acaace3ea1bb", "items": [{"medicamentoId": "01ba14df-f38b-4d2d-9c47-69a0e370990a", "cantidad": 1.5}]}
+< 400  Content-Type: application/json
+< {"error": "Cada ítem debe tener medicamentoId (texto) y cantidad entera mayor a 0"}
+
+> POST /dispensacion/despachar   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+> cuerpo: {"beneficiarioId": "7b77f0e4-125a-4900-9bc2-acaace3ea1bb", "items": [{"medicamentoId": "01ba14df-f38b-4d2d-9c47-69a0e370990a", "cantidad": 0}]}
+< 400  Content-Type: application/json
+< {"error": "Cada ítem debe tener medicamentoId (texto) y cantidad entera mayor a 0"}
+
+> POST /dispensacion/despachar   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+> cuerpo: {"beneficiarioId": "7b77f0e4-125a-4900-9bc2-acaace3ea1bb", "items": [{"medicamentoId": "aef324af-6638-452b-9176-d98d7cfa49bc", "cantidad": 1}]}
+< 404  Content-Type: application/json
+< {"error": "Medicamento no encontrado o inactivo: aef324af-6638-452b-9176-d98d7cfa49bc"}
+
+> POST /dispensacion/despachar   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+> cuerpo: {"beneficiarioId": "00000000-0000-4000-8000-000000000000", "items": [{"medicamentoId": "01ba14df-f38b-4d2d-9c47-69a0e370990a", "cantidad": 1}]}
+< 404  Content-Type: application/json
+< {"error": "Beneficiario no encontrado o inactivo"}
+
+> POST /dispensacion/despachar   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+> cuerpo: {"beneficiarioId": "7b77f0e4-125a-4900-9bc2-acaace3ea1bb", "items": []}
+< 400  Content-Type: application/json
+< {"error": "Debe incluir al menos un medicamento en items"}
+
+Dispensaciones antes 3, después 3.
+RESULTADO: Aprobado
+Obtenido: 1.5 y 0 → 400; QA Ranitidina → 404 "Medicamento no encontrado o inactivo: aef324a…"; beneficiario inexistente → 404; items vacío → 400; nada registrado

@@ -1,0 +1,14 @@
+CP-47 — Medicamento sin lotes (CU-09)
+Ejecutado: 2026-10-20 17:31 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+> GET /inventario?q=QA Salbutamol   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+< 200  Content-Type: application/json
+< {"data": [{"id": "923bcbe4-5b72-4099-bed5-14083668c1b0", "nombreGenerico": "QA Salbutamol", "nombreComercial": null, "presentacion": "Inhalador", "concentracion": "100 mcg", "unidadMedida": "Inhalador", "categoria": {"id": "0a4386c8-ab1a-45b4-b73f-67cb7a35aa29", "nombre": "Respiratorio"}, "stockMinimo": 10, "stockDisponible": 0, "numeroLotes": 0, "proximoVencimiento": null, "diasProximoVencimiento": null, "semaforo": null, "stockBajo": true}], "pagination": {"page": 1, "pageSize": 20, "total": 1, "totalPages": 1}}
+
+> GET /inventario/medicamento/923bcbe4-5b72-4099-bed5-14083668c1b0   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+< 200  Content-Type: application/json
+< {"data": {"id": "923bcbe4-5b72-4099-bed5-14083668c1b0", "nombreGenerico": "QA Salbutamol", "nombreComercial": null, "presentacion": "Inhalador", "concentracion": "100 mcg", "unidadMedida": "Inhalador", "categoria": {"id": "0a4386c8-ab1a-45b4-b73f-67cb7a35aa29", "nombre": "Respiratorio"}, "codigosBarras": [], "stockMinimo": 10, "stockDisponible": 0, "stockBajo": true, "lotes": []}}
+
+semaforo null se muestra como "Sin stock" (Semaforo.tsx:18-19).
+RESULTADO: Aprobado
+Obtenido: Stock 0, semáforo null ("Sin stock") y detalle sin lotes

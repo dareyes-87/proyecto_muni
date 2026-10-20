@@ -1,0 +1,16 @@
+CP-37 — Entrada con medicamento inactivo o ubicación inexistente (CU-07)
+Ejecutado: 2026-10-20 17:29 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+> POST /inventario/entradas   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+> cuerpo: {"lotes": [{"medicamentoId": "aef324af-6638-452b-9176-d98d7cfa49bc", "cantidad": 5, "numeroLote": "QA-R-X", "fechaVencimiento": "2027-05-08"}]}
+< 400  Content-Type: application/json
+< {"error": "Uno o más medicamentos no existen o están inactivos"}
+
+> POST /inventario/entradas   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+> cuerpo: {"lotes": [{"medicamentoId": "01ba14df-f38b-4d2d-9c47-69a0e370990a", "cantidad": 5, "numeroLote": "QA-EN-X", "fechaVencimiento": "2027-05-08", "ubicacionId": "00000000-0000-4000-8000-000000000000"}]}
+< 400  Content-Type: application/json
+< {"error": "Una o más ubicaciones no existen"}
+
+Entradas antes 1, después 1.
+RESULTADO: Aprobado
+Obtenido: 400 "Uno o más medicamentos no existen o están inactivos" y 400 "Una o más ubicaciones no existen"; no se registró nada

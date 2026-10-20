@@ -1,0 +1,25 @@
+CP-64 — Dispensación FIFO entre lotes de QA Paracetamol (CU-15)
+Ejecutado: 2026-10-20 17:33 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+$ psql: SELECT numero_lote, cantidad_actual, fecha_vencimiento, estado FROM lotes WHERE numero_lote LIKE 'QA-F-%' ORDER BY fecha_vencimiento
+ numero_lote | cantidad_actual | fecha_vencimiento |   estado   
+-------------+-----------------+-------------------+------------
+ QA-F-A      |               5 | 2026-11-09        | DISPONIBLE
+ QA-F-B      |              10 | 2026-12-19        | DISPONIBLE
+ QA-F-C      |              10 | 2027-05-08        | DISPONIBLE
+(3 rows)
+
+> POST /dispensacion/despachar   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+> cuerpo: {"beneficiarioId": "7b77f0e4-125a-4900-9bc2-acaace3ea1bb", "items": [{"medicamentoId": "809b36a4-65a7-47de-8eff-7d5992056272", "cantidad": 8}]}
+< 201  Content-Type: application/json
+< {"dispensacion": {"id": "6b6364cc-cd8e-457a-895f-787e3b85d91f", "beneficiarioId": "7b77f0e4-125a-4900-9bc2-acaace3ea1bb", "usuarioId": "5803c9c3-c664-423c-849e-8604e91cea21", "observaciones": null, "createdAt": "2026-10-20T23:33:53.299Z", "beneficiario": {"nombreCompleto": "Beneficiario Prueba Uno", …
+
+Detalle de QA Paracetamol: {'QA-F-A': (0, 'AGOTADO'), 'QA-F-B': (7, 'DISPONIBLE'), 'QA-F-C': (10, 'DISPONIBLE')}; stock 17
+> GET /dispensacion/6b6364cc-cd8e-457a-895f-787e3b85d91f   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+< 200  Content-Type: application/json
+< {"id": "6b6364cc-cd8e-457a-895f-787e3b85d91f", "beneficiarioId": "7b77f0e4-125a-4900-9bc2-acaace3ea1bb", "usuarioId": "5803c9c3-c664-423c-849e-8604e91cea21", "observaciones": null, "createdAt": "2026- …
+
+Detalles (lote, cantidad, snapshots): [('QA-F-A', 5, 'QA Paracetamol', 'Tableta', '500 mg'), ('QA-F-B', 3, 'QA Paracetamol', 'Tableta', '500 mg')]
+El cuerpo de POST /api/dispensacion/despachar solo admite medicamentoId y cantidad por ítem (dispensacion.routes.ts:154-183); el lote lo elige el servidor en orden de vencimiento (dispensacion.service.ts:213-222), por lo que la pantalla no puede elegir el lote.
+RESULTADO: Aprobado
+Obtenido: QA-F-A 0 y AGOTADO, QA-F-B 7, QA-F-C 10; stock 17; dos detalles (5 de QA-F-A y 3 de QA-F-B) con nombre, presentación y concentración guardados

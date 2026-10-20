@@ -1,0 +1,15 @@
+CP-45 — Semáforo con umbrales 30 y 90 días (CU-09)
+Ejecutado: 2026-10-20 17:31 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+> GET /inventario/configuracion   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+< 200  Content-Type: application/json
+< {"data": {"rojo": 30, "amarillo": 90}}
+
+> GET /inventario/medicamento/25f0b609-0f08-4834-8087-0e090eca2f6d   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+< 200  Content-Type: application/json
+< {"data": {"id": "25f0b609-0f08-4834-8087-0e090eca2f6d", "nombreGenerico": "QA Loratadina", "nombreComercial": null, "presentacion": "Tableta", "concentracion": "10 mg", "unidadMedida": "Tableta", "categoria": {"id": "4df329e9-3c64-4a6b-972e-673a44ed319c", "nombre": "Antihistamínico"}, "codigosBarras …
+
+Lotes (días, semáforo): {'QA-S-30': (30, 'ROJO'), 'QA-S-31': (31, 'AMARILLO'), 'QA-S-90': (90, 'AMARILLO'), 'QA-S-91': (91, 'VERDE')}; semáforo de la fila en GET /api/inventario: ROJO
+Rótulos de pantalla (frontend/src/components/ui/Semaforo.tsx:3-8): ROJO = "Urgente", AMARILLO = "Por vencer", VERDE = "Sin riesgo", VENCIDO = "Vencido".
+RESULTADO: Aprobado
+Obtenido: QA-S-30: 30 días Urgente; QA-S-31: 31 Por vencer; QA-S-90: 90 Por vencer; QA-S-91: 91 Sin riesgo; fila de QA Loratadina en Urgente

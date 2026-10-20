@@ -36,6 +36,48 @@
   7. CP-71, CP-81, CP-82, CP-91 (ajustes de `created_at`).
   8. CP-03, CP-04 y, al final, CP-86 (carga de 5001 lotes).
 
+## Clasificación de los casos por forma de ejecución
+
+Se clasificó cada caso según dónde se observa su resultado esperado:
+
+- **API (52 casos):** todos los resultados esperados se observan en la respuesta HTTP o en la base
+  de datos. Se incluyen los casos cuyo texto en pantalla es el que la interfaz construye directamente
+  con la respuesta (el campo `error` de la API, los rótulos del semáforo, los contadores de la
+  importación o los avisos de éxito tras un 201); en la evidencia de cada caso se cita el archivo y la
+  línea del frontend que lo muestra. Se ejecutaron con peticiones a `http://localhost:3000/api`.
+- **UI (39 casos):** algún resultado esperado solo se observa en el navegador (menús,
+  navegación, diálogos, validaciones propias del formulario, comportamiento de un campo, vista previa
+  de imágenes, consulta periódica de la pantalla de evidencia). Se ejecutan con
+  `guia_ejecucion_manual.md`.
+- **DISPOSITIVO (1 caso):** requiere un teléfono real. Se ejecuta con la misma guía.
+
+| Tipo | Casos |
+|------|-------|
+| API | CP-03, CP-04, CP-08, CP-09, CP-10, CP-11, CP-13, CP-14, CP-16, CP-22, CP-24, CP-26, CP-28, CP-29, CP-31, CP-32, CP-35, CP-37, CP-39, CP-40, CP-42, CP-43, CP-45, CP-47, CP-48, CP-49, CP-52, CP-53, CP-55, CP-56, CP-58, CP-62, CP-64, CP-65, CP-66, CP-67, CP-69, CP-71, CP-74, CP-75, CP-78, CP-79, CP-81, CP-82, CP-83, CP-84, CP-86, CP-87, CP-88, CP-90, CP-91, CP-92 |
+| UI | CP-01, CP-02, CP-05, CP-06, CP-07, CP-12, CP-15, CP-17, CP-18, CP-19, CP-20, CP-21, CP-23, CP-25, CP-27, CP-30, CP-33, CP-34, CP-36, CP-38, CP-41, CP-44, CP-46, CP-50, CP-51, CP-54, CP-57, CP-59, CP-60, CP-61, CP-63, CP-68, CP-70, CP-72, CP-73, CP-76, CP-80, CP-85, CP-89 |
+| DISPOSITIVO | CP-77 |
+
+Fuente: Elaboración propia.
+
+## Datos preparados fuera de la API
+
+- `QA-V-HOY` y `QA-V-AGO`: la API rechaza un lote con fecha de hoy o anterior (comprobado en
+  `evidencia/00_preparacion_datos.txt`), así que se registraron con hoy + 1 y se ajustaron con las
+  consultas SQL de `datos_prueba.md`, sección 5.
+- Los cambios de `created_at` (CP-71, CP-81, CP-82, CP-91) y de `expira_en` del enlace de captura
+  (CP-52) se hicieron con SQL, como indica `datos_prueba.md`, sección 5; cada evidencia muestra la
+  consulta.
+- Para que la ejecución por API no altere los datos que esperan los casos UI pendientes:
+  - en lugar de QA Diclofenaco (lo crea CP-17 desde la pantalla) se usó "QA Diclofenaco API"
+    (Ampolla, 75 mg/3 ml) en CP-22, CP-24 y CP-35;
+  - en lugar de "QA Antisépticos" (CP-27) se usó la categoría "QA Categoría Edición" en CP-28, y en
+    lugar de QA-02 (CP-30) la ubicación QA-01 en CP-31;
+  - las dispensaciones auxiliares de CP-71, CP-74, CP-75, CP-78, CP-79, CP-81, CP-82 y CP-91 son de
+    1 unidad de QA Ácido Fólico (importado en CP-39) y no de QA Enalapril, para conservar las
+    50 unidades que espera CP-63.
+- El detalle de la carga y su comprobación (sección 7 de `datos_prueba.md`) está en
+  `evidencia/00_preparacion_datos.txt`.
+
 ## Registro
 
 | ID | Fecha | Resultado obtenido | Estado | Defecto (H-XX) | Evidencia |
@@ -47,78 +89,78 @@
 | CP-05 | | | | | |
 | CP-06 | | | | | |
 | CP-07 | | | | H-47 (esperado) | |
-| CP-08 | | | | H-10 (esperado) | |
-| CP-09 | | | | | |
-| CP-10 | | | | | |
-| CP-11 | | | | | |
+| CP-08 | 2026-10-20 | No hay endpoint de cierre de sesión (404 "Ruta no encontrada"); la bitácora tiene 0 registros LOGOUT | Fallido | H-10 (esperado) | `evidencia/CP-08.txt` |
+| CP-09 | 2026-10-20 | 201; qa_nuevo activo, rol Encargado; sin contraseña ni hash en la respuesta; CREAR de usuario en la bitácora | Aprobado |  | `evidencia/CP-09.txt` |
+| CP-10 | 2026-10-20 | 409 "El nombre de usuario ya existe"; no se creó usuario | Aprobado |  | `evidencia/CP-10.txt` |
+| CP-11 | 2026-10-20 | 400 con los cuatro mensajes esperados; no se creó ningún usuario | Aprobado |  | `evidencia/CP-11.txt` |
 | CP-12 | | | | | |
-| CP-13 | | | | | |
-| CP-14 | | | | | |
+| CP-13 | 2026-10-20 | Ambos 400 con los mensajes esperados; la cuenta sigue activa y con rol Administrador | Aprobado |  | `evidencia/CP-13.txt` |
+| CP-14 | 2026-10-20 | Desactivado y visible como inactivo; login 401 "Credenciales inválidas"; reactivado; DESACTIVAR y ACTIVAR en la bitácora | Aprobado |  | `evidencia/CP-14.txt` |
 | CP-15 | | | | | |
-| CP-16 | | | | H-15 (esperado) | |
+| CP-16 | 2026-10-20 | 500 "Error interno del servidor" en lugar de 409; no se creó el usuario | Fallido | H-15 (esperado) | `evidencia/CP-16.txt` |
 | CP-17 | | | | | |
 | CP-18 | | | | | |
 | CP-19 | | | | | |
 | CP-20 | | | | | |
 | CP-21 | | | | | |
-| CP-22 | | | | | |
+| CP-22 | 2026-10-20 | 400 "Formato de imagen no permitido…", 400 "El archivo supera el tamaño máximo permitido" y 400 "El archivo no es una imagen válida"; la foto anterior no cambió | Aprobado |  | `evidencia/CP-22.txt` |
 | CP-23 | | | | | |
-| CP-24 | | | | | |
+| CP-24 | 2026-10-20 | Código guardado sin espacios (201); consulta 200 con stockActual; eliminado; luego 404 "Código de barras no registrado"; CREAR y ELIMINAR en la bitácora | Aprobado |  | `evidencia/CP-24.txt` |
 | CP-25 | | | | | |
-| CP-26 | | | | H-31 (esperado) | |
+| CP-26 | 2026-10-20 | 409 "Este código de barras ya está registrado en otro medicamento" (mensaje de otro medicamento) | Fallido | H-31 (esperado) | `evidencia/CP-26.txt` |
 | CP-27 | | | | | |
-| CP-28 | | | | | |
-| CP-29 | | | | H-42 (esperado) | |
+| CP-28 | 2026-10-20 | 409, 400, 409 "Ya existe un registro con el mismo nombre" y 400 con los mensajes esperados; no se creó ni cambió ninguna categoría | Aprobado |  | `evidencia/CP-28.txt` |
+| CP-29 | 2026-10-20 | 500 "Error interno del servidor" | Fallido | H-42 (esperado) | `evidencia/CP-29.txt` |
 | CP-30 | | | | | |
-| CP-31 | | | | | |
-| CP-32 | | | | H-42 (esperado) | |
+| CP-31 | 2026-10-20 | 409 y 400/400 con los mensajes esperados; no se creó ni cambió ninguna ubicación | Aprobado |  | `evidencia/CP-31.txt` |
+| CP-32 | 2026-10-20 | 500 "Error interno del servidor" | Fallido | H-42 (esperado) | `evidencia/CP-32.txt` |
 | CP-33 | | | | | |
 | CP-34 | | | | | |
-| CP-35 | | | | | |
+| CP-35 | 2026-10-20 | 400 "Lote 2 (QA-E-4): La fecha de vencimiento ya pasó o es hoy…" con hoy y con ayer; ningún lote de la entrada quedó registrado | Aprobado |  | `evidencia/CP-35.txt` |
 | CP-36 | | | | | |
-| CP-37 | | | | | |
+| CP-37 | 2026-10-20 | 400 "Uno o más medicamentos no existen o están inactivos" y 400 "Una o más ubicaciones no existen"; no se registró nada | Aprobado |  | `evidencia/CP-37.txt` |
 | CP-38 | | | | | |
-| CP-39 | | | | | |
-| CP-40 | | | | | |
+| CP-39 | 2026-10-20 | Plantilla correcta (2 hojas, 11 encabezados, 1 fila de ejemplo); 3 filas → 3 lotes, 2 medicamentos, 1 categoría (QA Importada), 1 ubicación (QA-IMP), 1 código vinculado; CREAR en la bitácora por cada uno | Aprobado |  | `evidencia/CP-39.txt` |
+| CP-40 | 2026-10-20 | 3 filas con errores (4, 5 y 6) con los tres mensajes esperados; se importaron solo QA-I-4 y QA-I-5 | Aprobado |  | `evidencia/CP-40.txt` |
 | CP-41 | | | | | |
-| CP-42 | | | | | |
-| CP-43 | | | | H-48 (esperado) | |
+| CP-42 | 2026-10-20 | Fila 2: aviso "Ya existe el lote QA-F-B…" y 1 lote omitido; fila 3: error de QA Ranitidina inactivo; fila 4: lote importado con aviso de código no vinculado | Aprobado |  | `evidencia/CP-42.txt` |
+| CP-43 | 2026-10-20 | La fila se rechazó: "La categoría "QA Categoría Inactiva" existe pero está inactiva; actívela antes de importar" | Fallido | H-48 (esperado) | `evidencia/CP-43.txt` |
 | CP-44 | | | | | |
-| CP-45 | | | | | |
+| CP-45 | 2026-10-20 | 30 d → ROJO (Urgente), 31 y 90 d → AMARILLO (Por vencer), 91 d → VERDE (Sin riesgo); la fila toma ROJO | Aprobado |  | `evidencia/CP-45.txt` |
 | CP-46 | | | | | |
-| CP-47 | | | | | |
-| CP-48 | | | | | |
-| CP-49 | | | | H-43 (esperado) | |
+| CP-47 | 2026-10-20 | Stock 0, semáforo nulo ("Sin stock") y detalle sin lotes | Aprobado |  | `evidencia/CP-47.txt` |
+| CP-48 | 2026-10-20 | 200 y QA-S-31 en ROJO con rojo = 45; 400 por rojo ≥ amarillo; 400 "Datos inválidos" por -1; restablecido a 30/90 | Aprobado |  | `evidencia/CP-48.txt` |
+| CP-49 | 2026-10-20 | Paso 1: 500 "Error interno del servidor"; paso 2: 200 con lista vacía, page 1 y pageSize y totalPages nulos (el caso preveía también page nulo) | Fallido | H-43 (esperado) | `evidencia/CP-49.txt` |
 | CP-50 | | | | | |
 | CP-51 | | | | | |
 | CP-52 | | | | | |
-| CP-53 | | | | | |
+| CP-53 | 2026-10-20 | Stock 6 y QA-V-HOY en "Vencido"; /stock 6; 201; las 5 u salieron de QA-V-OK (queda 1) y QA-V-HOY conserva 4 | Aprobado |  | `evidencia/CP-53.txt` |
 | CP-54 | | | | | |
-| CP-55 | | | | | |
-| CP-56 | | | | | |
+| CP-55 | 2026-10-20 | Con la base vacía, /inventario/alertas devuelve las tres listas vacías y /inventario/entradas vacío; el panel muestra "Todo en orden…" y los cuatro textos de panel vacío (Dashboard.tsx:78, 118, 132, 144, 165) | Aprobado |  | `evidencia/CP-55.txt` |
+| CP-56 | 2026-10-20 | 201; DPI parcial → Uno, Dos y Cuatro; "prueba cua" → Cuatro (sin distinguir mayúsculas); "zzz" sin resultados; CREAR en la bitácora | Aprobado |  | `evidencia/CP-56.txt` |
 | CP-57 | | | | | |
-| CP-58 | | | | | |
+| CP-58 | 2026-10-20 | 409 "Ya existe un beneficiario con DPI 0000000000001" al registrar y al editar; no se guardó nada | Aprobado |  | `evidencia/CP-58.txt` |
 | CP-59 | | | | | |
 | CP-60 | | | | | |
 | CP-61 | | | | | |
-| CP-62 | | | | | |
+| CP-62 | 2026-10-20 | Sin dispensaciones; 401 sin sesión; 404 "Foto no encontrada"; la ruta /uploads/dispensaciones/… responde 404 | Aprobado |  | `evidencia/CP-62.txt` |
 | CP-63 | | | | | |
-| CP-64 | | | | | |
-| CP-65 | | | | | |
-| CP-66 | | | | | |
-| CP-67 | | | | | |
+| CP-64 | 2026-10-20 | FIFO: QA-F-A → 0 (AGOTADO), QA-F-B → 7, QA-F-C sin cambio; stock 17; detalles 5 + 3 con snapshots; la API no admite elegir lote | Aprobado |  | `evidencia/CP-64.txt` |
+| CP-65 | 2026-10-20 | 409 "Stock insuficiente para QA Metformina. Solicitado: 11, Disponible: 10"; stock 10 sin cambio; sin dispensación ni DISPENSAR nuevos | Aprobado |  | `evidencia/CP-65.txt` |
+| CP-66 | 2026-10-20 | 409 "Stock insuficiente para QA Metformina. Solicitado: 11, Disponible: 10"; QA Enalapril conserva su stock (50); no se registró nada | Aprobado |  | `evidencia/CP-66.txt` |
+| CP-67 | 2026-10-20 | Una 201 y una 409 "Stock insuficiente para QA Ibuprofeno. Solicitado: 15, Disponible: 5"; ninguna 500; stock final 5; una sola dispensación nueva | Aprobado |  | `evidencia/CP-67.txt` |
 | CP-68 | | | | | |
-| CP-69 | | | | | |
+| CP-69 | 2026-10-20 | 400, 400, 404 "Medicamento no encontrado o inactivo: <id>", 404 "Beneficiario no encontrado o inactivo" y 400 por items vacío; nada registrado | Aprobado |  | `evidencia/CP-69.txt` |
 | CP-70 | | | | | |
 | CP-71 | | | | H-45 (esperado) | |
 | CP-72 | | | | | |
 | CP-73 | | | | | |
-| CP-74 | | | | | |
-| CP-75 | | | | | |
+| CP-74 | 2026-10-20 | 400 por formato, por tamaño y por imagen no válida; la receta sigue pendiente | Aprobado |  | `evidencia/CP-74.txt` |
+| CP-75 | 2026-10-20 | Reemplazo correcto: un registro RECETA y un archivo .webp; generar-token en evidencia completa → 409 "La evidencia de esta dispensación ya está completa…" | Aprobado |  | `evidencia/CP-75.txt` |
 | CP-76 | | | | | |
 | CP-77 | | | | | |
-| CP-78 | | | | H-38 (esperado) | |
-| CP-79 | | | | H-35 (esperado) | |
+| CP-78 | 2026-10-20 | Mismo token en las dos llamadas, pero 2 registros CREAR de TokenCaptura | Fallido | H-38 (esperado) | `evidencia/CP-78.txt` |
+| CP-79 | 2026-10-20 | Dos CREAR a nombre de qa_encargado y sin dirección IP; no hay EDITAR con la foto reemplazada | Fallido | H-35 (esperado) | `evidencia/CP-79.txt` |
 | CP-80 | | | | | |
 | CP-81 | | | | | |
 | CP-82 | | | | H-46 (esperado) | |
@@ -132,6 +174,11 @@
 | CP-90 | | | | | |
 | CP-91 | | | | H-46 (esperado) | |
 | CP-92 | | | | | |
+
+
+## Defectos nuevos de la ejecución
+
+Ninguno hasta el momento.
 
 ## Resumen del ciclo
 

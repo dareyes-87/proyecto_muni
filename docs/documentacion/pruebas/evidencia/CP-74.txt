@@ -1,0 +1,30 @@
+CP-74 — Archivos inválidos desde el enlace de captura (CU-16)
+Ejecutado: 2026-10-20 17:34 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+Dispensación auxiliar de 1 unidad de QA Ácido Fólico (importado en CP-39) en lugar de QA Enalapril, para conservar las 50 unidades de QA Enalapril que CP-63 espera en la ejecución manual.
+Dispensación a0367d24-8265-42b1-ac0c-20ad0e0df5c9; enlace de captura generado (token abreviado en la evidencia).
+> POST /captura/sYS…/foto   [sin Authorization]
+> archivo(s): foto=documento.pdf
+> campos: {"tipo": "RECETA"}
+< 400  Content-Type: application/json
+< {"error": "Formato de imagen no permitido. Use JPG, PNG o WEBP"}
+
+> POST /captura/sYS…/foto   [sin Authorization]
+> archivo(s): foto=grande.jpg
+> campos: {"tipo": "RECETA"}
+< 400  Content-Type: application/json
+< {"error": "El archivo supera el tamaño máximo permitido"}
+
+> POST /captura/sYS…/foto   [sin Authorization]
+> archivo(s): foto=falso.jpg
+> campos: {"tipo": "RECETA"}
+< 400  Content-Type: application/json
+< {"error": "El archivo no es una imagen válida"}
+
+> GET /captura/sYS…/info   [sin Authorization]
+< 200  Content-Type: application/json
+< {"dispensacionId": "a0367d24-8265-42b1-ac0c-20ad0e0df5c9", "beneficiario": "Beneficiario Prueba Uno", "fecha": "2026-10-20T23:34:37.337Z", "expiraEn": "2026-10-21T00:04:39.394Z", "fotosSubidas": []}
+
+Fotos registradas de la dispensación: []
+RESULTADO: Aprobado
+Obtenido: Los tres archivos → 400 con los mensajes esperados; la receta sigue pendiente

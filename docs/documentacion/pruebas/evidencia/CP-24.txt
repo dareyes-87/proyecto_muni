@@ -1,0 +1,24 @@
+CP-24 — Agregar, consultar y eliminar código de barras (CU-04)
+Ejecutado: 2026-10-20 17:27 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+Dato preparado: se usa "QA Diclofenaco API" (Ampolla, 75 mg/3 ml), creado por la API para esta ejecución, en lugar de QA Diclofenaco, que crea CP-17 desde la pantalla.
+> POST /catalogos/medicamentos/96b3f63e-fb33-4dca-8f43-d193ca1c9098/codigos   [sesión: qa_admin2, ADMIN]
+> cuerpo: {"codigo": "  7790000000042  ", "descripcion": "Caja x 20"}
+< 201  Content-Type: application/json
+< {"data": {"id": "cd6d6805-b450-4d28-a076-c20f983f1f31", "medicamentoId": "96b3f63e-fb33-4dca-8f43-d193ca1c9098", "codigo": "7790000000042", "descripcion": "Caja x 20"}}
+
+> GET /catalogos/medicamentos/barcode/7790000000042   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+< 200  Content-Type: application/json
+< {"data": {"id": "96b3f63e-fb33-4dca-8f43-d193ca1c9098", "nombreGenerico": "QA Diclofenaco API", "nombreComercial": null, "presentacion": "Ampolla", "concentracion": "75 mg/3 ml", "unidadMedida": "Ampolla", "categoriaId": "7ce00f55-d6a9-4b21-9b14-96611287d812", "stockMinimo": 10, "imagenUrl": "/uploads/medicamentos/96b3f63e-fb33-4dca-8f43-d193ca1c9098.webp", "activo": true, "createdAt": "2026-10-20T23:27:18.561Z", "updatedAt": "2026-10-20T23:27:20.724Z", "categoria": {"id": "7ce00f55-d6a9-4b21-9b14-96611287d812", "nombre": "Antiinflamatorio", "descripcion": "Medicamentos para la inflamación", "activo": true}, "codigosBarras": [{"id": "cd6d6805-b450-4d28-a076-c20f983f1f31", "medicamentoId": "9 …
+
+> DELETE /catalogos/codigos/cd6d6805-b450-4d28-a076-c20f983f1f31   [sesión: qa_admin2, ADMIN]
+< 200  Content-Type: application/json
+< {"mensaje": "Código de barras eliminado correctamente"}
+
+> GET /catalogos/medicamentos/barcode/7790000000042   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+< 404  Content-Type: application/json
+< {"error": "Código de barras no registrado"}
+
+Bitácora codigo_barras: CREAR 3→4, ELIMINAR 0→1. La pantalla muestra "Código de barras registrado" tras el 201 (Catalogos/Medicamentos.tsx:136).
+RESULTADO: Aprobado
+Obtenido: 201 con el código sin espacios; 200 con el medicamento y stockActual; eliminado; 404 "Código de barras no registrado"; CREAR y ELIMINAR en la bitácora

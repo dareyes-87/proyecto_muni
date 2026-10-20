@@ -1,0 +1,28 @@
+CP-22 — Foto de medicamento con archivo inválido (CU-03)
+Ejecutado: 2026-10-20 17:27 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+Dato preparado: se usa "QA Diclofenaco API" (Ampolla, 75 mg/3 ml), creado por la API para esta ejecución, en lugar de QA Diclofenaco, que crea CP-17 desde la pantalla.
+Precondición: se sube primero una foto válida (foto_medicamento.jpg), equivalente a la de CP-20.
+> POST /catalogos/medicamentos/96b3f63e-fb33-4dca-8f43-d193ca1c9098/imagen   [sesión: qa_admin2, ADMIN]
+> archivo(s): imagen=foto_medicamento.jpg
+< 200  Content-Type: application/json
+< {"data": {"id": "96b3f63e-fb33-4dca-8f43-d193ca1c9098", "nombreGenerico": "QA Diclofenaco API", "nombreComercial": null, "presentacion": "Ampolla", "concentracion": "75 mg/3 ml", "unidadMedida": "Ampolla", "categoriaId": "7ce00f55-d6a9-4b21-9b14-96611287d812", "stockMinimo": 10, "imagenUrl": "/uploads/medicamentos/96b3f63e-fb33-4dca-8f43-d193ca1c9098.webp", "activo": true, "createdAt": "2026-10-20T23:27:18.561Z", "updatedAt": "2026-10-20T23:27:20.724Z"}}
+
+> POST /catalogos/medicamentos/96b3f63e-fb33-4dca-8f43-d193ca1c9098/imagen   [sesión: qa_admin2, ADMIN]
+> archivo(s): imagen=documento.pdf
+< 400  Content-Type: application/json
+< {"error": "Formato de imagen no permitido. Use JPG, PNG o WEBP"}
+
+> POST /catalogos/medicamentos/96b3f63e-fb33-4dca-8f43-d193ca1c9098/imagen   [sesión: qa_admin2, ADMIN]
+> archivo(s): imagen=grande.jpg
+< 400  Content-Type: application/json
+< {"error": "El archivo supera el tamaño máximo permitido"}
+
+> POST /catalogos/medicamentos/96b3f63e-fb33-4dca-8f43-d193ca1c9098/imagen   [sesión: qa_admin2, ADMIN]
+> archivo(s): imagen=falso.jpg
+< 400  Content-Type: application/json
+< {"error": "El archivo no es una imagen válida"}
+
+grande.jpg pesa 9486011 bytes. imagenUrl antes: /uploads/medicamentos/96b3f63e-fb33-4dca-8f43-d193ca1c9098.webp; después: /uploads/medicamentos/96b3f63e-fb33-4dca-8f43-d193ca1c9098.webp
+RESULTADO: Aprobado
+Obtenido: Los tres archivos responden 400 con los mensajes esperados; la foto anterior no cambia
