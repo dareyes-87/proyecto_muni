@@ -1,0 +1,47 @@
+@startuml 04_casos_uso_inventario
+' Fuente: analisis/07_flujos_modulos.md §5 cotejado con
+' backend/src/routes/inventario.routes.ts, backend/src/services/vencimiento.service.ts
+' y frontend/src/pages/Inventario.tsx (bdf1187). Sin "Configurar umbrales" (H-22).
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 12
+skinparam dpi 150
+skinparam packageStyle rectangle
+left to right direction
+
+title Casos de uso — Inventario
+
+actor "Encargado de\nBeneficencia" as ENC
+actor "Administrador" as ADM
+actor "Sistema\n(proceso automático)" as SIS
+ADM -up-|> ENC
+
+rectangle "Inventario" {
+  usecase "CU-09 Consultar inventario" as CU09
+  usecase "Ver detalle de lotes\ndel medicamento" as DET
+  usecase "CU-10 Dar de baja lote" as CU10
+  usecase "CU-11 Actualizar lotes\nvencidos" as CU11
+  usecase "Eliminar tokens de\ncaptura vencidos" as TOK
+}
+
+ENC --> CU09
+ADM --> CU10
+CU11 <-- SIS
+
+DET .up.> CU09 : <<extend>>
+CU10 .up.> DET : <<extend>>
+CU11 ..> TOK : <<include>>
+
+note bottom of CU11
+  Diario a las 00:05 (America/Guatemala)
+  y cada vez que arranca la API: los lotes
+  DISPONIBLE con vencimiento hoy o anterior
+  pasan a VENCIDO.
+end note
+
+note bottom of CU10
+  Motivo opcional; cualquier lote que no
+  esté ya DADO_DE_BAJA.
+end note
+@enduml

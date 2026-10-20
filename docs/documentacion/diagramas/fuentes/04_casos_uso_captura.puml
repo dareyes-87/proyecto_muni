@@ -1,0 +1,48 @@
+@startuml 04_casos_uso_captura
+' Fuente: analisis/07_flujos_modulos.md §8 cotejado con
+' backend/src/routes/captura.routes.ts, dispensacion.routes.ts (generar-token, fotos),
+' dispensacion.service.ts y frontend/src/pages/Dispensacion.tsx, Captura.tsx (bdf1187).
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 12
+skinparam dpi 150
+skinparam packageStyle rectangle
+left to right direction
+
+title Casos de uso — Captura de evidencia
+
+actor "Encargado de\nBeneficencia" as ENC
+actor "Administrador" as ADM
+actor "Persona con\nel celular" as CEL
+ADM -up-|> ENC
+
+rectangle "Captura de evidencia" {
+  usecase "CU-16 Registrar evidencia\nfotográfica" as CU16
+  usecase "Generar código QR\n(token de 30 min)" as QR
+  usecase "Consultar estado\nde las fotos" as EST
+  usecase "Subir fotos desde\nla computadora" as PC
+  usecase "Subir foto desde\nel celular" as MOV
+  usecase "Omitir fotos" as OMI
+}
+
+ENC --> CU16
+CEL --> MOV
+
+CU16 ..> QR : <<include>>
+CU16 ..> EST : <<include>>
+PC .up.> CU16 : <<extend>>
+MOV .up.> CU16 : <<extend>>
+OMI .up.> CU16 : <<extend>>
+
+note bottom of MOV
+  Sin sesión: la credencial es el token
+  del QR. Fotos RECETA y EVIDENCIA_ENTREGA,
+  JPG/PNG/WEBP hasta 5 MB.
+end note
+
+note bottom of QR
+  No se genera si la evidencia ya
+  está completa (409).
+end note
+@enduml

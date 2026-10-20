@@ -1,0 +1,78 @@
+@startuml 05_despliegue
+' Fuente: docker-compose.prod.yml, docker-compose.yml, backend/Dockerfile, frontend/Dockerfile,
+' frontend/nginx.conf, backend/docker-entrypoint.sh y analisis/01_stack_y_estructura.md (bdf1187).
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 11
+skinparam dpi 150
+
+title Diagrama de despliegue — FarmaG (docker-compose.prod.yml)
+
+node "Equipo de escritorio\n(farmacia)" as PC {
+  artifact "Navegador web" as nav
+}
+node "Celular" as CEL {
+  artifact "Navegador\n(/captura/:token)" as navCel
+}
+
+node "Servidor (red local de la municipalidad)" as SRV {
+  node "Docker Engine" as DOCKER {
+    node "farmag_web\n(nginx:alpine, target production)" as WEB {
+      artifact "SPA compilada\n(/usr/share/nginx/html)" as spa
+    }
+    node "farmag_api\n(node:20-alpine, target production)" as API {
+      artifact "node dist/server.js\n(docker-entrypoint.sh:\nrespaldo previo +\nprisma migrate deploy)" as api
+    }
+    node "farmag_db\n(postgres:16-alpine)" as DB {
+      database "farmag_db" as pg
+    }
+    node "farmag_backup\n(postgres:16-alpine)" as BK {
+      artifact "pg_dump cada 12 h,\nconserva 14 días" as dump
+    }
+  }
+  storage "volumen pgdata" as vData
+  folder "./backend/uploads" as vUp
+  folder "./backups" as vBk
+}
+
+cloud "Internet\n(api.fda.gov)" as FDA
+
+nav --> WEB : HTTP :80
+navCel --> WEB : HTTP :80
+WEB --> API : /api/ y /uploads/medicamentos/\n→ http://api:3000 (red interna)
+API --> DB : TCP 5432 (red interna)
+BK --> DB : pg_dump (red interna)
+API ..> FDA : HTTPS (consulta OpenFDA)
+
+pg ..> vData : /var/lib/postgresql/data
+api ..> vUp : /app/uploads
+api ..> vBk : /app/backups
+dump ..> vBk : /backups
+
+note right of API
+  Puerto publicado solo en el servidor:
+  127.0.0.1:3000. NODE_ENV=production,
+  TZ=America/Guatemala.
+end note
+
+note right of DB
+  Puerto publicado solo en el servidor:
+  127.0.0.1:5432.
+end note
+
+note left of WEB
+  Único puerto expuesto a la red
+  local: 80 (todas las interfaces).
+end note
+
+note bottom of SRV
+  <b>Diferencias en modo desarrollo (docker-compose.yml)</b>
+  - api: target por defecto development (tsx watch), NODE_ENV=development por defecto,
+    monta ./backend/src, ./backend/prisma y ./backend/tests (recarga en caliente).
+  - web: target por defecto development (Vite en :5173, proxy /api → api:3000),
+    monta ./frontend/src y ./frontend/public; publica 80 y 5173 en todas las interfaces.
+  - Secretos con valores por defecto en el archivo (en producción son obligatorios).
+  - La actualización automática del servidor usa docker-compose.yml (H-36).
+end note
+@enduml

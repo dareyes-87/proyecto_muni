@@ -1,0 +1,167 @@
+@startuml 05_clases_dominio
+' Fuente: analisis/02_modelo_datos.md (actualizado a bdf1187) y backend/prisma/schema.prisma.
+' Cardinalidades del lado "muchos" según el esquema; las marcadas con (*) las garantiza
+' la aplicación, no la base de datos (ver notas).
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 11
+skinparam dpi 150
+skinparam classAttributeIconSize 0
+hide methods
+hide empty members
+
+title Diagrama de clases del dominio — FarmaG
+
+package "Seguridad y auditoría" {
+  class Usuario {
+    username : texto {único}
+    email : texto [0..1] {único}
+    passwordHash : texto
+    nombreCompleto : texto
+    rol : Rol
+    activo : booleano = true
+    ultimoAcceso : fecha-hora [0..1]
+  }
+  enum Rol {
+    ADMIN
+    ENCARGADO_BENEFICENCIA
+  }
+  class LogAuditoria {
+    accion : AccionAuditoria
+    entidad : texto
+    entidadId : texto [0..1]
+    datosAnteriores : JSON [0..1]
+    datosNuevos : JSON [0..1]
+    ipAddress : texto [0..1]
+    createdAt : fecha-hora
+  }
+  enum AccionAuditoria {
+    CREAR
+    EDITAR
+    ELIMINAR
+    DISPENSAR
+    BAJA
+    LOGIN
+    LOGOUT
+    ACTIVAR
+    DESACTIVAR
+  }
+  class ConfiguracionSistema {
+    clave : texto {único}
+    valor : texto
+    descripcion : texto [0..1]
+  }
+}
+
+package "Catálogos" {
+  class Categoria {
+    nombre : texto {único}
+    descripcion : texto [0..1]
+    activo : booleano = true
+  }
+  class Medicamento {
+    nombreGenerico : texto
+    nombreComercial : texto [0..1]
+    presentacion : texto
+    concentracion : texto [0..1]
+    unidadMedida : texto
+    stockMinimo : entero = 10
+    imagenUrl : texto [0..1]
+    activo : booleano = true
+  }
+  class CodigoBarras {
+    codigo : texto {único}
+    descripcion : texto [0..1]
+  }
+  class Ubicacion {
+    codigo : texto {único}
+    descripcion : texto [0..1]
+  }
+}
+
+package "Inventario" {
+  class Entrada {
+    observaciones : texto [0..1]
+    createdAt : fecha-hora
+  }
+  class Lote {
+    numeroLote : texto
+    cantidad : entero
+    cantidadActual : entero
+    fechaVencimiento : fecha
+    {field} costoUnitario : decimal(10,2) [0..1]
+    estado : EstadoLote = DISPONIBLE
+  }
+  enum EstadoLote {
+    DISPONIBLE
+    AGOTADO
+    VENCIDO
+    DADO_DE_BAJA
+  }
+}
+
+package "Dispensación" {
+  class Beneficiario {
+    nombreCompleto : texto
+    dpi : texto [0..1] {único}
+    telefono : texto [0..1]
+    direccion : texto [0..1]
+    observaciones : texto [0..1]
+    activo : booleano = true
+  }
+  class Dispensacion {
+    observaciones : texto [0..1]
+    createdAt : fecha-hora
+  }
+  class DetalleDispensacion {
+    cantidad : entero
+    nombreMedicamentoSnapshot : texto
+    presentacionSnapshot : texto
+    concentracionSnapshot : texto [0..1]
+  }
+  class FotoDispensacion {
+    tipo : TipoFoto
+    imagenUrl : texto
+    createdAt : fecha-hora
+  }
+  enum TipoFoto {
+    RECETA
+    EVIDENCIA_ENTREGA
+  }
+  class TokenCaptura {
+    token : texto {único}
+    usado : booleano = false
+    expiraEn : fecha-hora
+  }
+}
+
+Usuario "1" -- "0..*" Entrada : registra >
+Usuario "1" -- "0..*" Dispensacion : atiende >
+Usuario "1" -- "0..*" LogAuditoria : realiza >
+Categoria "1" -- "0..*" Medicamento : clasifica >
+Medicamento "1" *-- "0..*" CodigoBarras : identificado por >
+Medicamento "1" -- "0..*" Lote : se almacena en >
+Ubicacion "0..1" -- "0..*" Lote : guarda >
+Entrada "1" *-- "1..* (*)" Lote : ingresa >
+Beneficiario "1" -- "0..*" Dispensacion : recibe >
+Dispensacion "1" *-- "1..* (*)" DetalleDispensacion : contiene >
+Lote "1" -- "0..*" DetalleDispensacion : descontado en >
+Medicamento "1" -- "0..*" DetalleDispensacion : referido en >
+Dispensacion "1" *-- "0..2" FotoDispensacion : evidencia >
+Dispensacion "1" -- "0..1" TokenCaptura : habilita captura >
+
+Usuario ..> Rol
+LogAuditoria ..> AccionAuditoria
+Lote ..> EstadoLote
+FotoDispensacion ..> TipoFoto
+
+note bottom of ConfiguracionSistema
+  Guarda, entre otras claves, los umbrales
+  ALERTA_VENCIMIENTO_ROJO (30) y
+  ALERTA_VENCIMIENTO_AMARILLO (90) y
+  NOMBRE_FARMACIA. Sin relaciones.
+end note
+
+note "(*) La base admite 0..*; la API exige al\nmenos un lote por entrada y un detalle por\ndispensación. 0..2 fotos: una por tipo\n(restricción única dispensación + tipo).\nTodas las clases tienen id UUID." as N1
+@enduml

@@ -1,0 +1,88 @@
+@startuml 05_actividad_dispensar
+' Fuente: analisis/07_flujos_modulos.md §6 y 06_reglas_negocio.md RN-09 a RN-19 (194f8fb)
+' actualizado con el código de bdf1187: frontend/src/pages/Dispensacion.tsx,
+' backend/src/routes/dispensacion.routes.ts (POST /despachar) y
+' backend/src/services/dispensacion.service.ts (despachar).
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 12
+skinparam dpi 150
+
+title Actividad — Dispensar medicamentos
+
+|Encargado|
+start
+:Escribir nombre o DPI del beneficiario\n(al menos 2 caracteres);
+|Sistema|
+:Buscar beneficiarios activos;
+if (¿Se encontró el beneficiario?) then (sí)
+  |Encargado|
+  :Seleccionar beneficiario;
+else (no)
+  |Encargado|
+  :Registrar beneficiario nuevo\n(nombre ≥ 3, DPI opcional de 13 dígitos);
+endif
+|Sistema|
+:Mostrar últimas dispensaciones del\nbeneficiario y enfocar el lector de códigos;
+repeat
+  |Encargado|
+  :Escanear código de barras\no buscar por nombre;
+  |Sistema|
+  if (¿Medicamento encontrado?) then (no)
+    :Mostrar "No se encontró medicamento";
+  elseif (¿Ya está en la lista?) then (sí)
+    :Mostrar "Este medicamento ya está en la lista";
+  else (no)
+    :Consultar stock dispensable\n(excluye lotes vencidos);
+    if (¿Stock > 0?) then (sí)
+      :Agregar con cantidad 1, stock y\nsemáforo del próximo vencimiento;
+    else (no)
+      :Mostrar "<nombre> no tiene stock disponible";
+    endif
+  endif
+  |Encargado|
+  :Ajustar cantidades (1 a stock)\no quitar medicamentos;
+repeat while (¿Agregar otro medicamento?) is (sí) not (no)
+:Escribir observaciones (opcional)\ny pulsar "Confirmar dispensación";
+|Sistema|
+:Mostrar resumen en el diálogo\nde confirmación;
+|Encargado|
+if (¿Confirma?) then (Cancelar)
+  stop
+else (Dispensar)
+endif
+|Sistema|
+:Validar beneficiario e ítems\n(cantidad entera > 0);
+repeat
+  :Abrir transacción Serializable;
+  repeat
+    :Bloquear lotes DISPONIBLE con stock y\nvencimiento posterior a hoy (FOR UPDATE),\nordenados por fecha de vencimiento (FIFO);
+    if (¿Stock suficiente?) then (no)
+      :Revertir la transacción;
+      :Responder 409 "Stock insuficiente para <nombre>.\nSolicitado: n, Disponible: m";
+      |Encargado|
+      :Ver el mensaje y corregir la cantidad;
+      stop
+    else (sí)
+    endif
+    |Sistema|
+    :Descontar del lote que vence primero y\ncontinuar con el siguiente si hace falta;
+    :Marcar AGOTADO cada lote que llega a 0;
+  repeat while (¿Quedan ítems?) is (sí) not (no)
+  :Crear la dispensación y sus detalles\ncon snapshots del medicamento;
+  :Intentar confirmar la transacción;
+repeat while (¿Conflicto de serialización\ny menos de 3 intentos?) is (sí: esperar 10·n ms\ny reintentar) not (no)
+if (¿Persiste el conflicto\ntras 3 intentos?) then (sí)
+  :Responder 409 "No se pudo completar la dispensación\npor un conflicto de concurrencia";
+  stop
+else (no)
+endif
+:Registrar DISPENSAR en la bitácora;
+:Responder 201 con la dispensación\ny el stock actualizado;
+:Mostrar "Dispensación registrada correctamente";
+:Generar token y mostrar el código QR\n(ver captura de evidencia);
+|Encargado|
+:Pulsar "Siguiente dispensación";
+stop
+@enduml

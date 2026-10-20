@@ -1,0 +1,36 @@
+@startuml 04_casos_uso_usuarios
+' Fuente: analisis/07_flujos_modulos.md §2 cotejado con
+' backend/src/routes/usuarios.routes.ts y frontend/src/pages/Usuarios.tsx (bdf1187).
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 12
+skinparam dpi 150
+skinparam packageStyle rectangle
+left to right direction
+
+title Casos de uso — Usuarios
+
+actor "Administrador" as ADM
+
+rectangle "Usuarios" {
+  usecase "CU-02 Gestionar usuarios" as CU02
+  usecase "Crear usuario" as CRE
+  usecase "Editar usuario" as EDI
+  usecase "Restablecer contraseña" as PWD
+  usecase "Activar o desactivar\nusuario" as TOG
+}
+
+ADM --> CU02
+CRE .up.> CU02 : <<extend>>
+EDI .up.> CU02 : <<extend>>
+PWD .up.> CU02 : <<extend>>
+TOG .up.> CU02 : <<extend>>
+
+note right of TOG
+  Un administrador no puede desactivar su
+  propia cuenta ni quitarse el rol ADMIN.
+  La desactivación surte efecto en la
+  siguiente petición del usuario afectado.
+end note
+@enduml

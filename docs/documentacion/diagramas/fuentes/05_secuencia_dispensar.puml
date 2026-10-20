@@ -1,0 +1,85 @@
+@startuml 05_secuencia_dispensar
+' Fuente: analisis/04_api.md §2.5 (POST /dispensacion/despachar), 06_reglas_negocio.md
+' RN-09 a RN-17, actualizado con el código de bdf1187:
+' frontend/src/pages/Dispensacion.tsx (confirmarDispensacion),
+' backend/src/routes/dispensacion.routes.ts (POST /despachar),
+' backend/src/services/dispensacion.service.ts (despachar),
+' backend/src/middleware/auth.ts, backend/src/middleware/audit.ts.
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 11
+skinparam dpi 150
+skinparam sequenceMessageAlign left
+autonumber
+
+title Secuencia — Dispensar medicamentos
+
+actor "Encargado" as U
+participant "Navegador\n(Dispensacion.tsx)" as WEB
+participant "API\n(dispensacion.routes)" as API
+participant "authMiddleware" as AUTH
+participant "Servicio\n(dispensacion.service)" as SVC
+participant "registrarAuditoria" as AUD
+database "PostgreSQL" as DB
+
+U -> WEB : Pulsa "Dispensar" en el diálogo de confirmación
+WEB -> API : POST /api/dispensacion/despachar\n{ beneficiarioId, items[medicamentoId, cantidad], observaciones }\nAuthorization: Bearer <JWT>
+API -> AUTH : verificar token
+AUTH -> DB : SELECT usuario (id, rol, activo)
+DB --> AUTH : usuario activo
+AUTH --> API : req.user
+API -> API : validar beneficiarioId (texto) e ítems\n(cantidad entera > 0)
+alt datos inválidos
+  API --> WEB : 400 { error }
+end
+API -> SVC : despachar(beneficiarioId, usuarioId, items, observaciones)
+SVC -> DB : SELECT beneficiario
+alt no existe o inactivo
+  SVC --> API : Error "Beneficiario no encontrado o inactivo"
+  API --> WEB : 404 { error }
+end
+SVC -> SVC : hoyISO = fecha de hoy (AAAA-MM-DD)
+
+loop intento = 1..3 mientras haya conflicto de serialización
+  SVC -> DB : BEGIN ISOLATION LEVEL SERIALIZABLE
+  loop por cada ítem
+    SVC -> DB : SELECT medicamento
+    alt no existe o inactivo
+      SVC -> DB : ROLLBACK
+      SVC --> API : Error "Medicamento no encontrado o inactivo"
+      API --> WEB : 404 { error }
+    end
+    SVC -> DB : SELECT id, cantidad_actual, … FROM lotes\nWHERE medicamento_id = ? AND estado = 'DISPONIBLE'\n  AND cantidad_actual > 0\n  AND fecha_vencimiento > hoyISO::date\nORDER BY fecha_vencimiento ASC\nFOR UPDATE
+    DB --> SVC : lotes bloqueados (FIFO, sin vencidos)
+    alt suma de cantidad_actual < cantidad pedida
+      SVC -> DB : ROLLBACK
+      SVC --> API : Error "Stock insuficiente para <nombre>…"
+      API --> WEB : 409 { error }
+    end
+    loop por cada lote hasta cubrir la cantidad
+      SVC -> DB : UPDATE lotes SET cantidad_actual = cantidad_actual − descontar,\nestado = AGOTADO si llega a 0, si no DISPONIBLE
+    end
+  end
+  SVC -> DB : INSERT dispensaciones y detalle_dispensaciones\n(lote usado + snapshots de nombre, presentación, concentración)
+  SVC -> DB : COMMIT
+  alt conflicto de serialización (P2034 / 40001)
+    DB --> SVC : error de serialización
+    SVC -> SVC : esperar 10 × intento ms y reintentar
+  else confirmada
+    DB --> SVC : OK
+  end
+end
+
+alt conflicto en los 3 intentos
+  SVC --> API : Error 409 "conflicto de concurrencia"
+  API --> WEB : 409 { error }
+else éxito
+  SVC --> API : { dispensacion, stockActualizado }
+  API -> AUD : registrarAuditoria(DISPENSAR, Dispensacion)
+  AUD -> DB : INSERT log_auditoria
+  note right of AUD : Fire-and-forget: un fallo\nno interrumpe la respuesta
+  API --> WEB : 201 { dispensacion, stockActualizado }
+  WEB -> U : "Dispensación registrada correctamente"\ny pantalla de éxito con QR
+end
+@enduml

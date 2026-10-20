@@ -1,0 +1,38 @@
+@startuml 05_estados_token_captura
+' Fuente: analisis/07_flujos_modulos.md §12.2 (194f8fb) actualizado con el código de bdf1187:
+' backend/prisma/schema.prisma (TokenCaptura), backend/src/services/dispensacion.service.ts
+' (generarTokenCaptura, obtenerCapturaPorToken, registrarFotoCaptura, limpiarTokensExpirados)
+' y backend/src/services/vencimiento.service.ts.
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 12
+skinparam dpi 150
+
+title Estados del token de captura
+
+state "Vigente" as VIG : usado = false\nexpiraEn > ahora
+state "Vencido" as VEN : usado = false\nexpiraEn <= ahora
+state "Usado" as USA : usado = true
+
+[*] --> VIG : generar token tras dispensar\n[evidencia incompleta]\n/ expiraEn = ahora + 30 min
+VIG --> VIG : generar token\n/ devuelve el mismo token
+VIG --> VIG : subir una foto\n[aún falta la otra]
+VIG --> USA : subir foto\n[ya están RECETA y EVIDENCIA_ENTREGA]
+VIG --> VEN : pasan 30 minutos
+VEN --> VIG : generar token [evidencia incompleta]\n/ nuevo valor en la misma fila
+VEN --> [*] : mantenimiento diario\n[expiraEn < ahora] / fila eliminada
+USA --> [*] : mantenimiento diario\n[expiraEn < ahora] / fila eliminada
+
+note right of USA
+  Generar un token para una dispensación con
+  las dos fotos se rechaza (409): un token
+  usado ya no vuelve a Vigente.
+end note
+
+note bottom of VEN
+  En los estados Vencido y Usado, las rutas
+  públicas responden 404 "Enlace inválido o
+  expirado" (mismo mensaje en ambos casos).
+end note
+@enduml

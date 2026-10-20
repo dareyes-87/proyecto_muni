@@ -1,0 +1,40 @@
+@startuml 04_casos_uso_reportes
+' Fuente: analisis/07_flujos_modulos.md §9 cotejado con
+' backend/src/routes/reportes.routes.ts y frontend/src/pages/Reportes.tsx (bdf1187).
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 12
+skinparam dpi 150
+skinparam packageStyle rectangle
+left to right direction
+
+title Casos de uso — Reportes
+
+actor "Administrador" as ADM
+
+rectangle "Reportes" {
+  usecase "CU-17 Consultar reportes" as CU17
+  usecase "Aplicar filtros" as FIL
+  usecase "CU-18 Exportar reportes" as CU18
+  usecase "Exportar a PDF" as PDF
+  usecase "Exportar a Excel" as XLS
+}
+
+ADM --> CU17
+ADM --> CU18
+
+FIL .up.> CU17 : <<extend>>
+CU18 .up.> CU17 : <<extend>>
+PDF -up-|> CU18
+XLS -up-|> CU18
+
+note right of CU17
+  Seis reportes: Dispensaciones, Consumo por
+  medicamento, Inventario actual, Por vencer,
+  Entradas y Dados de baja.
+  El backend también permite consultarlos al
+  Encargado de Beneficencia, pero la pantalla
+  solo se muestra al Administrador (H-20).
+end note
+@enduml

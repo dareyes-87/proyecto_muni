@@ -1,0 +1,78 @@
+@startuml 05_actividad_login
+' Fuente: analisis/05_seguridad_roles.md §1.1; analisis/07_flujos_modulos.md §1 (194f8fb)
+' actualizado con el código de bdf1187: backend/src/routes/auth.routes.ts (POST /login),
+' backend/src/middleware/ipRateLimit.ts, backend/src/middleware/loginRateLimit.ts,
+' frontend/src/pages/Login.tsx, frontend/src/context/AuthContext.tsx.
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 12
+skinparam dpi 150
+
+title Actividad — Iniciar sesión (con bloqueo por intentos)
+
+|Usuario|
+start
+:Abrir el sistema sin sesión;
+|Navegador|
+:Redirigir a /login;
+|Usuario|
+:Escribir usuario y contraseña\ny pulsar "Iniciar sesión";
+|Navegador|
+:Enviar POST /api/auth/login;
+|API|
+:Contar la solicitud para la IP\n(ventana de 10 minutos);
+if (¿Más de 20 solicitudes\nde la IP en la ventana?) then (sí)
+  :Responder 429 "Demasiadas solicitudes de\ninicio de sesión desde esta red";
+  |Navegador|
+  :Mostrar el mensaje de error;
+  stop
+else (no)
+endif
+|API|
+if (¿Usuario y contraseña\nson texto no vacío?) then (no)
+  :Responder 400 "Usuario y\ncontraseña son requeridos";
+  |Navegador|
+  :Mostrar el mensaje de error;
+  stop
+else (sí)
+endif
+|API|
+if (¿Usuario + IP bloqueado\n(bloqueo vigente)?) then (sí)
+  :Responder 429 "Demasiados intentos fallidos.\nIntente de nuevo en N minuto(s)";
+  |Navegador|
+  :Mostrar el mensaje de error;
+  stop
+else (no)
+endif
+|API|
+:Buscar el usuario por nombre;
+if (¿Existe, está activo y la contraseña\ncoincide con el hash bcrypt?) then (no)
+  :Contar el fallo para usuario + IP;
+  if (¿El usuario existe?) then (sí)
+    :Registrar LOGIN fallido en la bitácora;
+  else (no)
+  endif
+  if (¿Se alcanzaron 3 fallos?) then (sí)
+    :Bloquear usuario + IP por 5 minutos;
+    :Responder 429 "Demasiados intentos fallidos";
+  else (no)
+    :Responder 401 "Credenciales inválidas"\ncon los intentos restantes;
+  endif
+  |Navegador|
+  :Mostrar el mensaje de error\n(sin recargar la página);
+  stop
+else (sí)
+endif
+|API|
+:Reiniciar el contador de fallos de usuario + IP;
+:Actualizar último acceso;
+:Firmar JWT { userId, username, rol }\ncon expiración (8 h por defecto);
+:Registrar LOGIN en la bitácora;
+:Responder 200 con token y datos del usuario;
+|Navegador|
+:Guardar token y usuario en localStorage;
+:Mostrar "Bienvenido al sistema";
+:Navegar al Dashboard y filtrar\nel menú según el rol;
+stop
+@enduml

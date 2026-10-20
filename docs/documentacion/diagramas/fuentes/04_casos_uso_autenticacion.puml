@@ -1,0 +1,47 @@
+@startuml 04_casos_uso_autenticacion
+' Fuente: analisis/07_flujos_modulos.md §1 (194f8fb) cotejado con
+' backend/src/routes/auth.routes.ts, middleware/ipRateLimit.ts,
+' middleware/loginRateLimit.ts y frontend/src/context/AuthContext.tsx (bdf1187).
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 12
+skinparam dpi 150
+skinparam packageStyle rectangle
+left to right direction
+
+title Casos de uso — Autenticación
+
+actor "Encargado de\nBeneficencia" as ENC
+actor "Administrador" as ADM
+ADM -up-|> ENC
+
+rectangle "Autenticación" {
+  usecase "CU-01 Iniciar y cerrar sesión" as CU01
+  usecase "Iniciar sesión" as INI
+  usecase "Cerrar sesión" as FIN
+  usecase "Validar credenciales" as VAL
+  usecase "Bloquear intentos\nde inicio de sesión" as BLQ
+  usecase "Registrar en bitácora" as AUD
+}
+
+ENC --> CU01
+CU01 <|-- INI
+CU01 <|-- FIN
+INI ..> VAL : <<include>>
+INI ..> AUD : <<include>>
+BLQ .up.> INI : <<extend>>
+
+note right of BLQ
+  Condición: más de 20 solicitudes de
+  la misma IP en 10 minutos, o 3 fallos
+  con el mismo usuario desde la misma IP
+  (bloqueo de 5 minutos). Responde 429.
+end note
+
+note bottom of FIN
+  Solo borra la sesión del navegador
+  (localStorage); no llama al backend
+  ni registra LOGOUT (H-10).
+end note
+@enduml

@@ -1,0 +1,67 @@
+@startuml 05_secuencia_login
+' Fuente: analisis/05_seguridad_roles.md §1 y 04_api.md §2.1, actualizado con el código de
+' bdf1187: frontend/src/pages/Login.tsx, frontend/src/context/AuthContext.tsx,
+' frontend/src/api/client.ts, backend/src/routes/auth.routes.ts,
+' backend/src/middleware/ipRateLimit.ts y loginRateLimit.ts.
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 11
+skinparam dpi 150
+skinparam sequenceMessageAlign left
+autonumber
+
+title Secuencia — Iniciar sesión
+
+actor "Usuario" as U
+participant "Navegador\n(Login.tsx /\nAuthContext)" as WEB
+participant "API\n(auth.routes)" as API
+participant "ipRateLimit\n(memoria)" as IPL
+participant "loginRateLimit\n(memoria)" as LRL
+participant "bcrypt / JWT" as CRY
+database "PostgreSQL" as DB
+
+U -> WEB : usuario y contraseña
+WEB -> API : POST /api/auth/login { username, password }
+API -> IPL : registrarIntentoIp(ip)
+alt más de 20 solicitudes en 10 min
+  IPL --> API : limitado
+  API --> WEB : 429 + Retry-After
+end
+API -> API : validar que ambos sean texto no vacío
+alt inválidos
+  API --> WEB : 400 "Usuario y contraseña son requeridos"
+end
+API -> LRL : msBloqueoRestante(username, ip)
+alt bloqueo vigente
+  API --> WEB : 429 "Demasiados intentos fallidos…" + Retry-After
+end
+API -> DB : SELECT usuario WHERE username = ?
+DB --> API : usuario o nulo
+opt usuario existe y está activo
+  API -> CRY : bcrypt.compare(password, passwordHash)
+  CRY --> API : resultado
+end
+alt usuario inexistente, inactivo o contraseña incorrecta
+  API -> LRL : registrarFallo(username, ip)
+  LRL --> API : { bloqueado, intentosRestantes }
+  opt el usuario existe
+    API -> DB : INSERT log_auditoria (LOGIN, exito: false)
+  end
+  alt 3 fallos: bloqueo de 5 min
+    API --> WEB : 429 "Demasiados intentos fallidos…"
+  else
+    API --> WEB : 401 "Credenciales inválidas" + intentosRestantes
+  end
+  WEB -> U : mensaje de error (el interceptor no recarga en /auth/login)
+else credenciales válidas
+  API -> LRL : limpiarIntentos(username, ip)
+  API -> DB : UPDATE usuarios SET ultimo_acceso = ahora
+  API -> CRY : jwt.sign({ userId, username, rol }, JWT_SECRET, expiresIn)
+  CRY --> API : token
+  API -> DB : INSERT log_auditoria (LOGIN)
+  API --> WEB : 200 { token, usuario }
+  WEB -> WEB : localStorage farmag_token y farmag_usuario
+  WEB -> U : "Bienvenido al sistema" y navega a /
+end
+@enduml

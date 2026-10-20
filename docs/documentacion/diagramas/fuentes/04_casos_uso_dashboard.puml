@@ -1,0 +1,37 @@
+@startuml 04_casos_uso_dashboard
+' Fuente: analisis/07_flujos_modulos.md §11 cotejado con
+' frontend/src/pages/Dashboard.tsx y GET /api/inventario/alertas (bdf1187).
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 12
+skinparam dpi 150
+skinparam packageStyle rectangle
+left to right direction
+
+title Casos de uso — Dashboard
+
+actor "Encargado de\nBeneficencia" as ENC
+actor "Administrador" as ADM
+ADM -up-|> ENC
+
+rectangle "Dashboard" {
+  usecase "CU-12 Consultar panel\nde alertas" as CU12
+  usecase "Ir a la acción\nsugerida" as NAV
+}
+
+ENC --> CU12
+NAV .up.> CU12 : <<extend>>
+
+note right of CU12
+  Las alertas se calculan al consultar:
+  stock bajo, lotes por vencer, vencidos
+  sin baja, dispensaciones del día y
+  entradas recientes.
+end note
+
+note bottom of NAV
+  Enlaces a Dispensar, Registrar entrada,
+  Inventario o Catálogos.
+end note
+@enduml

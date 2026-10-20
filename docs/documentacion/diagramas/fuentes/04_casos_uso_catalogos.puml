@@ -1,0 +1,76 @@
+@startuml 04_casos_uso_catalogos
+' Fuente: analisis/07_flujos_modulos.md §3 cotejado con
+' backend/src/routes/catalogos.routes.ts, frontend/src/components/MedicamentoFormModal.tsx
+' y frontend/src/pages/Catalogos/*.tsx (bdf1187).
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 12
+skinparam dpi 150
+skinparam packageStyle rectangle
+left to right direction
+
+title Casos de uso — Catálogos
+
+actor "Encargado de\nBeneficencia" as ENC
+actor "Administrador" as ADM
+ADM -up-|> ENC
+
+rectangle "Catálogos" {
+  usecase "CU-03 Gestionar medicamentos" as CU03
+  usecase "Registrar medicamento" as REG
+  usecase "Verificar posibles\nduplicados" as DUP
+  usecase "Consultar datos\nen OpenFDA" as FDA
+  usecase "Editar medicamento" as EDM
+  usecase "Activar o desactivar\nmedicamento" as TOM
+  usecase "Subir foto\ndel medicamento" as FOT
+
+  usecase "CU-04 Gestionar códigos\nde barras" as CU04
+  usecase "Agregar código\nde barras" as ACB
+  usecase "Eliminar código\nde barras" as ECB
+
+  usecase "CU-05 Gestionar categorías" as CU05
+  usecase "Crear o editar\ncategoría" as CEC
+  usecase "Activar o desactivar\ncategoría" as TOC
+
+  usecase "CU-06 Gestionar ubicaciones" as CU06
+  usecase "Crear o editar\nubicación" as CEU
+}
+
+ENC --> CU03
+ENC --> CU04
+ENC --> CU05
+ENC --> CU06
+
+REG .up.> CU03 : <<extend>>
+EDM .up.> CU03 : <<extend>>
+TOM .up.> CU03 : <<extend>>
+FOT .up.> EDM : <<extend>>
+REG ..> DUP : <<include>>
+FDA .up.> REG : <<extend>>
+
+ACB .up.> CU04 : <<extend>>
+ECB .up.> CU04 : <<extend>>
+CEC .up.> CU05 : <<extend>>
+TOC .up.> CU05 : <<extend>>
+CEU .up.> CU06 : <<extend>>
+
+note bottom of FDA
+  Condición: el código escaneado no está
+  registrado en el sistema. Solo ADMIN.
+end note
+
+note bottom of REG
+  Se inicia desde "Registrar entrada"
+  (botón "Nuevo medicamento", CU-07);
+  el catálogo solo edita.
+end note
+
+note right of ADM
+  Las extensiones (registrar, editar,
+  activar/desactivar, agregar o eliminar)
+  son exclusivas del Administrador; el
+  Encargado solo consulta los catálogos.
+  Las ubicaciones no se desactivan.
+end note
+@enduml

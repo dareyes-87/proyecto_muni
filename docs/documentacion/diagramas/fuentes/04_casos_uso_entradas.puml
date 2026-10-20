@@ -1,0 +1,52 @@
+@startuml 04_casos_uso_entradas
+' Fuente: analisis/07_flujos_modulos.md §4 cotejado con
+' backend/src/routes/inventario.routes.ts (POST /entradas, POST /importar-excel,
+' GET /plantilla-excel) y frontend/src/pages/Entradas.tsx (bdf1187).
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 12
+skinparam dpi 150
+skinparam packageStyle rectangle
+left to right direction
+
+title Casos de uso — Entradas
+
+actor "Encargado de\nBeneficencia" as ENC
+actor "Administrador" as ADM
+ADM -up-|> ENC
+
+rectangle "Entradas" {
+  usecase "CU-07 Registrar entrada\nde medicamentos" as CU07
+  usecase "Seleccionar medicamento\npor lote" as SEL
+  usecase "Buscar por código\nde barras" as BAR
+  usecase "Registrar medicamento\nnuevo (CU-03)" as NUE
+
+  usecase "CU-08 Importar inventario\ndesde Excel" as CU08
+  usecase "Descargar plantilla" as PLA
+  usecase "Validar filas\ndel archivo" as VAL
+  usecase "Crear categorías, ubicaciones\ny medicamentos faltantes" as CRE
+}
+
+ENC --> CU07
+ADM --> CU08
+
+CU07 ..> SEL : <<include>>
+BAR .up.> SEL : <<extend>>
+NUE .up.> CU07 : <<extend>>
+
+PLA .up.> CU08 : <<extend>>
+CU08 ..> VAL : <<include>>
+CU08 ..> CRE : <<include>>
+
+note bottom of NUE
+  Condición: el medicamento no existe.
+  Solo ADMIN.
+end note
+
+note bottom of VAL
+  Filas con error, lotes ya importados antes
+  y medicamentos o categorías inactivos se
+  omiten y se informan en el resumen.
+end note
+@enduml

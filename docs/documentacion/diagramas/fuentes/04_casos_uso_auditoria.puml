@@ -1,0 +1,25 @@
+@startuml 04_casos_uso_auditoria
+' Fuente: analisis/07_flujos_modulos.md §10 cotejado con
+' backend/src/routes/auditoria.routes.ts y frontend/src/pages/Auditoria.tsx (bdf1187).
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 12
+skinparam dpi 150
+skinparam packageStyle rectangle
+left to right direction
+
+title Casos de uso — Auditoría
+
+actor "Administrador" as ADM
+
+rectangle "Auditoría" {
+  usecase "CU-19 Consultar bitácora\nde auditoría" as CU19
+  usecase "Filtrar por usuario, acción,\nentidad y fechas" as FIL
+  usecase "Ver datos anteriores\ny nuevos" as DET
+}
+
+ADM --> CU19
+FIL .up.> CU19 : <<extend>>
+DET .up.> CU19 : <<extend>>
+@enduml

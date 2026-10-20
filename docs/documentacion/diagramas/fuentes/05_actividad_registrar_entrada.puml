@@ -1,0 +1,67 @@
+@startuml 05_actividad_registrar_entrada
+' Fuente: analisis/07_flujos_modulos.md §4 y 06_reglas_negocio.md RN-52 (194f8fb)
+' actualizado con el código de bdf1187: frontend/src/pages/Entradas.tsx,
+' backend/src/routes/inventario.routes.ts (POST /entradas) y
+' backend/src/services/inventario.service.ts (validarFechaVencimientoEntrada).
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 12
+skinparam dpi 150
+
+title Actividad — Registrar entrada de medicamentos
+
+|Usuario|
+start
+:Abrir "Registrar entrada";
+|Sistema|
+:Cargar todos los medicamentos activos,\ncategorías, ubicaciones y entradas recientes;
+repeat
+  |Usuario|
+  if (¿Cómo identifica el medicamento?) then (código de barras)
+    :Escanear el código y pulsar Enter;
+    |Sistema|
+    if (¿Código registrado?) then (sí)
+      :Seleccionar el medicamento en el lote;
+    else (no)
+      :Mostrar "No se encontró medicamento\ncon ese código de barras";
+    endif
+  elseif () then (lista)
+    |Usuario|
+    :Elegir el medicamento en la lista;
+  else (no existe, solo ADMIN)
+    |Usuario|
+    :Pulsar "Nuevo medicamento" y registrarlo\n(CU-03, con verificación de duplicados);
+    |Sistema|
+    :Seleccionar el medicamento creado en el lote;
+  endif
+  |Usuario|
+  :Indicar número de lote, cantidad, fecha de\nvencimiento y, opcionalmente, ubicación y costo;
+repeat while (¿Agregar otro lote?) is (sí) not (no)
+:Escribir observaciones (opcional)\ny pulsar "Registrar entrada";
+|Sistema|
+if (¿Campos completos y cantidad > 0?) then (no)
+  :Mostrar "Complete medicamento, cantidad,\nnúmero de lote y vencimiento en cada lote";
+  stop
+else (sí)
+endif
+:Enviar POST /api/inventario/entradas;
+if (¿Datos válidos (Zod)?) then (no)
+  :Responder 400 "Datos inválidos";
+  stop
+elseif (¿Alguna fecha de vencimiento\nes hoy o anterior?) then (sí)
+  :Responder 400 "Lote N: La fecha de\nvencimiento ya pasó o es hoy";
+  stop
+elseif (¿Medicamentos existen y activos,\ny ubicaciones existen?) then (no)
+  :Responder 400 con el motivo;
+  stop
+else (sí)
+endif
+:Abrir transacción;
+:Crear la entrada con el usuario;
+:Crear los lotes en DISPONIBLE\ncon cantidad actual = cantidad;
+:Confirmar la transacción;
+:Registrar CREAR / entrada en la bitácora;
+:Mostrar "Entrada registrada", limpiar el\nformulario y recargar las entradas recientes;
+stop
+@enduml

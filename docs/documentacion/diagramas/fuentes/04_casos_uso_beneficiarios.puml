@@ -1,0 +1,41 @@
+@startuml 04_casos_uso_beneficiarios
+' Fuente: analisis/07_flujos_modulos.md §7 cotejado con
+' backend/src/routes/dispensacion.routes.ts (beneficiarios), dispensacion.service.ts
+' y frontend/src/pages/Beneficiarios.tsx (bdf1187).
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 12
+skinparam dpi 150
+skinparam packageStyle rectangle
+left to right direction
+
+title Casos de uso — Beneficiarios
+
+actor "Encargado de\nBeneficencia" as ENC
+actor "Administrador" as ADM
+ADM -up-|> ENC
+
+rectangle "Beneficiarios" {
+  usecase "CU-13 Gestionar beneficiarios" as CU13
+  usecase "Buscar beneficiario\npor nombre o DPI" as BUS
+  usecase "Registrar beneficiario" as REG
+  usecase "Editar beneficiario" as EDI
+  usecase "CU-14 Consultar historial\nde beneficiario" as CU14
+  usecase "Ver fotos de evidencia" as FOT
+}
+
+ENC --> CU13
+ENC --> CU14
+
+CU13 ..> BUS : <<include>>
+REG .up.> CU13 : <<extend>>
+EDI .up.> CU13 : <<extend>>
+CU14 ..> BUS : <<include>>
+FOT .up.> CU14 : <<extend>>
+
+note bottom of CU13
+  No existe opción para desactivar
+  ni eliminar beneficiarios (H-29).
+end note
+@enduml

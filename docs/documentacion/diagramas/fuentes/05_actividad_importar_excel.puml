@@ -1,0 +1,69 @@
+@startuml 05_actividad_importar_excel
+' Fuente: analisis/07_flujos_modulos.md §4 "Importar desde Excel", 06_reglas_negocio.md
+' RN-53 a RN-55 y 04_api.md §2.4.1, actualizado con el código de bdf1187:
+' backend/src/routes/inventario.routes.ts (POST /importar-excel, validarFila,
+' buscarLoteDuplicado) y frontend/src/pages/Entradas.tsx.
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 12
+skinparam dpi 150
+
+title Actividad — Importar inventario desde Excel
+
+|Administrador|
+start
+:Pulsar "Importar desde Excel";
+if (¿Necesita la plantilla?) then (sí)
+  :Descargar plantilla Excel;
+  |Sistema|
+  :Generar .xlsx con hojas "Plantilla"\ne "Instrucciones";
+  |Administrador|
+  :Completar la plantilla;
+else (no)
+endif
+:Seleccionar el archivo .xlsx\ny pulsar "Importar";
+|Sistema|
+if (¿Archivo adjunto, .xlsx válido,\ncon filas de datos?) then (no)
+  :Responder 400 con el motivo;
+  stop
+elseif (¿Están las 11 columnas\n(por nombre, sin importar orden)?) then (no)
+  :Responder 400 "Faltan columnas en el Excel: …";
+  stop
+else (sí)
+endif
+:Validar todas las filas en memoria\n(campos obligatorios, cantidad entera > 0,\nfecha de vencimiento futura);
+note right
+  Las filas vacías se ignoran;
+  las inválidas pasan a "errores".
+end note
+while (¿Quedan filas válidas?) is (sí)
+  :Abrir transacción de la fila;
+  :Buscar o crear la categoría;
+  :Buscar o crear la ubicación (si viene);
+  :Buscar el medicamento por nombre genérico,\npresentación y concentración;
+  if (¿Categoría o medicamento inactivo?) then (sí)
+    :Revertir y registrar la fila en "errores";
+  elseif (¿El mismo lote (medicamento, número\ny vencimiento) ya existía antes\nde esta importación?) then (sí)
+    :Revertir y registrar aviso\n"lote omitido";
+  else (no)
+    if (¿Medicamento encontrado?) then (no)
+      :Crear el medicamento (stock mínimo 10);
+    else (sí)
+    endif
+    if (¿Código de barras libre?) then (sí)
+      :Vincular el código al medicamento;
+    elseif (¿Pertenece a otro medicamento?) then (sí)
+      :Agregar aviso "no se vinculó";
+    else (ya es suyo)
+    endif
+    :Crear la entrada "Importado desde\nExcel (fila N)" y su lote DISPONIBLE;
+    :Confirmar la transacción;
+    :Registrar en la bitácora las entidades\ncreadas y la entrada;
+  endif
+endwhile (no)
+:Responder el resumen: filas, lotes registrados\ny omitidos, entidades creadas, códigos\nvinculados, errores y avisos;
+|Administrador|
+:Revisar el resumen, los errores\npor fila y los avisos;
+stop
+@enduml

@@ -1,0 +1,145 @@
+@startuml 05_componentes
+' Fuente: analisis/01_stack_y_estructura.md y 04_api.md §1.1 (bdf1187); imports reales de
+' backend/src/server.ts, backend/src/routes/*.ts, backend/src/services/*.ts y
+' frontend/src/App.tsx, frontend/src/api/*.ts.
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 11
+skinparam dpi 150
+skinparam componentStyle uml2
+skinparam packageStyle rectangle
+
+title Diagrama de componentes — FarmaG
+
+package "Frontend (React + Vite)" as FE {
+  package "Páginas (src/pages)" {
+    [Login] as pLogin
+    [Dashboard] as pDash
+    [Inventario] as pInv
+    [Entradas] as pEnt
+    [Catálogos\n(Medicamentos, Categorías,\nUbicaciones)] as pCat
+    [Dispensación] as pDisp
+    [Beneficiarios] as pBen
+    [Captura\n(pública)] as pCap
+    [Reportes] as pRep
+    [Usuarios] as pUsu
+    [Auditoría] as pAud
+  }
+  [AuthContext +\nProtectedRoute / AdminRoute] as ctx
+  package "Cliente API (src/api)" {
+    [client.ts\n(Axios + JWT)] as client
+    [inventario, catalogos,\nusuarios, reportes,\nauditoria, captura] as apis
+    [captura.ts: instancia\nsin JWT (celular)] as apiCap
+  }
+}
+
+package "Backend (Node.js + Express)" as BE {
+  [server.ts\n(helmet, CORS, JSON,\n/uploads/medicamentos)] as server
+  package "Middleware" {
+    [authMiddleware /\nrequireRole] as mAuth
+    [ipRateLimit +\nloginRateLimit] as mRate
+    [registrarAuditoria] as mAud
+    [errorHandler] as mErr
+  }
+  package "Rutas (/api/...)" {
+    [auth] as rAuth
+    [usuarios] as rUsu
+    [catalogos] as rCat
+    [inventario] as rInv
+    [dispensacion] as rDisp
+    [captura (pública)] as rCap
+    [reportes] as rRep
+    [auditoria] as rAud
+  }
+  package "Servicios" {
+    [inventario.service] as sInv
+    [dispensacion.service] as sDisp
+    [reportes.service] as sRep
+    [vencimiento.service\n(node-cron 00:05)] as sVen
+  }
+  package "Utilidades" {
+    [pdf / excel] as uDoc
+    [imagen (WebP)] as uImg
+    [fecha, formatDate,\nvalidacion, httpError] as uComun
+  }
+  [config/prisma.ts\n(PrismaClient compartido)] as prisma
+}
+
+database "PostgreSQL 16" as DB
+folder "uploads/\n(medicamentos,\ndispensaciones)" as FS
+cloud "API OpenFDA\n(api.fda.gov)" as FDA
+
+pLogin --> ctx
+ctx --> client
+pDash --> apis
+pInv --> apis
+pEnt --> apis
+pCat --> apis
+pDisp --> apis
+pBen --> apis
+pRep --> apis
+pUsu --> apis
+pAud --> apis
+pCap --> apiCap
+apis --> client
+
+client ..> server : HTTP /api (JSON + JWT)
+apiCap ..> server : HTTP /api/captura
+
+server --> rAuth
+server --> rUsu
+server --> rCat
+server --> rInv
+server --> rDisp
+server --> rCap
+server --> rRep
+server --> rAud
+server --> sVen : al arrancar
+server --> mErr
+
+rAuth --> mRate
+rAuth --> mAud
+rUsu --> mAuth
+rCat --> mAuth
+rInv --> mAuth
+rDisp --> mAuth
+rRep --> mAuth
+rAud --> mAuth
+
+rInv --> sInv
+rCat --> sDisp
+rDisp --> sDisp
+rCap --> sDisp
+rRep --> sRep
+rRep --> uDoc
+rInv --> uDoc
+rCat --> uImg
+sDisp --> uImg
+sVen --> sInv
+sVen --> sDisp
+sDisp --> mAud
+
+rCat ..> FDA : HTTPS (lookup-fda)
+uImg ..> FS
+sDisp ..> FS
+
+rAuth --> prisma
+rUsu --> prisma
+rCat --> prisma
+rInv --> prisma
+rAud --> prisma
+sInv --> prisma
+sDisp --> prisma
+sRep --> prisma
+sVen --> prisma
+mAuth --> prisma
+mAud --> prisma
+prisma --> DB : SQL
+
+note bottom of uComun
+  fecha, validacion y httpError las usan
+  varias rutas y servicios (dependencias
+  omitidas para legibilidad).
+end note
+@enduml

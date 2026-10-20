@@ -1,0 +1,35 @@
+@startuml 05_estados_usuario
+' Fuente: analisis/07_flujos_modulos.md §12.3 (194f8fb) actualizado con el código de bdf1187:
+' backend/prisma/schema.prisma (Usuario.activo), backend/src/routes/usuarios.routes.ts
+' (POST /, PUT /:id/toggle), backend/src/routes/auth.routes.ts,
+' backend/src/middleware/auth.ts y backend/prisma/seed.ts.
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 12
+skinparam dpi 150
+
+title Estados de un usuario
+
+state "Activo" as ACT : activo = true
+state "Inactivo" as INA : activo = false
+
+[*] --> ACT : crear usuario (ADMIN)\no carga inicial del administrador (seed)
+ACT --> INA : activar/desactivar (ADMIN)\n[no es su propia cuenta]\n/ auditoría DESACTIVAR
+INA --> ACT : activar/desactivar (ADMIN)\n/ auditoría ACTIVAR
+ACT --> ACT : activar/desactivar sobre la\npropia cuenta / rechazado (400)
+INA --> INA : iniciar sesión / rechazado (401),\nse cuenta como intento fallido
+
+note right of INA
+  Un token ya emitido deja de servir: cada
+  petición protegida consulta el usuario y
+  responde 401 "La cuenta ya no está activa".
+  Los usuarios no se eliminan.
+end note
+
+note right of ACT
+  El bloqueo por intentos fallidos (3 fallos,
+  5 minutos) no es un estado del usuario:
+  se guarda en memoria por usuario + IP.
+end note
+@enduml

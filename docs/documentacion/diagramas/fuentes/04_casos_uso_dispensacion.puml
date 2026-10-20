@@ -1,0 +1,49 @@
+@startuml 04_casos_uso_dispensacion
+' Fuente: analisis/07_flujos_modulos.md §6 cotejado con
+' backend/src/services/dispensacion.service.ts (despachar) y
+' frontend/src/pages/Dispensacion.tsx (bdf1187).
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 12
+skinparam dpi 150
+skinparam packageStyle rectangle
+left to right direction
+
+title Casos de uso — Dispensación
+
+actor "Encargado de\nBeneficencia" as ENC
+actor "Administrador" as ADM
+ADM -up-|> ENC
+
+rectangle "Dispensación" {
+  usecase "CU-15 Dispensar medicamentos" as CU15
+  usecase "Buscar beneficiario\n(CU-13)" as BUS
+  usecase "Registrar beneficiario\nnuevo" as NBE
+  usecase "Agregar medicamentos\na la dispensación" as AGR
+  usecase "Escanear código\nde barras" as ESC
+  usecase "Buscar medicamento\npor nombre" as NOM
+  usecase "Confirmar y descontar\nstock (FIFO)" as CON
+  usecase "CU-16 Registrar evidencia\nfotográfica" as CU16
+}
+
+ENC --> CU15
+
+CU15 ..> BUS : <<include>>
+NBE .up.> BUS : <<extend>>
+CU15 ..> AGR : <<include>>
+ESC .up.> AGR : <<extend>>
+NOM .up.> AGR : <<extend>>
+CU15 ..> CON : <<include>>
+CU16 .up.> CU15 : <<extend>>
+
+note bottom of NBE
+  Condición: el beneficiario
+  no se encuentra.
+end note
+
+note bottom of CU16
+  Punto de extensión: después de registrar
+  la dispensación. Es opcional ("Omitir fotos").
+end note
+@enduml

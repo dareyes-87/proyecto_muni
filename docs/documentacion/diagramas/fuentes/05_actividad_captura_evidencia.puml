@@ -1,0 +1,78 @@
+@startuml 05_actividad_captura_evidencia
+' Fuente: analisis/07_flujos_modulos.md §8 y 06_reglas_negocio.md RN-35 a RN-40 (194f8fb)
+' actualizado con el código de bdf1187: frontend/src/pages/Dispensacion.tsx (pantalla de
+' éxito), frontend/src/pages/Captura.tsx, backend/src/routes/captura.routes.ts y
+' backend/src/services/dispensacion.service.ts (generarTokenCaptura, registrarFotoCaptura).
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 12
+skinparam dpi 150
+
+title Actividad — Registrar evidencia fotográfica de la dispensación
+
+|Computadora|
+start
+:Dispensación registrada;
+:Solicitar token de captura;
+|Sistema|
+if (¿La evidencia ya está completa?) then (sí)
+  :Responder 409;
+  |Computadora|
+  :Mostrar "No se pudo generar el código QR";
+  stop
+else (no)
+endif
+|Sistema|
+if (¿Hay un token vigente y no usado?) then (sí)
+  :Devolver el mismo token;
+else (no)
+  :Generar token aleatorio con\nvigencia de 30 minutos;
+endif
+:Registrar CREAR / TokenCaptura;
+|Computadora|
+:Mostrar QR con <origen>/captura/<token>\ny consultar las fotos cada 3 segundos;
+if (¿Cómo se toman las fotos?) then (celular)
+  |Celular|
+  :Escanear el QR;
+  |Sistema|
+  if (¿Token existe, no usado y vigente?) then (no)
+    :Responder 404 "Enlace inválido o expirado";
+    |Celular|
+    :Mostrar "Pida a la encargada que genere\nun código QR nuevo";
+    stop
+  else (sí)
+  endif
+  |Celular|
+  :Mostrar beneficiario y fecha;
+  repeat
+    :Tomar foto de RECETA o de ENTREGA\ncon la cámara trasera;
+    :Revisar la vista previa y pulsar "Subir";
+    |Sistema|
+    :Guardar foto (ver detalle abajo);
+    |Celular|
+  repeat while (¿Falta alguna foto?) is (sí) not (no)
+  :Mostrar "Todo listo — Puede cerrar esta página";
+elseif () then (computadora)
+  |Computadora|
+  :Elegir "Subir desde PC" y seleccionar\nlos archivos de receta y entrega;
+  |Sistema|
+  :Guardar cada foto con el mismo token\n(ver detalle abajo);
+else (omitir)
+  |Computadora|
+  :Pulsar "Omitir fotos";
+  :Detener la consulta periódica;
+  :La dispensación queda sin evidencia;
+  stop
+endif
+|Computadora|
+:Detectar las dos fotos y mostrar\n"Evidencia completa";
+stop
+
+legend bottom
+  Guardar foto: validar token (404 si no es válido), tipo (RECETA o EVIDENCIA_ENTREGA)
+  y formato JPG/PNG/WEBP de hasta 5 MB (400); comprimir a WebP; reemplazar la foto
+  anterior del mismo tipo; si ya están las dos, marcar el token como usado; registrar
+  CREAR / FotoDispensacion a nombre del usuario que dispensó (H-35).
+endlegend
+@enduml

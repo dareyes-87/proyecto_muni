@@ -1,0 +1,82 @@
+@startuml 05_secuencia_captura_qr
+' Fuente: analisis/04_api.md §2.5–2.6, 05_seguridad_roles.md §6 y 07_flujos_modulos.md §8,
+' actualizado con el código de bdf1187: frontend/src/pages/Dispensacion.tsx,
+' frontend/src/pages/Captura.tsx, frontend/src/api/captura.ts,
+' backend/src/routes/dispensacion.routes.ts (generar-token, fotos),
+' backend/src/routes/captura.routes.ts y backend/src/services/dispensacion.service.ts.
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 11
+skinparam dpi 150
+skinparam sequenceMessageAlign left
+autonumber
+
+title Secuencia — Captura de evidencia con código QR
+
+participant "Navegador de la\ncomputadora\n(Dispensacion.tsx)" as PC
+participant "API\n(dispensacion.routes)" as API
+participant "API pública\n(captura.routes)" as CAP
+participant "Servicio\n(dispensacion.service)" as SVC
+database "PostgreSQL" as DB
+collections "Archivos\n(uploads/dispensaciones)" as FS
+participant "Navegador del\ncelular\n(Captura.tsx)" as MOV
+actor "Persona con\nel celular" as P
+
+== Generación del token (con sesión) ==
+PC -> API : POST /api/dispensacion/:id/generar-token (JWT)
+API -> SVC : generarTokenCaptura(id)
+SVC -> DB : SELECT dispensación y sus fotos
+alt ya tiene RECETA y EVIDENCIA_ENTREGA
+  SVC --> API : Error "evidencia ya está completa"
+  API --> PC : 409
+else evidencia incompleta
+  SVC -> DB : SELECT token de la dispensación
+  alt token vigente y no usado
+    SVC --> API : mismo token
+  else no hay token, vencido o usado
+    SVC -> SVC : token = randomBytes(8) en base64url,\nexpiraEn = ahora + 30 min
+    SVC -> DB : UPSERT tokens_captura (usado = false)
+    SVC --> API : token nuevo
+  end
+  API -> DB : INSERT log_auditoria (CREAR, TokenCaptura)
+  note right: Se registra también\ncuando reutiliza (H-38)
+  API --> PC : { token, url, expiraEn }
+  PC -> PC : mostrar QR con <origen>/captura/<token>
+end
+
+par Consulta periódica (cada 3 s, hasta tener 2 fotos u omitir)
+  loop
+    PC -> API : GET /api/dispensacion/:id/fotos (JWT)
+    API -> DB : SELECT fotos_dispensacion
+    API --> PC : { data: [tipos subidos] }
+  end
+else Captura desde el celular (sin sesión)
+  P -> MOV : escanea el QR
+  MOV -> CAP : GET /api/captura/:token/info
+  CAP -> SVC : obtenerCapturaPorToken(token)
+  SVC -> DB : SELECT token + dispensación + beneficiario + fotos
+  alt inexistente, usado o vencido
+    CAP --> MOV : 404 "Enlace inválido o expirado"
+  else válido
+    CAP --> MOV : { beneficiario, fecha, expiraEn, fotosSubidas }
+    loop por cada tipo de foto pendiente
+      P -> MOV : toma la foto y pulsa "Subir"
+      MOV -> CAP : POST /api/captura/:token/foto\n(multipart: foto, tipo)
+      CAP -> CAP : multer: máx. 5 MB, JPG/PNG/WEBP;\ntipo ∈ {RECETA, EVIDENCIA_ENTREGA}
+      CAP -> SVC : registrarFotoCaptura(token, tipo, archivo)
+      SVC -> DB : validar token de nuevo
+      SVC -> SVC : comprimir a WebP
+      SVC -> FS : borrar foto anterior del mismo tipo\ny escribir <TIPO>.webp
+      SVC -> DB : UPSERT fotos_dispensacion
+      opt ya están las dos fotos
+        SVC -> DB : UPDATE tokens_captura SET usado = true
+      end
+      SVC -> DB : INSERT log_auditoria (CREAR, FotoDispensacion)\ncon el usuario de la dispensación, sin IP (H-35)
+      CAP --> MOV : { fotosSubidas, completo }
+    end
+    MOV -> P : "Todo listo — Puede cerrar esta página"
+  end
+end
+PC -> PC : "Evidencia completa"
+@enduml

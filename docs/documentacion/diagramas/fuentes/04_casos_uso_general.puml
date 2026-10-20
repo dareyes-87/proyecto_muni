@@ -1,0 +1,102 @@
+@startuml 04_casos_uso_general
+' Modelo general de casos de uso de FarmaG.
+' Fuente: analisis/08_casos_uso_candidatos.md (sin el CU-11 original, H-22),
+' analisis/05_seguridad_roles.md §4 y código en bdf1187.
+' Numeración de los diagramas: ver diagramas/README.md (tabla de equivalencias).
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 12
+skinparam dpi 150
+skinparam packageStyle rectangle
+left to right direction
+
+title Modelo general de casos de uso — FarmaG
+
+actor "Encargado de\nBeneficencia" as ENC
+actor "Administrador\n(ADMIN)" as ADM
+actor "Persona con\nel celular" as CEL
+actor "Sistema\n(proceso automático)" as SIS
+ADM -up-|> ENC
+
+rectangle "FarmaG" {
+  package "Autenticación" {
+    usecase "CU-01 Iniciar y cerrar sesión" as CU01
+  }
+  package "Usuarios" {
+    usecase "CU-02 Gestionar usuarios" as CU02
+  }
+  package "Catálogos" {
+    usecase "CU-03 Gestionar medicamentos" as CU03
+    usecase "CU-04 Gestionar códigos de barras" as CU04
+    usecase "CU-05 Gestionar categorías" as CU05
+    usecase "CU-06 Gestionar ubicaciones" as CU06
+  }
+  package "Entradas" {
+    usecase "CU-07 Registrar entrada\nde medicamentos" as CU07
+    usecase "CU-08 Importar inventario\ndesde Excel" as CU08
+  }
+  package "Inventario" {
+    usecase "CU-09 Consultar inventario" as CU09
+    usecase "CU-10 Dar de baja lote" as CU10
+    usecase "CU-11 Actualizar lotes vencidos" as CU11
+  }
+  package "Dashboard" {
+    usecase "CU-12 Consultar panel de alertas" as CU12
+  }
+  package "Beneficiarios" {
+    usecase "CU-13 Gestionar beneficiarios" as CU13
+    usecase "CU-14 Consultar historial\nde beneficiario" as CU14
+  }
+  package "Dispensación" {
+    usecase "CU-15 Dispensar medicamentos" as CU15
+  }
+  package "Captura de evidencia" {
+    usecase "CU-16 Registrar evidencia\nfotográfica" as CU16
+  }
+  package "Reportes" {
+    usecase "CU-17 Consultar reportes" as CU17
+    usecase "CU-18 Exportar reportes" as CU18
+  }
+  package "Auditoría" {
+    usecase "CU-19 Consultar bitácora\nde auditoría" as CU19
+  }
+}
+
+' Casos compartidos (el Administrador los hereda por generalización)
+ENC --> CU01
+ENC --> CU03
+ENC --> CU04
+ENC --> CU05
+ENC --> CU06
+ENC --> CU07
+ENC --> CU09
+ENC --> CU12
+ENC --> CU13
+ENC --> CU14
+ENC --> CU15
+ENC --> CU16
+
+' Casos exclusivos del Administrador
+ADM --> CU02
+ADM --> CU08
+ADM --> CU10
+ADM --> CU17
+ADM --> CU18
+ADM --> CU19
+
+CEL --> CU16
+CU11 <-- SIS
+
+note right of ENC
+  En CU-03 a CU-06 el Encargado solo consulta;
+  registrar, editar y desactivar es exclusivo
+  del Administrador.
+end note
+
+note bottom of CU17
+  La pantalla de Reportes solo se muestra al
+  Administrador; el backend también permite las
+  consultas al Encargado (H-20, R-07).
+end note
+@enduml

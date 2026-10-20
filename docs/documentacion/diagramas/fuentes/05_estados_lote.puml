@@ -1,0 +1,40 @@
+@startuml 05_estados_lote
+' Fuente: analisis/07_flujos_modulos.md §12.1 (194f8fb) actualizado con el código de bdf1187:
+' backend/prisma/schema.prisma (enum EstadoLote), backend/src/routes/inventario.routes.ts
+' (POST /entradas, POST /importar-excel, PUT /lotes/:id/baja),
+' backend/src/services/dispensacion.service.ts (despachar),
+' backend/src/services/vencimiento.service.ts (marcarLotesVencidos).
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 12
+skinparam dpi 150
+
+title Estados de un lote
+
+state "DISPONIBLE" as DISP
+state "AGOTADO" as AGO
+state "VENCIDO" as VEN
+state "DADO_DE_BAJA" as BAJA
+
+[*] --> DISP : registrar entrada o importar fila\n[fecha de vencimiento posterior a hoy]\n/ cantidadActual = cantidad
+DISP --> DISP : dispensación\n[cantidadActual > 0 tras descontar]
+DISP --> AGO : dispensación\n[cantidadActual = 0]
+DISP --> VEN : mantenimiento diario (00:05) o arranque de la API\n[fechaVencimiento <= hoy]
+DISP --> BAJA : dar de baja (ADMIN)\n/ auditoría BAJA, motivo opcional
+AGO --> BAJA : dar de baja (ADMIN)
+VEN --> BAJA : dar de baja (ADMIN)
+BAJA --> [*]
+
+note right of DISP
+  Un lote DISPONIBLE con fecha de vencimiento
+  hoy o anterior no se dispensa aunque el
+  proceso diario aún no lo haya marcado VENCIDO.
+end note
+
+note bottom of BAJA
+  Dar de baja un lote DADO_DE_BAJA se rechaza
+  (409). No hay transiciones de regreso a
+  DISPONIBLE (sin devoluciones ni ajustes).
+end note
+@enduml
