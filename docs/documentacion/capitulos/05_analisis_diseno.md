@@ -250,3 +250,337 @@ de datos admite cero, pero la API exige al menos un lote por entrada y un detall
 cada dispensación tiene como máximo dos fotografías, una por tipo. La configuración del sistema no se
 relaciona con otras clases; guarda los umbrales del semáforo y el nombre de la farmacia que aparece
 en los reportes.
+
+## 5.5 Modelo de datos
+
+El modelo de datos se implementa en PostgreSQL 16 y se define en el archivo `schema.prisma` del
+backend. Los cambios de esquema se aplican mediante migraciones versionadas: la migración `0_init`
+crea las 14 tablas, las 4 enumeraciones, los índices únicos y las claves foráneas, y la migración
+`20261017052535_indices_consultas` agrega cuatro índices de consulta. Las tablas se nombran en plural
+y en minúsculas con guion bajo; los campos, que en el código se escriben en notación camelCase, se
+guardan en columnas con el mismo formato que las tablas.
+
+### 5.5.1 Diagrama entidad-relación
+
+La Figura 25 muestra las 14 tablas con sus claves primarias, claves foráneas, campos únicos y la
+cardinalidad de sus 14 relaciones. Todas las claves primarias son identificadores UUID de tipo texto,
+que genera el cliente Prisma al insertar. Las claves foráneas obligatorias impiden borrar un registro
+que tenga registros dependientes (`ON DELETE RESTRICT`); la única opcional, la ubicación del lote, se
+anula si se borra la ubicación (`ON DELETE SET NULL`). Como el sistema usa desactivación en lugar de
+borrado, en la práctica estas reglas protegen la integridad del historial. La tabla
+`configuracion_sistema` no tiene relaciones, y la columna `entidad_id` de la bitácora es una
+referencia lógica a la entidad registrada, sin clave foránea.
+
+Figura 25.
+Diagrama entidad-relación
+
+{{imagen: 05_er_modelo_datos.png}}
+
+Fuente: Elaboración propia.
+
+### 5.5.2 Diccionario de datos
+
+Las Tablas 69 a 82 describen cada tabla de la base de datos. En la columna "Tipo" se usa el tipo de
+PostgreSQL: `TEXT`, `INTEGER`, `BOOLEAN`, `DATE`, `TIMESTAMP(3)` (fecha y hora sin zona horaria, con
+milisegundos), `DECIMAL(10,2)`, `JSONB` y las enumeraciones. En "Restricciones", PK indica la clave
+primaria, FK la clave foránea con la tabla referida, UNIQUE un valor único y DEFAULT el valor por
+defecto. Los campos `updated_at` los actualiza el cliente Prisma en cada modificación, sin valor por
+defecto en la base de datos.
+
+La Tabla 69 describe la tabla de usuarios del sistema.
+
+Tabla 69.
+Diccionario de datos de la tabla `usuarios`
+
+| Campo | Tipo | Nulo | Restricciones | Descripción |
+|-------|------|------|---------------|-------------|
+| `id` | TEXT | No | PK | Identificador UUID del usuario |
+| `username` | TEXT | No | UNIQUE | Nombre con el que el usuario inicia sesión |
+| `email` | TEXT | Sí | UNIQUE | Correo electrónico del usuario |
+| `password_hash` | TEXT | No | — | Hash bcrypt de la contraseña, con costo 12 |
+| `nombre_completo` | TEXT | No | — | Nombre que se muestra en la interfaz, los reportes y la bitácora |
+| `rol` | `Rol` | No | — | Rol del usuario; se consulta en cada petición protegida |
+| `activo` | BOOLEAN | No | DEFAULT true | Indica si el usuario puede usar el sistema |
+| `ultimo_acceso` | TIMESTAMP(3) | Sí | — | Fecha y hora del último inicio de sesión correcto |
+| `created_at` | TIMESTAMP(3) | No | DEFAULT CURRENT_TIMESTAMP | Fecha de creación del registro |
+| `updated_at` | TIMESTAMP(3) | No | — | Fecha de la última modificación |
+
+Fuente: Elaboración propia con base en `backend/prisma/schema.prisma`.
+
+La Tabla 70 describe las categorías terapéuticas con que se clasifican los medicamentos.
+
+Tabla 70.
+Diccionario de datos de la tabla `categorias`
+
+| Campo | Tipo | Nulo | Restricciones | Descripción |
+|-------|------|------|---------------|-------------|
+| `id` | TEXT | No | PK | Identificador UUID de la categoría |
+| `nombre` | TEXT | No | UNIQUE | Nombre de la categoría; la importación desde Excel la busca por este campo |
+| `descripcion` | TEXT | Sí | — | Descripción libre |
+| `activo` | BOOLEAN | No | DEFAULT true | Desactivación lógica; una categoría inactiva no aparece en los selectores |
+
+Fuente: Elaboración propia con base en `backend/prisma/schema.prisma`.
+
+La Tabla 71 describe el catálogo de medicamentos. La combinación de nombre genérico, presentación y
+concentración no es única en la base de datos: la detección de posibles duplicados es una advertencia
+de la aplicación que el usuario puede confirmar.
+
+Tabla 71.
+Diccionario de datos de la tabla `medicamentos`
+
+| Campo | Tipo | Nulo | Restricciones | Descripción |
+|-------|------|------|---------------|-------------|
+| `id` | TEXT | No | PK | Identificador UUID del medicamento |
+| `nombre_generico` | TEXT | No | — | Nombre genérico, de al menos 2 caracteres; se usa en la detección de duplicados |
+| `nombre_comercial` | TEXT | Sí | — | Nombre comercial |
+| `presentacion` | TEXT | No | — | Forma farmacéutica, por ejemplo tableta o cápsula |
+| `concentracion` | TEXT | Sí | — | Concentración, por ejemplo 500mg |
+| `unidad_medida` | TEXT | No | — | Unidad en que se cuentan las existencias |
+| `categoria_id` | TEXT | No | FK → `categorias.id` | Categoría del medicamento |
+| `stock_minimo` | INTEGER | No | DEFAULT 10 | Umbral bajo el cual el medicamento se marca con stock bajo |
+| `imagen_url` | TEXT | Sí | — | Ruta de la fotografía del medicamento, guardada en WebP |
+| `activo` | BOOLEAN | No | DEFAULT true | Desactivación lógica; un medicamento inactivo no recibe entradas ni se dispensa |
+| `created_at` | TIMESTAMP(3) | No | DEFAULT CURRENT_TIMESTAMP | Fecha de creación del registro |
+| `updated_at` | TIMESTAMP(3) | No | — | Fecha de la última modificación |
+
+Fuente: Elaboración propia con base en `backend/prisma/schema.prisma`.
+
+La Tabla 72 describe los códigos de barras, que permiten identificar un medicamento con el lector.
+
+Tabla 72.
+Diccionario de datos de la tabla `codigos_barras`
+
+| Campo | Tipo | Nulo | Restricciones | Descripción |
+|-------|------|------|---------------|-------------|
+| `id` | TEXT | No | PK | Identificador UUID del código |
+| `medicamento_id` | TEXT | No | FK → `medicamentos.id` | Medicamento al que identifica el código |
+| `codigo` | TEXT | No | UNIQUE | Valor del código de barras; un código pertenece a un solo medicamento |
+| `descripcion` | TEXT | Sí | — | Descripción opcional; la interfaz sugiere indicar el empaque, por ejemplo "Caja de 20 tabletas" |
+
+Fuente: Elaboración propia con base en `backend/prisma/schema.prisma`.
+
+La Tabla 73 describe las ubicaciones físicas donde se guardan los lotes. Esta tabla no tiene campo de
+desactivación.
+
+Tabla 73.
+Diccionario de datos de la tabla `ubicaciones`
+
+| Campo | Tipo | Nulo | Restricciones | Descripción |
+|-------|------|------|---------------|-------------|
+| `id` | TEXT | No | PK | Identificador UUID de la ubicación |
+| `codigo` | TEXT | No | UNIQUE | Código corto del estante, por ejemplo A o BOD |
+| `descripcion` | TEXT | Sí | — | Descripción, por ejemplo "Estante A" o "Bodega" |
+
+Fuente: Elaboración propia con base en `backend/prisma/schema.prisma`.
+
+La Tabla 74 describe las entradas, que agrupan los lotes recibidos en un mismo registro.
+
+Tabla 74.
+Diccionario de datos de la tabla `entradas`
+
+| Campo | Tipo | Nulo | Restricciones | Descripción |
+|-------|------|------|---------------|-------------|
+| `id` | TEXT | No | PK | Identificador UUID de la entrada |
+| `usuario_id` | TEXT | No | FK → `usuarios.id` | Usuario que registró la entrada |
+| `observaciones` | TEXT | Sí | — | Notas de la entrada; la importación escribe "Importado desde Excel (fila N)" |
+| `created_at` | TIMESTAMP(3) | No | DEFAULT CURRENT_TIMESTAMP | Fecha y hora del registro |
+
+Fuente: Elaboración propia con base en `backend/prisma/schema.prisma`.
+
+La Tabla 75 describe los lotes, la tabla donde reside el stock del sistema.
+
+Tabla 75.
+Diccionario de datos de la tabla `lotes`
+
+| Campo | Tipo | Nulo | Restricciones | Descripción |
+|-------|------|------|---------------|-------------|
+| `id` | TEXT | No | PK | Identificador UUID del lote |
+| `entrada_id` | TEXT | No | FK → `entradas.id` | Entrada en la que se registró el lote |
+| `medicamento_id` | TEXT | No | FK → `medicamentos.id` | Medicamento del lote |
+| `cantidad` | INTEGER | No | — | Unidades recibidas |
+| `cantidad_actual` | INTEGER | No | — | Unidades restantes; inicia igual a la cantidad recibida y disminuye con cada dispensación |
+| `numero_lote` | TEXT | No | — | Número de lote del fabricante |
+| `fecha_vencimiento` | DATE | No | — | Fecha de vencimiento; define el orden de despacho y el semáforo |
+| `costo_unitario` | DECIMAL(10,2) | Sí | — | Costo por unidad; se usa para estimar el costo de los lotes perdidos |
+| `ubicacion_id` | TEXT | Sí | FK → `ubicaciones.id` (ON DELETE SET NULL) | Estante donde se guarda el lote |
+| `estado` | `EstadoLote` | No | DEFAULT `DISPONIBLE` | Estado del lote (sección 5.3.1) |
+| `created_at` | TIMESTAMP(3) | No | DEFAULT CURRENT_TIMESTAMP | Fecha de creación del registro |
+
+Fuente: Elaboración propia con base en `backend/prisma/schema.prisma`.
+
+La Tabla 76 describe los beneficiarios que reciben medicamentos sin costo.
+
+Tabla 76.
+Diccionario de datos de la tabla `beneficiarios`
+
+| Campo | Tipo | Nulo | Restricciones | Descripción |
+|-------|------|------|---------------|-------------|
+| `id` | TEXT | No | PK | Identificador UUID del beneficiario |
+| `nombre_completo` | TEXT | No | — | Nombre del beneficiario, de al menos 3 caracteres |
+| `dpi` | TEXT | Sí | UNIQUE | Documento Personal de Identificación, de 13 dígitos |
+| `telefono` | TEXT | Sí | — | Teléfono de contacto |
+| `direccion` | TEXT | Sí | — | Dirección |
+| `observaciones` | TEXT | Sí | — | Notas sobre el beneficiario |
+| `activo` | BOOLEAN | No | DEFAULT true | Las búsquedas y la dispensación solo consideran beneficiarios activos; ninguna pantalla lo modifica |
+| `created_at` | TIMESTAMP(3) | No | DEFAULT CURRENT_TIMESTAMP | Fecha de registro |
+| `updated_at` | TIMESTAMP(3) | No | — | Fecha de la última modificación |
+
+Fuente: Elaboración propia con base en `backend/prisma/schema.prisma`.
+
+La Tabla 77 describe las dispensaciones, cada una de las cuales corresponde a una entrega a un
+beneficiario.
+
+Tabla 77.
+Diccionario de datos de la tabla `dispensaciones`
+
+| Campo | Tipo | Nulo | Restricciones | Descripción |
+|-------|------|------|---------------|-------------|
+| `id` | TEXT | No | PK | Identificador UUID de la dispensación |
+| `beneficiario_id` | TEXT | No | FK → `beneficiarios.id` | Beneficiario que recibe los medicamentos |
+| `usuario_id` | TEXT | No | FK → `usuarios.id` | Usuario que registró la dispensación |
+| `observaciones` | TEXT | Sí | — | Notas de la entrega, por ejemplo los datos de la receta |
+| `created_at` | TIMESTAMP(3) | No | DEFAULT CURRENT_TIMESTAMP | Fecha y hora de la dispensación |
+
+Fuente: Elaboración propia con base en `backend/prisma/schema.prisma`.
+
+La Tabla 78 describe el detalle de cada dispensación. Un mismo medicamento puede generar varias filas
+cuando la cantidad se reparte entre varios lotes.
+
+Tabla 78.
+Diccionario de datos de la tabla `detalle_dispensaciones`
+
+| Campo | Tipo | Nulo | Restricciones | Descripción |
+|-------|------|------|---------------|-------------|
+| `id` | TEXT | No | PK | Identificador UUID de la línea |
+| `dispensacion_id` | TEXT | No | FK → `dispensaciones.id` | Dispensación a la que pertenece la línea |
+| `lote_id` | TEXT | No | FK → `lotes.id` | Lote del que se descontaron las unidades |
+| `medicamento_id` | TEXT | No | FK → `medicamentos.id` | Medicamento dispensado |
+| `cantidad` | INTEGER | No | — | Unidades descontadas de ese lote |
+| `nombre_medicamento_snapshot` | TEXT | No | — | Copia del nombre genérico al momento de dispensar |
+| `presentacion_snapshot` | TEXT | No | — | Copia de la presentación al momento de dispensar |
+| `concentracion_snapshot` | TEXT | Sí | — | Copia de la concentración al momento de dispensar |
+
+Fuente: Elaboración propia con base en `backend/prisma/schema.prisma`.
+
+La Tabla 79 describe las fotografías de evidencia de las dispensaciones.
+
+Tabla 79.
+Diccionario de datos de la tabla `fotos_dispensacion`
+
+| Campo | Tipo | Nulo | Restricciones | Descripción |
+|-------|------|------|---------------|-------------|
+| `id` | TEXT | No | PK | Identificador UUID de la fotografía |
+| `dispensacion_id` | TEXT | No | FK → `dispensaciones.id`; UNIQUE (`dispensacion_id`, `tipo`) | Dispensación a la que pertenece la evidencia |
+| `tipo` | `TipoFoto` | No | UNIQUE (`dispensacion_id`, `tipo`) | Receta o entrega; solo una fotografía de cada tipo por dispensación |
+| `imagen_url` | TEXT | No | — | Ruta del archivo WebP; el archivo se entrega solo por un endpoint que exige sesión |
+| `created_at` | TIMESTAMP(3) | No | DEFAULT CURRENT_TIMESTAMP | Fecha de la subida; se actualiza al reemplazar la fotografía |
+
+Fuente: Elaboración propia con base en `backend/prisma/schema.prisma`.
+
+La Tabla 80 describe los tokens que autorizan la captura de fotografías sin sesión.
+
+Tabla 80.
+Diccionario de datos de la tabla `tokens_captura`
+
+| Campo | Tipo | Nulo | Restricciones | Descripción |
+|-------|------|------|---------------|-------------|
+| `id` | TEXT | No | PK | Identificador UUID del registro |
+| `dispensacion_id` | TEXT | No | UNIQUE; FK → `dispensaciones.id` | Dispensación que autoriza el token; hay un solo token por dispensación |
+| `token` | TEXT | No | UNIQUE | Valor aleatorio de 64 bits en base64url (11 caracteres) que viaja en el código QR |
+| `usado` | BOOLEAN | No | DEFAULT false | Se marca cuando la dispensación tiene las dos fotografías |
+| `expira_en` | TIMESTAMP(3) | No | — | Fin de la vigencia: 30 minutos después de generarse |
+| `created_at` | TIMESTAMP(3) | No | DEFAULT CURRENT_TIMESTAMP | Fecha de creación del registro |
+
+Fuente: Elaboración propia con base en `backend/prisma/schema.prisma`.
+
+La Tabla 81 describe la bitácora de auditoría.
+
+Tabla 81.
+Diccionario de datos de la tabla `log_auditoria`
+
+| Campo | Tipo | Nulo | Restricciones | Descripción |
+|-------|------|------|---------------|-------------|
+| `id` | TEXT | No | PK | Identificador UUID del registro |
+| `usuario_id` | TEXT | No | FK → `usuarios.id` | Usuario que realizó la acción; por ser obligatorio, los intentos con un usuario inexistente no se registran |
+| `accion` | `AccionAuditoria` | No | — | Tipo de acción registrada |
+| `entidad` | TEXT | No | — | Nombre de la entidad afectada, por ejemplo `medicamento` o `reporte` |
+| `entidad_id` | TEXT | Sí | — | Identificador del registro afectado, sin clave foránea |
+| `datos_anteriores` | JSONB | Sí | — | Estado previo del registro |
+| `datos_nuevos` | JSONB | Sí | — | Estado nuevo del registro o datos de la operación |
+| `ip_address` | TEXT | Sí | — | Dirección IP de origen de la petición |
+| `created_at` | TIMESTAMP(3) | No | DEFAULT CURRENT_TIMESTAMP | Fecha y hora de la acción |
+
+Fuente: Elaboración propia con base en `backend/prisma/schema.prisma`.
+
+La Tabla 82 describe la configuración del sistema, organizada como pares de clave y valor.
+
+Tabla 82.
+Diccionario de datos de la tabla `configuracion_sistema`
+
+| Campo | Tipo | Nulo | Restricciones | Descripción |
+|-------|------|------|---------------|-------------|
+| `id` | TEXT | No | PK | Identificador UUID del parámetro |
+| `clave` | TEXT | No | UNIQUE | Nombre del parámetro: `ALERTA_VENCIMIENTO_ROJO`, `ALERTA_VENCIMIENTO_AMARILLO` o `NOMBRE_FARMACIA` |
+| `valor` | TEXT | No | — | Valor del parámetro como texto; los umbrales se convierten a número al leerse (30 y 90 por defecto) |
+| `descripcion` | TEXT | Sí | — | Descripción del parámetro |
+
+Fuente: Elaboración propia con base en `backend/prisma/schema.prisma`.
+
+### 5.5.3 Índices
+
+Además de las claves primarias, la base de datos tiene 14 índices, que se presentan en la Tabla 83:
+10 índices únicos que garantizan las restricciones UNIQUE del diccionario y 4 índices de consulta
+agregados por la migración `20261017052535_indices_consultas`. El índice compuesto de `lotes` cubre el
+filtro y el orden de la consulta con que la dispensación selecciona los lotes; los de `created_at`
+apoyan los listados ordenados por fecha. Que el planificador de PostgreSQL use efectivamente cada
+índice no se ha medido.
+
+Tabla 83.
+Índices de la base de datos
+
+| Tabla | Columnas | Tipo | Propósito |
+|-------|----------|------|-----------|
+| `usuarios` | `username` | Único | Un nombre de usuario por cuenta |
+| `usuarios` | `email` | Único | Un correo por cuenta |
+| `categorias` | `nombre` | Único | Nombres de categoría sin repetir |
+| `codigos_barras` | `codigo` | Único | Un código de barras por medicamento en todo el sistema |
+| `ubicaciones` | `codigo` | Único | Códigos de ubicación sin repetir |
+| `beneficiarios` | `dpi` | Único | Un DPI por beneficiario |
+| `fotos_dispensacion` | `dispensacion_id`, `tipo` | Único | Una fotografía de cada tipo por dispensación |
+| `tokens_captura` | `dispensacion_id` | Único | Un token por dispensación |
+| `tokens_captura` | `token` | Único | Valor de token sin repetir |
+| `configuracion_sistema` | `clave` | Único | Un valor por parámetro |
+| `lotes` | `medicamento_id`, `estado`, `fecha_vencimiento` | Consulta | Selección de los lotes disponibles de un medicamento en orden de vencimiento al dispensar |
+| `entradas` | `created_at` | Consulta | Historial de entradas ordenado por fecha |
+| `dispensaciones` | `created_at` | Consulta | Historial de dispensaciones filtrado y ordenado por fecha |
+| `log_auditoria` | `created_at` | Consulta | Consulta de la bitácora por rango de fechas |
+
+Fuente: Elaboración propia con base en `backend/prisma/migrations/`.
+
+### 5.5.4 Enumeraciones
+
+La Tabla 84 presenta las cuatro enumeraciones del modelo, que PostgreSQL guarda como tipos propios.
+El valor `LOGOUT` existe en la enumeración de acciones, pero el sistema no lo registra, porque el cierre
+de sesión ocurre solo en el navegador.
+
+Tabla 84.
+Enumeraciones del modelo de datos
+
+| Enumeración | Valores | Columna que la usa |
+|-------------|---------|--------------------|
+| `Rol` | `ADMIN`, `ENCARGADO_BENEFICENCIA` | `usuarios.rol` |
+| `EstadoLote` | `DISPONIBLE`, `AGOTADO`, `VENCIDO`, `DADO_DE_BAJA` | `lotes.estado` |
+| `TipoFoto` | `RECETA`, `EVIDENCIA_ENTREGA` | `fotos_dispensacion.tipo` |
+| `AccionAuditoria` | `CREAR`, `EDITAR`, `ELIMINAR`, `DISPENSAR`, `BAJA`, `LOGIN`, `LOGOUT`, `ACTIVAR`, `DESACTIVAR` | `log_auditoria.accion` |
+
+Fuente: Elaboración propia con base en `backend/prisma/schema.prisma`.
+
+### 5.5.5 Datos iniciales
+
+Al arrancar, el backend ejecuta un proceso de carga inicial que no modifica los datos existentes. Crea
+el usuario administrador si no existe, con la contraseña definida en la variable
+`ADMIN_INITIAL_PASSWORD` (de al menos 8 caracteres) o, si no se define, con una contraseña aleatoria
+que se muestra una sola vez en el registro del contenedor; crea 13 categorías y 7 ubicaciones solo si
+sus tablas están vacías; y crea los tres parámetros de configuración sin sobrescribir los valores que
+ya existan. No crea medicamentos, lotes, beneficiarios ni dispensaciones, salvo cinco medicamentos de
+ejemplo cuando se activa la variable `SEED_DEMO` en desarrollo.
