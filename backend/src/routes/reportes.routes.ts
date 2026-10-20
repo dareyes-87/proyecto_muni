@@ -13,7 +13,9 @@ import {
 } from '../services/reportes.service';
 import { generarPdfTabla, type Alineacion } from '../utils/pdf';
 import { generarExcel } from '../utils/excel';
-import { formatFecha, formatFechaHora } from '../utils/formatDate';
+import { formatFechaDia, formatFechaHora } from '../utils/formatDate';
+import { responderError } from '../utils/httpError';
+import { LIMITE_EXPORT, textoQuery, verificarLimiteExport } from '../utils/validacion';
 
 const router = Router();
 
@@ -29,17 +31,16 @@ router.get('/dispensaciones', authMiddleware, async (req: Request, res: Response
   try {
     const { desde, hasta, beneficiarioId, medicamentoId, page, limit } = req.query;
     const resultado = await reporteDispensaciones({
-      desde: desde as string | undefined,
-      hasta: hasta as string | undefined,
-      beneficiarioId: beneficiarioId as string | undefined,
-      medicamentoId: medicamentoId as string | undefined,
+      desde: textoQuery(desde),
+      hasta: textoQuery(hasta),
+      beneficiarioId: textoQuery(beneficiarioId),
+      medicamentoId: textoQuery(medicamentoId),
       page: parsePage(page),
       limit: parsePage(limit),
     });
     res.json(resultado);
   } catch (error) {
-    console.error('Error en reporte de dispensaciones:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    responderError(res, error);
   }
 });
 
@@ -48,16 +49,15 @@ router.get('/consumo-medicamentos', authMiddleware, async (req: Request, res: Re
   try {
     const { desde, hasta, categoriaId, page, limit } = req.query;
     const resultado = await reporteConsumoMedicamentos({
-      desde: desde as string | undefined,
-      hasta: hasta as string | undefined,
-      categoriaId: categoriaId as string | undefined,
+      desde: textoQuery(desde),
+      hasta: textoQuery(hasta),
+      categoriaId: textoQuery(categoriaId),
       page: parsePage(page),
       limit: parsePage(limit),
     });
     res.json(resultado);
   } catch (error) {
-    console.error('Error en reporte de consumo:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    responderError(res, error);
   }
 });
 
@@ -72,7 +72,7 @@ router.get('/inventario-actual', authMiddleware, async (req: Request, res: Respo
     }
 
     const resultado = await reporteInventarioActual({
-      categoriaId: categoriaId as string | undefined,
+      categoriaId: textoQuery(categoriaId),
       estado: estado as EstadoLote | undefined,
       page: parsePage(page),
       limit: parsePage(limit),
@@ -113,8 +113,7 @@ router.get('/entradas', authMiddleware, async (req: Request, res: Response): Pro
     });
     res.json(resultado);
   } catch (error) {
-    console.error('Error en reporte de entradas:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    responderError(res, error);
   }
 });
 
@@ -130,8 +129,7 @@ router.get('/medicamentos-baja', authMiddleware, async (req: Request, res: Respo
     });
     res.json(resultado);
   } catch (error) {
-    console.error('Error en reporte de medicamentos dados de baja:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    responderError(res, error);
   }
 });
 
@@ -155,18 +153,17 @@ interface TablaExport {
 }
 
 async function construirTabla(tipo: TipoReporte, query: Request['query']): Promise<TablaExport> {
-  const LIMITE_EXPORT = 5000;
-
   switch (tipo) {
     case 'dispensaciones': {
-      const { data } = await reporteDispensaciones({
-        desde: query.desde as string | undefined,
-        hasta: query.hasta as string | undefined,
-        beneficiarioId: query.beneficiarioId as string | undefined,
-        medicamentoId: query.medicamentoId as string | undefined,
+      const { data, pagination } = await reporteDispensaciones({
+        desde: textoQuery(query.desde),
+        hasta: textoQuery(query.hasta),
+        beneficiarioId: textoQuery(query.beneficiarioId),
+        medicamentoId: textoQuery(query.medicamentoId),
         page: 1,
         limit: LIMITE_EXPORT,
       });
+      verificarLimiteExport(pagination.total);
       const filas = data.flatMap((d) =>
         d.medicamentos.map((m) => ({
           fecha: formatFechaHora(d.createdAt),
@@ -200,13 +197,14 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
     }
 
     case 'consumo': {
-      const { data } = await reporteConsumoMedicamentos({
-        desde: query.desde as string | undefined,
-        hasta: query.hasta as string | undefined,
-        categoriaId: query.categoriaId as string | undefined,
+      const { data, pagination } = await reporteConsumoMedicamentos({
+        desde: textoQuery(query.desde),
+        hasta: textoQuery(query.hasta),
+        categoriaId: textoQuery(query.categoriaId),
         page: 1,
         limit: LIMITE_EXPORT,
       });
+      verificarLimiteExport(pagination.total);
       return {
         titulo: 'Reporte de Consumo por Medicamento',
         columnasPdf: ['Medicamento', 'Presentación', 'Categoría', 'Cant. total dispensada', 'N.º dispensaciones'],
@@ -225,12 +223,13 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
     }
 
     case 'inventario': {
-      const { data } = await reporteInventarioActual({
-        categoriaId: query.categoriaId as string | undefined,
+      const { data, pagination } = await reporteInventarioActual({
+        categoriaId: textoQuery(query.categoriaId),
         estado: query.estado as EstadoLote | undefined,
         page: 1,
         limit: LIMITE_EXPORT,
       });
+      verificarLimiteExport(pagination.total);
       const filas = data.map((l) => ({
         medicamento: l.medicamento.nombreGenerico,
         presentacion: l.medicamento.presentacion,
@@ -238,7 +237,7 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
         numeroLote: l.numeroLote,
         codigoBarras: l.codigoBarras ?? '',
         cantidadActual: l.cantidadActual,
-        fechaVencimiento: formatFecha(l.fechaVencimiento),
+        fechaVencimiento: formatFechaDia(l.fechaVencimiento),
         semaforo: l.semaforo,
         ubicacion: l.ubicacion?.codigo ?? '',
       }));
@@ -264,11 +263,12 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
     }
 
     case 'por-vencer': {
-      const { data } = await reportePorVencer({
+      const { data, pagination } = await reportePorVencer({
         dias: query.dias ? parseInt(query.dias as string, 10) : undefined,
         page: 1,
         limit: LIMITE_EXPORT,
       });
+      verificarLimiteExport(pagination.total);
       const filas = data.map((l) => ({
         medicamento: l.medicamento.nombreGenerico,
         presentacion: l.medicamento.presentacion,
@@ -276,7 +276,7 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
         numeroLote: l.numeroLote,
         codigoBarras: l.codigoBarras ?? '',
         cantidadActual: l.cantidadActual,
-        fechaVencimiento: formatFecha(l.fechaVencimiento),
+        fechaVencimiento: formatFechaDia(l.fechaVencimiento),
         diasParaVencer: l.diasParaVencer,
         semaforo: l.semaforo,
         ubicacion: l.ubicacion?.codigo ?? '',
@@ -304,12 +304,13 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
     }
 
     case 'entradas': {
-      const { data } = await reporteEntradas({
+      const { data, pagination } = await reporteEntradas({
         desde: query.desde as string | undefined,
         hasta: query.hasta as string | undefined,
         page: 1,
         limit: LIMITE_EXPORT,
       });
+      verificarLimiteExport(pagination.total);
       const filas = data.map((e) => ({
         fecha: formatFechaHora(e.createdAt),
         usuario: e.usuario,
@@ -335,19 +336,20 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
     }
 
     case 'baja': {
-      const { data } = await reporteMedicamentosBaja({
+      const { data, pagination } = await reporteMedicamentosBaja({
         desde: query.desde as string | undefined,
         hasta: query.hasta as string | undefined,
         page: 1,
         limit: LIMITE_EXPORT,
       });
+      verificarLimiteExport(pagination.total);
       const filas = data.map((l) => ({
         medicamento: l.medicamento.nombreGenerico,
         presentacion: l.medicamento.presentacion,
         categoria: l.medicamento.categoria ?? '',
         numeroLote: l.numeroLote,
         estado: l.estado,
-        fechaVencimiento: formatFecha(l.fechaVencimiento),
+        fechaVencimiento: formatFechaDia(l.fechaVencimiento),
         cantidadPerdida: l.cantidadPerdida,
         costoEstimado: l.costoEstimado !== null ? l.costoEstimado.toFixed(2) : '',
       }));
@@ -434,8 +436,7 @@ router.get(
       res.setHeader('Content-Disposition', `attachment; filename="${tipo}-${Date.now()}.${extension}"`);
       res.send(buffer);
     } catch (error) {
-      console.error('Error exportando reporte:', error);
-      res.status(500).json({ error: 'Error interno del servidor' });
+      responderError(res, error);
     }
   }
 );

@@ -19,7 +19,7 @@ docker compose logs -f api     # Logs de un servicio (db | api | web)
 ```
 
 - **Frontend (dev):** http://localhost:5173 · **API:** http://localhost:3000/api/health
-- Credenciales seed: `admin` / `admin2026`
+- Credenciales seed: usuario `admin`; la contraseña ya **no es fija** (H-002). Se toma de `ADMIN_INITIAL_PASSWORD` (.env) o, si no se define, el seed genera una aleatoria y la imprime una vez en los logs de `api` (`docker compose logs api | grep -A4 "CREDENCIAL INICIAL"`). Instalaciones existentes conservan su contraseña.
 - `backend/src` y `frontend/src` están montados como volúmenes → hot reload sin reconstruir.
 
 **Backend (dentro del contenedor `farmag_api`, o local en `backend/`):**
@@ -33,10 +33,13 @@ npx prisma db seed                         # Re-ejecuta prisma/seed.ts (idempote
 npm run build                              # tsc → dist/ (chequeo de tipos)
 ```
 
-> ⚠️ **Migraciones:** el `Dockerfile` del backend arranca con `prisma db push --accept-data-loss`
-> (no migraciones versionadas), mientras que `npm run dev` usa `prisma migrate deploy`. Al cambiar
-> el schema en desarrollo el flujo real es **editar `schema.prisma` → `db push` → `generate`**. No
-> existe carpeta `prisma/migrations/` todavía.
+> ⚠️ **Migraciones (desde 2026-10, ver `docs/DESPLIEGUE.md`):** el backend ya **no** usa
+> `prisma db push --accept-data-loss`. Arranca con `backend/docker-entrypoint.sh`, que saca un
+> respaldo y aplica **solo migraciones versionadas** de `prisma/migrations/`. Para cambiar el
+> esquema: **editar `schema.prisma` → `docker compose exec api npx prisma migrate dev --name <cambio>`
+> → commitear la carpeta de la migración junto con el schema.** Un cambio a `schema.prisma` sin
+> migración no pasa el workflow "Despliegue seguro". Lo que entra a `main` lo aplica el servidor
+> de la municipalidad solo, en máximo 30 minutos.
 
 **Frontend (local en `frontend/`):**
 ```bash
@@ -77,8 +80,7 @@ interrumpe la operación principal.
 
 **Backend — patrón de rutas:** cada archivo en `routes/` instancia su propio `new PrismaClient()`
 y se monta en `server.ts` bajo `/api/<modulo>`. Los módulos de Inventario y Dispensación están
-implementados. Catálogos tiene GETs de lectura reales (Daniel) y el CRUD está en `feature/catalogos`
-(Audias, pendiente de merge). Los errores se centralizan en `middleware/errorHandler.ts` (maneja `ZodError` → 400).
+implementados. Catálogos (Audias) también está implementado y mergeado. Los errores se centralizan en `middleware/errorHandler.ts` (maneja `ZodError` → 400).
 
 ---
 
@@ -203,7 +205,7 @@ farma-rh/
 - `inventario.service.ts` (nuevo): helpers `getUmbrales`, `calcularSemaforo`, `diasParaVencer`, `esDispensable`. Reutilizables.
 - `catalogos.routes.ts`: implementé **solo los GET de lectura** (medicamentos, categorías, proveedores, ubicaciones) que mis formularios necesitan. El CRUD/crear/editar/duplicados sigue como stub → **Audias**.
 - `auth.routes.ts`: cast `as jwt.SignOptions` en `jwt.sign` para que `npm run build` (tsc) pase. La firma JWT no cambió.
-- `prisma/seed.ts`: agregué 5 medicamentos de ejemplo (solo si no existe ninguno) para poder probar inventario. Audias puede reemplazarlos por el catálogo real.
+- `prisma/seed.ts`: los 5 medicamentos de ejemplo solo se crean con `SEED_DEMO=true` (desarrollo) y la tabla vacía; por defecto el seed no crea medicamentos. Categorías y ubicaciones iniciales se siembran solo si su tabla está vacía (no reaparece lo que la farmacia renombró o desactivó).
 - `usuarios.routes.ts`: agregué `PUT /:id` (editar) y `PUT /:id/password` (reset).
 - Convención de IDs: `const { id } = req.params as { id: string }` porque `@types/express` v5 tipa los params como `string | string[]`.
 
@@ -257,7 +259,6 @@ farma-rh/
 - `backend/src/routes/catalogos.routes.ts`
 - `frontend/src/pages/Catalogos/Medicamentos.tsx` (crear)
 - `frontend/src/pages/Catalogos/Categorias.tsx` (crear)
-- `frontend/src/pages/Catalogos/Proveedores.tsx` (crear)
 - `frontend/src/pages/Catalogos/Ubicaciones.tsx` (crear)
 
 **Responsabilidades:**
@@ -266,17 +267,17 @@ farma-rh/
 - [x] Endpoint de búsqueda por código de barras
 - [x] Endpoint CRUD para códigos de barras (agregar/eliminar por medicamento)
 - [x] Endpoint CRUD para categorías
-- [x] Endpoint CRUD para proveedores/donantes
+- ~~Endpoint CRUD para proveedores/donantes~~ — eliminado (2026-09-07)
 - [x] Endpoint CRUD para ubicaciones/estantes
 - [x] Página de Medicamentos (tabla TanStack Table, búsqueda, modal crear/editar, advertencia de duplicados, gestión de códigos de barras)
 - [x] Página de Categorías (tabla + formulario)
-- [x] Página de Proveedores (tabla + formulario, filtro INSTITUCION/PERSONA)
+- ~~Página de Proveedores~~ — eliminada (2026-09-07); Catálogos es una sola ruta `/catalogos` con 3 pestañas
 - [x] Página de Ubicaciones (tabla + formulario)
 - [x] Merge de `feature/catalogos` a `main` — completado 2026-07-19 tras auditoría independiente (ver Historial de Sesiones).
 - [x] Endpoint de consulta OpenFDA por código de barras + autocompletado en el modal de Medicamentos (sesión 2026-08-04, ver Historial)
 - [x] Campo de foto en medicamentos (subida + preview) (sesión 2026-08-04, ver Historial)
 
-**Estado actual (2026-07-19):** Módulo de Catálogos completo y **mergeado a `main`**. Backend (CRUD medicamentos con duplicados, categorías, proveedores, ubicaciones, códigos de barras) y las 4 páginas frontend verificados de forma independiente (no solo con el resumen de Audias): diff de archivos, contenido íntegro de `catalogos.routes.ts`, checkout real de la rama + `docker compose up --build`, y pruebas en vivo con curl de los 4 GET más el flujo completo de barcode (creación de código de prueba → `GET /barcode/:codigo` devolviendo `stockActual` → limpieza del dato de prueba). **Pendiente:** verificación visual en navegador (click-through) de las 4 páginas — no se hizo en ninguna sesión hasta ahora por falta de herramienta de browser automation.
+**Estado actual:** Catálogos sin proveedores (ver arriba). *Texto original del 2026-07-19:* Módulo de Catálogos completo y **mergeado a `main`**. Backend (CRUD medicamentos con duplicados, categorías, proveedores, ubicaciones, códigos de barras) y las 4 páginas frontend verificados de forma independiente (no solo con el resumen de Audias): diff de archivos, contenido íntegro de `catalogos.routes.ts`, checkout real de la rama + `docker compose up --build`, y pruebas en vivo con curl de los 4 GET más el flujo completo de barcode (creación de código de prueba → `GET /barcode/:codigo` devolviendo `stockActual` → limpieza del dato de prueba). **Pendiente:** verificación visual en navegador (click-through) de las 4 páginas — no se hizo en ninguna sesión hasta ahora por falta de herramienta de browser automation.
 
 **Deuda técnica corregida en este merge:** `catalogos.routes.ts` tenía el mismo problema que ya estaba documentado como deuda técnica de Jorge en `dispensacion.routes.ts` (`@types/express` v5 vs `express` v4 → `req.params`/`req.query` tipan como `string | string[]`). Se corrigió con `as { id: string }` en los 7 handlers afectados. **`dispensacion.routes.ts` sigue con el mismo problema sin corregir** (fuera de mi alcance, ver sección de Jorge).
 
@@ -297,7 +298,7 @@ farma-rh/
 - [x] Endpoint GET /api/reportes/consumo-medicamentos (ranking, filtros: fecha, categoría)
 - [x] Endpoint GET /api/reportes/inventario-actual (a nivel de lote, filtros: categoría, origen, estado)
 - [x] Endpoint GET /api/reportes/por-vencer (filtro: umbral de días, default 90)
-- [x] Endpoint GET /api/reportes/entradas-proveedor (filtros: fecha, proveedor, origen)
+- [x] Endpoint GET /api/reportes/entradas (filtro: fecha; antes `entradas-proveedor`, ver 2026-09-07)
 - [x] Endpoint GET /api/reportes/medicamentos-baja (lotes VENCIDO/DADO_DE_BAJA, con resumen de unidades y costo estimado perdidos)
 - [x] Endpoint GET /api/reportes/exportar/:tipo/:formato (PDF + Excel, solo ADMIN)
 - [x] Página de Reportes con selector de tipo, filtros dinámicos y tabla TanStack
@@ -350,18 +351,27 @@ El sistema soporta 4 usuarios simultáneos. Para evitar inconsistencias de inven
 2. **Al iniciar una sesión de Claude:** Pega el prompt inicial que se te asignó. Claude leerá este archivo para entender el contexto.
 3. **Al terminar una sesión:** Actualiza tu sección con lo que completaste y lo que queda pendiente. Haz commit y push de este archivo.
 4. **Si otro compañero completó algo:** Haz `git pull` antes de empezar. Revisa si sus cambios afectan tu módulo.
+5. **Skills de Claude Code:** antes de usar una skill (ponytail, impeccable, mattpocock, addyosmani), lee `docs/HERRAMIENTAS_IA.md`: cuál usar para qué y qué reglas del proyecto no cambian.
 
 ---
 
 ## Estado al reanudar
 
-> Última actualización: 2026-09-07 — **rediseño de UI, sidebar colapsable y eliminación completa
-> del módulo de proveedores/procedencia** (frontend, backend y esquema). Este trabajo vive en la
-> rama `feature/dispensacion-evidencia-pc` (commit `194f8fb`), **sin push y sin merge a `main`
-> todavía** — la tabla "funciona HOY" de abajo describe `main`, que aún NO incluye estos cambios.
-> Ver la sesión 2026-09-07 en el Historial para el detalle. **Requiere `docker compose up --build`**
-> para aplicar el nuevo esquema (elimina la tabla `proveedores` y las columnas
-> `proveedor_id`/`origen` de `entradas`).
+> Última actualización: 2026-10-17 — `main` ya incluye el rediseño de UI, el sidebar colapsable y la
+> **eliminación completa de proveedores/procedencia** (sesión 2026-09-07), y desde entonces el
+> proyecto se despliega con **migraciones versionadas**. PRs recientes (ver `git log`):
+>
+> - **#2** despliegue seguro: `docker-entrypoint.sh` (respaldo previo + `prisma migrate deploy`),
+>   workflow "Despliegue seguro", respaldos automáticos. Ver `docs/DESPLIEGUE.md` y `docs/RESPALDOS.md`.
+> - **#3** ajustes de seguridad · **#4** fechas de vencimiento · **#5** importación/exportación y login
+> - **#6** seed que no revive catálogos y vencidos marcados al arrancar
+> - **#7** índices de consulta (primera migración nueva sobre `0_init`) y listados que cargan solo
+>   lotes con stock.
+>
+> **Cambiar el esquema = editar `schema.prisma` + `prisma migrate dev --name ...` + commitear la
+> migración.** Lo que entra a `main` lo aplica el servidor de la municipalidad solo, en máximo 30
+> minutos, tras sacar un respaldo (`backups/predeploy_*.dump`, estado en `backups/ESTADO_ARRANQUE.txt`).
+> Informes de auditoría y seguridad: `docs/seguridad/`.
 >
 > Contexto previo (2026-08-06): evidencia fotográfica de dispensación con flujo de dos dispositivos
 > (QR + celular). **Proyecto funcionalmente completo según la especificación técnica v1.**
@@ -376,7 +386,7 @@ El sistema soporta 4 usuarios simultáneos. Para evitar inconsistencias de inven
 | Admin / Usuarios (Daniel) | `/usuarios` (solo ADMIN) | ✅ Completo |
 | Auditoría | `/auditoria` (solo ADMIN) | ✅ Completo |
 | Dashboard | `/` | ✅ Con alertas reales |
-| Catálogos (Audias) | `/medicamentos`, `/categorias`, `/proveedores`, `/ubicaciones` | ✅ Completo, mergeado a `main` 2026-07-19 |
+| Catálogos (Audias) | `/catalogos` (pestañas Medicamentos, Categorías, Ubicaciones; las rutas viejas redirigen) | ✅ Completo. **Sin proveedores** (eliminados) |
 | Reportes (Daniel) | `/reportes` (solo ADMIN) | ✅ Completo, 6 reportes + exportación PDF/Excel |
 
 **Los 5 módulos de la especificación técnica v1 están implementados, integrados y verificados en
@@ -384,10 +394,9 @@ El sistema soporta 4 usuarios simultáneos. Para evitar inconsistencias de inven
 
 ### Deuda técnica pendiente
 
-- ~~Proveedores creados por la importación de Excel con `tipo: INSTITUCION` por defecto~~ —
-  **obsoleto:** el módulo de proveedores/procedencia se eliminó por completo en la rama
-  `feature/dispensacion-evidencia-pc` (sesión 2026-09-07). Ya no se pide proveedor ni origen en
-  ninguna parte. (Sigue vigente en `main` hasta que se mergee esa rama.)
+- Proveedores/procedencia: **eliminados** del sistema (sesión 2026-09-07); ya no se pide proveedor ni
+  origen en entradas, importación ni reportes. Las menciones a proveedores más abajo en el
+  Historial son históricas.
 - La conversión GTIN→NDC del lookup de OpenFDA asume que el NDC-11 usa alguno de los tres formatos
   de guion más comunes (4-4-2, 5-3-2, 5-4-1); no cubre todos los labelers registrados en la FDA.
 - `frontend/nginx.conf` (proxy de `/uploads/` para el build de producción) no se probó en runtime
@@ -1130,3 +1139,19 @@ Registrar entrada); el catálogo conserva la edición.
 `docker compose up --build` correspondiente). Verificación visual con un browser real de las páginas
 que aún no se han click-through en navegador de forma exhaustiva (Catálogos/Auditoría) sigue
 pendiente como antes.
+
+---
+
+## Agent skills
+
+### Issue tracker
+
+Los issues viven en GitHub Issues (`dareyes-87/proyecto_muni`), vía el CLI `gh`. Ver `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Vocabulario por defecto: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. Ver `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: un `GLOSSARY.md` + `docs/adr/` en la raíz (se crean al usarse). Ver `docs/agents/domain.md`.

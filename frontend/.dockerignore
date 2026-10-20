@@ -1,0 +1,10 @@
+# No copiar artefactos del host al contexto de build (ver backend/.dockerignore).
+node_modules
+dist
+.env
+.env.*
+npm-debug.log*
+.git
+.gitignore
+Dockerfile
+.dockerignore

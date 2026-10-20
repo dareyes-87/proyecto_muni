@@ -1,0 +1,63 @@
+// Pruebas de regresión de los controles de validación endurecidos en la auditoría
+// de seguridad (2026-10-07). Cubren la causa raíz de H-020..H-023: entradas de
+// tipo/rango inesperado que antes provocaban HTTP 500 o lógica incorrecta.
+//
+//   docker compose exec api sh -c "cd /app && node --import tsx --test tests/validacion.test.ts"
+
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { clampPaginacion, textoQuery, ErrorValidacion, verificarLimiteExport, LIMITE_EXPORT } from '../src/utils/validacion';
+
+// --- clampPaginacion: fix H-022 (skip negativo → 500; limit sin tope) ---
+test('clampPaginacion: page negativa no produce skip negativo', () => {
+  const r = clampPaginacion(-5, 10, { maxLimit: 100 });
+  assert.equal(r.page, 1);
+  assert.equal(r.skip, 0);
+  assert.ok(r.skip >= 0);
+});
+
+test('clampPaginacion: limit se topa en maxLimit', () => {
+  const r = clampPaginacion(1, 999999, { defLimit: 50, maxLimit: 100 });
+  assert.equal(r.limit, 100);
+});
+
+test('clampPaginacion: valores no numéricos caen a los por defecto', () => {
+  const r = clampPaginacion('abc', 'xyz', { defLimit: 20, maxLimit: 100 });
+  assert.equal(r.page, 1);
+  assert.equal(r.limit, 20);
+  assert.equal(r.skip, 0);
+});
+
+test('clampPaginacion: página válida calcula skip correcto', () => {
+  const r = clampPaginacion(3, 25, { maxLimit: 100 });
+  assert.equal(r.page, 3);
+  assert.equal(r.limit, 25);
+  assert.equal(r.skip, 50);
+});
+
+// --- textoQuery: evita 500 por HPP (?q=a&q=b) y tipos inesperados en query ---
+test('textoQuery: devuelve la cadena cuando es string', () => {
+  assert.equal(textoQuery('aceta'), 'aceta');
+});
+
+test('textoQuery: arreglo (HPP) → primer string (antes rompía .trim/Prisma con 500)', () => {
+  assert.equal(textoQuery(['a', 'b']), 'a');
+});
+
+test('textoQuery: objeto / número / undefined → undefined (no se pasa a Prisma)', () => {
+  assert.equal(textoQuery({ gt: '' } as unknown), undefined);
+  assert.equal(textoQuery(123 as unknown), undefined);
+  assert.equal(textoQuery(undefined), undefined);
+  assert.equal(textoQuery([] as unknown), undefined);
+});
+
+// --- verificarLimiteExport: una exportación más grande que el límite no debe salir truncada ---
+test('verificarLimiteExport: 5000 pasa; 5001 se rechaza con el total y el máximo en el mensaje (400)', () => {
+  assert.equal(LIMITE_EXPORT, 5000);
+  assert.doesNotThrow(() => verificarLimiteExport(0));
+  assert.doesNotThrow(() => verificarLimiteExport(5000));
+  assert.throws(
+    () => verificarLimiteExport(5001),
+    (e: any) => e instanceof ErrorValidacion && e.status === 400 && e.message.includes('5001') && e.message.includes('5000')
+  );
+});

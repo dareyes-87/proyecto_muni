@@ -24,7 +24,7 @@ import Semaforo from '../components/ui/Semaforo';
 import PageHeader from '../components/ui/PageHeader';
 import Button from '../components/ui/Button';
 import { inputClass } from '../components/ui/Field';
-import { formatFecha, formatFechaHora } from '../utils/formatDate';
+import { formatFechaDia, formatFechaHora } from '../utils/formatDate';
 import type { CategoriaRef } from '../types';
 
 const TIPOS: { value: TipoReporte; label: string }[] = [
@@ -36,7 +36,6 @@ const TIPOS: { value: TipoReporte; label: string }[] = [
   { value: 'baja', label: 'Dados de baja' },
 ];
 
-const fmt = formatFecha;
 const fmtDT = formatFechaHora;
 const quetzales = (n: number) => `Q${n.toFixed(2)}`;
 
@@ -340,7 +339,7 @@ export default function Reportes() {
           columnHelper.accessor('numeroLote', { header: 'Lote' }),
           columnHelper.accessor((r) => r.codigoBarras ?? '—', { id: 'codigoBarras', header: 'Cód. barras' }),
           columnHelper.accessor('cantidadActual', { header: 'Cantidad' }),
-          columnHelper.accessor((r) => fmt(r.fechaVencimiento), { id: 'vence', header: 'Vence' }),
+          columnHelper.accessor((r) => formatFechaDia(r.fechaVencimiento), { id: 'vence', header: 'Vence' }),
           columnHelper.display({
             id: 'semaforo',
             header: 'Semáforo',
@@ -354,7 +353,7 @@ export default function Reportes() {
           columnHelper.accessor('numeroLote', { header: 'Lote' }),
           columnHelper.accessor((r) => r.codigoBarras ?? '—', { id: 'codigoBarras', header: 'Cód. barras' }),
           columnHelper.accessor('cantidadActual', { header: 'Cantidad' }),
-          columnHelper.accessor((r) => fmt(r.fechaVencimiento), { id: 'vence', header: 'Vence' }),
+          columnHelper.accessor((r) => formatFechaDia(r.fechaVencimiento), { id: 'vence', header: 'Vence' }),
           columnHelper.accessor('diasParaVencer', { header: 'Días' }),
           columnHelper.display({
             id: 'semaforo',
@@ -376,7 +375,7 @@ export default function Reportes() {
           columnHelper.accessor((r) => r.medicamento.nombreGenerico, { id: 'medicamento', header: 'Medicamento' }),
           columnHelper.accessor('numeroLote', { header: 'Lote' }),
           columnHelper.accessor('estado', { header: 'Estado' }),
-          columnHelper.accessor((r) => fmt(r.fechaVencimiento), { id: 'vencimiento', header: 'Vencimiento' }),
+          columnHelper.accessor((r) => formatFechaDia(r.fechaVencimiento), { id: 'vencimiento', header: 'Vencimiento' }),
           columnHelper.accessor('cantidadPerdida', { header: 'Cant. perdida' }),
           columnHelper.accessor((r) => (r.costoEstimado != null ? quetzales(r.costoEstimado) : '—'), {
             id: 'costoEstimado',

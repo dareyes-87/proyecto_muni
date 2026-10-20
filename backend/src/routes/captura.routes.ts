@@ -13,7 +13,7 @@ import {
 // Estas rutas NO llevan authMiddleware a propósito: la encargada escanea el QR
 // desde su celular, que no tiene sesión iniciada. La credencial es el token que
 // viaja en la URL, y por eso está acotado por todos lados: es aleatorio
-// (nanoid, 10 chars), vive 30 minutos, sirve para una sola dispensación, solo
+// (randomBytes, 11 chars), vive 30 minutos, sirve para una sola dispensación, solo
 // admite 2 tipos de foto (subir el mismo tipo reemplaza, no acumula) y se marca
 // como usado en cuanto se completan las dos.
 // ============================================
@@ -25,7 +25,9 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   fileFilter: (_req, file, cb) => {
     if (!extensionDeMime(file.mimetype)) {
-      cb(new Error('Formato de imagen no permitido. Use JPG, PNG o WEBP'));
+      const err: any = new Error('Formato de imagen no permitido. Use JPG, PNG o WEBP');
+      err.status = 400;
+      cb(err);
       return;
     }
     cb(null, true);
@@ -78,6 +80,12 @@ router.post(
       }
       if (error?.message?.includes('Formato de imagen')) {
         res.status(400).json({ error: error.message });
+        return;
+      }
+      // Imagen no decodificable (comprimirImagen lanza con status 400) u otros
+      // errores de cliente ya tipados: se responde con ese status, no 500.
+      if (typeof error?.status === 'number' && error.status >= 400 && error.status < 500) {
+        res.status(error.status).json({ error: error.message || 'Petición inválida' });
         return;
       }
       console.error('Error subiendo foto de captura:', error);

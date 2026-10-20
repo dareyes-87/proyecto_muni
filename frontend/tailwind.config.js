@@ -34,12 +34,6 @@ export default {
           800: '#9f6604',
           900: '#7e4a07',
         },
-        farmacia: {
-          green: '#10b981',
-          yellow: '#f59e0b',
-          red: '#ef4444',
-          expired: '#6b7280',
-        },
       },
     },
   },

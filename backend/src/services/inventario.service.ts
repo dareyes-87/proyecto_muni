@@ -1,6 +1,5 @@
-import { PrismaClient, EstadoLote } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { EstadoLote, Prisma } from '@prisma/client';
+import { prisma } from '../config/prisma';
 
 export type Semaforo = 'VERDE' | 'AMARILLO' | 'ROJO' | 'VENCIDO';
 
@@ -41,16 +40,35 @@ export function hoyMedianoche(): Date {
   return h;
 }
 
-/** Días enteros que faltan para vencer. Negativo si ya venció. */
+/**
+ * Días enteros que faltan para vencer. Negativo si ya venció.
+ * Prisma entrega @db.Date como medianoche UTC: se lee su fecha de calendario con
+ * getUTC*, y la de `hoy` (local) con get*. Pasar el lote a medianoche local lo
+ * movería al día anterior en zonas al oeste de UTC (Guatemala).
+ */
 export function diasParaVencer(fechaVencimiento: Date, hoy: Date = hoyMedianoche()): number {
-  const f = new Date(fechaVencimiento);
-  f.setHours(0, 0, 0, 0);
-  return Math.round((f.getTime() - hoy.getTime()) / 86_400_000);
+  const f = Date.UTC(
+    fechaVencimiento.getUTCFullYear(),
+    fechaVencimiento.getUTCMonth(),
+    fechaVencimiento.getUTCDate()
+  );
+  const h = Date.UTC(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+  return Math.round((f - h) / 86_400_000);
+}
+
+/**
+ * Fuente única de verdad del criterio de vencimiento: un lote está vencido
+ * cuando su fecha de vencimiento es HOY o anterior (días restantes <= 0).
+ * La usan el despacho, el cron de vencimiento y la validación de entradas para
+ * evitar criterios distintos entre flujos (ver hallazgos H-01 y H-34).
+ */
+export function estaVencido(fechaVencimiento: Date, hoy: Date = hoyMedianoche()): boolean {
+  return diasParaVencer(fechaVencimiento, hoy) <= 0;
 }
 
 /**
  * Calcula el color del semáforo de vencimiento de un lote.
- * Un lote ya marcado VENCIDO o DADO_DE_BAJA, o con fecha pasada, es 'VENCIDO'.
+ * Un lote ya marcado VENCIDO o DADO_DE_BAJA, o cuya fecha es hoy o anterior, es 'VENCIDO'.
  */
 export function calcularSemaforo(
   fechaVencimiento: Date,
@@ -59,13 +77,20 @@ export function calcularSemaforo(
 ): Semaforo {
   if (estado === 'VENCIDO' || estado === 'DADO_DE_BAJA') return 'VENCIDO';
   const dias = diasParaVencer(fechaVencimiento);
-  if (dias < 0) return 'VENCIDO';
+  if (dias <= 0) return 'VENCIDO';
   if (dias <= umbrales.rojo) return 'ROJO';
   if (dias <= umbrales.amarillo) return 'AMARILLO';
   return 'VERDE';
 }
 
-/** Un lote cuenta como stock dispensable si está DISPONIBLE, no venció y tiene unidades. */
+/** Filtro de consulta de "lote con stock": la parte de esDispensable() que se puede pedir a la base. */
+export const LOTE_CON_STOCK = { estado: 'DISPONIBLE', cantidadActual: { gt: 0 } } satisfies Prisma.LoteWhereInput;
+
+/**
+ * Un lote cuenta como stock dispensable si está DISPONIBLE, tiene unidades y su
+ * fecha de vencimiento es futura (posterior a hoy). Un lote que vence hoy ya no
+ * es dispensable — ver estaVencido().
+ */
 export function esDispensable(
   lote: { estado: EstadoLote; fechaVencimiento: Date; cantidadActual: number },
   hoy: Date = hoyMedianoche()
@@ -73,6 +98,43 @@ export function esDispensable(
   return (
     lote.estado === 'DISPONIBLE' &&
     lote.cantidadActual > 0 &&
-    diasParaVencer(lote.fechaVencimiento, hoy) >= 0
+    !estaVencido(lote.fechaVencimiento, hoy)
   );
+}
+
+/**
+ * Valida la fecha de vencimiento de un lote que se va a registrar como DISPONIBLE.
+ * Devuelve un mensaje de error si la fecha es hoy o anterior, o null si es válida.
+ * Compartida entre el registro manual y la importación por Excel (H-34).
+ */
+export function validarFechaVencimientoEntrada(
+  fechaVencimiento: Date,
+  hoy: Date = hoyMedianoche()
+): string | null {
+  if (estaVencido(fechaVencimiento, hoy)) {
+    return 'La fecha de vencimiento ya pasó o es hoy; no se puede registrar un lote vencido como disponible';
+  }
+  return null;
+}
+
+/**
+ * Busca un lote ya registrado con el mismo medicamento, número de lote (sin
+ * distinguir mayúsculas) y fecha de vencimiento, creado ANTES de `creadoAntesDe`.
+ * La importación por Excel pasa el instante en que empezó: así reimportar el mismo
+ * archivo no duplica el stock, pero dos filas del mismo archivo con el mismo lote
+ * (p. ej. repartido en dos ubicaciones) sí se importan las dos.
+ */
+export function buscarLoteDuplicado(
+  tx: Pick<Prisma.TransactionClient, 'lote'>,
+  datos: { medicamentoId: string; numeroLote: string; fechaVencimiento: Date; creadoAntesDe: Date }
+) {
+  return tx.lote.findFirst({
+    where: {
+      medicamentoId: datos.medicamentoId,
+      numeroLote: { equals: datos.numeroLote, mode: 'insensitive' },
+      fechaVencimiento: datos.fechaVencimiento,
+      createdAt: { lt: datos.creadoAntesDe },
+    },
+    select: { id: true },
+  });
 }

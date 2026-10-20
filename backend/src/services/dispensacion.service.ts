@@ -1,9 +1,13 @@
-import { PrismaClient, Prisma, TipoFoto } from '@prisma/client';
-import { nanoid } from 'nanoid';
+import { Prisma, TipoFoto } from '@prisma/client';
+import { randomBytes } from 'node:crypto';
 import path from 'path';
 import fs from 'fs';
-
-const prisma = new PrismaClient();
+import { hoyMedianoche } from './inventario.service';
+import { comprimirImagen } from '../utils/imagen';
+import { registrarAuditoria } from '../middleware/audit';
+import { prisma } from '../config/prisma';
+import { parseFechaQuery } from '../utils/fecha';
+import { clampPaginacion } from '../utils/validacion';
 
 // ============================================
 // BENEFICIARIOS
@@ -171,7 +175,15 @@ export async function despachar(
     throw new Error('Beneficiario no encontrado o inactivo');
   }
 
-  return prisma.$transaction(async (tx) => {
+  // Fecha de corte para excluir lotes vencidos del despacho. Un lote cuya fecha
+  // de vencimiento sea hoy o anterior NUNCA debe descontarse (H-01), sin depender
+  // de que el cron ya lo haya marcado VENCIDO ni de filtros del frontend.
+  // Se envía como texto 'AAAA-MM-DD' (día local) para que el ::date de abajo no
+  // dependa de la zona horaria de la sesión de Postgres.
+  const h = hoyMedianoche();
+  const hoyISO = `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}-${String(h.getDate()).padStart(2, '0')}`;
+
+  const ejecutarTransaccion = () => prisma.$transaction(async (tx) => {
     const detallesCreados: Array<{
       loteId: string;
       medicamentoId: string;
@@ -195,13 +207,16 @@ export async function despachar(
         throw new Error(`Medicamento no encontrado o inactivo: ${item.medicamentoId}`);
       }
 
-      // SELECT ... FOR UPDATE — bloqueo de filas FIFO
+      // SELECT ... FOR UPDATE — bloqueo de filas FIFO.
+      // Se excluyen lotes vencidos (fecha_vencimiento <= hoy) de forma explícita:
+      // es la protección de backend contra dispensar medicamento vencido (H-01).
       const lotes = await tx.$queryRaw<LoteBloqueado[]>`
         SELECT id, medicamento_id, cantidad_actual, numero_lote, fecha_vencimiento, estado
         FROM lotes
         WHERE medicamento_id = ${item.medicamentoId}
           AND estado = 'DISPONIBLE'
           AND cantidad_actual > 0
+          AND fecha_vencimiento > ${hoyISO}::date
         ORDER BY fecha_vencimiento ASC
         FOR UPDATE
       `;
@@ -271,6 +286,34 @@ export async function despachar(
   }, {
     isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
   });
+
+  // Concurrencia (H-019): dos despachos simultáneos del mismo medicamento pueden
+  // chocar en el nivel de aislamiento Serializable y Postgres aborta uno con
+  // "could not serialize access" (SQLSTATE 40001 → Prisma P2034). Eso NO es un
+  // error del servidor: la integridad del stock queda intacta (nunca hay
+  // sobre-venta), simplemente esa transacción debe reintentarse. Antes salía como
+  // HTTP 500; ahora se reintenta unas pocas veces y, si persiste, se devuelve 409.
+  const MAX_REINTENTOS = 3;
+  let ultimoError: unknown;
+  for (let intento = 1; intento <= MAX_REINTENTOS; intento++) {
+    try {
+      return await ejecutarTransaccion();
+    } catch (error: any) {
+      const esConflicto =
+        error?.code === 'P2034' ||
+        /write conflict|deadlock|could not serialize/i.test(error?.message || '');
+      if (!esConflicto) throw error;
+      ultimoError = error;
+      // Pequeña espera incremental antes de reintentar (10ms, 20ms...).
+      await new Promise((r) => setTimeout(r, 10 * intento));
+    }
+  }
+  const conflicto: any = new Error(
+    'No se pudo completar la dispensación por un conflicto de concurrencia. Intente de nuevo.'
+  );
+  conflicto.status = 409;
+  conflicto.causa = ultimoError;
+  throw conflicto;
 }
 
 // ============================================
@@ -284,9 +327,8 @@ export async function obtenerHistorial(filtros: {
   page?: number;
   limit?: number;
 }) {
-  const page = filtros.page || 1;
-  const limit = filtros.limit || 20;
-  const skip = (page - 1) * limit;
+  // Clamp seguro: evita skip negativo (page<1 → 500 en Prisma) y limita el tamaño.
+  const { page, limit, skip } = clampPaginacion(filtros.page, filtros.limit, { defLimit: 20, maxLimit: 100 });
 
   const where: Prisma.DispensacionWhereInput = {};
 
@@ -294,15 +336,21 @@ export async function obtenerHistorial(filtros: {
     where.beneficiarioId = filtros.beneficiarioId;
   }
 
-  if (filtros.fechaDesde || filtros.fechaHasta) {
+  const fechaDesde = parseFechaQuery(filtros.fechaDesde, 'fecha desde');
+  const fechaHasta = parseFechaQuery(filtros.fechaHasta, 'fecha hasta');
+  if (fechaDesde && fechaHasta && fechaDesde.getTime() > fechaHasta.getTime()) {
+    const e: any = new Error('El rango de fechas es inválido: "desde" es posterior a "hasta"');
+    e.status = 400;
+    throw e;
+  }
+  if (fechaDesde || fechaHasta) {
     where.createdAt = {};
-    if (filtros.fechaDesde) {
-      where.createdAt.gte = new Date(filtros.fechaDesde);
+    if (fechaDesde) {
+      where.createdAt.gte = fechaDesde;
     }
-    if (filtros.fechaHasta) {
-      const hasta = new Date(filtros.fechaHasta);
-      hasta.setHours(23, 59, 59, 999);
-      where.createdAt.lte = hasta;
+    if (fechaHasta) {
+      fechaHasta.setHours(23, 59, 59, 999);
+      where.createdAt.lte = fechaHasta;
     }
   }
 
@@ -393,6 +441,19 @@ export async function generarTokenCaptura(dispensacionId: string) {
     throw new Error('Dispensación no encontrada');
   }
 
+  // No se permite generar un token nuevo si la evidencia ya está completa (las dos
+  // fotos). Evita que una dispensación cerrada pueda reabrirse para reemplazar sus
+  // fotos sin dejar constancia (H-14).
+  const fotos = await prisma.fotoDispensacion.findMany({
+    where: { dispensacionId },
+    select: { tipo: true },
+  });
+  const evidenciaCompleta =
+    fotos.some((f) => f.tipo === 'RECETA') && fotos.some((f) => f.tipo === 'EVIDENCIA_ENTREGA');
+  if (evidenciaCompleta) {
+    throw new Error('La evidencia de esta dispensación ya está completa; no se pueden reemplazar las fotos');
+  }
+
   const ahora = new Date();
   const existente = await prisma.tokenCaptura.findUnique({
     where: { dispensacionId },
@@ -406,7 +467,7 @@ export async function generarTokenCaptura(dispensacionId: string) {
     };
   }
 
-  const token = nanoid(10);
+  const token = randomBytes(8).toString('base64url'); // 11 caracteres, 64 bits; los tokens viejos (nanoid) siguen válidos
   const expiraEn = new Date(ahora.getTime() + TOKEN_VIGENCIA_MIN * 60_000);
 
   const registro = await prisma.tokenCaptura.upsert({
@@ -470,8 +531,41 @@ const EXT_POR_MIME: Record<string, string> = {
   'image/webp': 'webp',
 };
 
+const MIME_POR_EXT: Record<string, string> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+};
+
 export function extensionDeMime(mimetype: string): string | null {
   return EXT_POR_MIME[mimetype] ?? null;
+}
+
+/**
+ * Resuelve el archivo físico de una foto de dispensación para servirlo por un
+ * endpoint autenticado (H-11). El nombre se deriva del registro en BD y se pasa
+ * por path.basename + verificación de prefijo para impedir path traversal; nunca
+ * se construye a partir de entrada libre del cliente. Devuelve null si no existe.
+ */
+export async function obtenerArchivoFoto(dispensacionId: string, tipo: TipoFoto) {
+  const foto = await prisma.fotoDispensacion.findUnique({
+    where: { dispensacionId_tipo: { dispensacionId, tipo } },
+    select: { imagenUrl: true },
+  });
+  if (!foto) return null;
+
+  const nombreArchivo = path.basename(foto.imagenUrl); // descarta cualquier componente de ruta
+  const raiz = path.resolve(UPLOADS_DISPENSACIONES);
+  const filePath = path.resolve(path.join(raiz, dispensacionId, nombreArchivo));
+
+  // Defensa adicional: el archivo resuelto debe quedar dentro de la carpeta raíz.
+  if (filePath !== raiz && !filePath.startsWith(raiz + path.sep)) return null;
+  if (!fs.existsSync(filePath)) return null;
+
+  const ext = path.extname(filePath).slice(1).toLowerCase();
+  const mimetype = MIME_POR_EXT[ext] ?? 'application/octet-stream';
+  return { filePath, mimetype };
 }
 
 /**
@@ -485,10 +579,13 @@ export async function registrarFotoCaptura(
   archivo: { buffer: Buffer; mimetype: string }
 ) {
   const contexto = await obtenerCapturaPorToken(token);
-  const ext = extensionDeMime(archivo.mimetype);
-  if (!ext) {
+  if (!extensionDeMime(archivo.mimetype)) {
     throw new Error('Formato de imagen no permitido. Use JPG, PNG o WEBP');
   }
+
+  // Comprimir a WebP para reducir el espacio en disco (las fotos de celular pesan
+  // varios MB). Se mantiene resolución suficiente para que la receta sea legible.
+  const comprimida = await comprimirImagen(archivo.buffer);
 
   const dispensacionId = contexto.dispensacionId;
   const carpeta = path.join(UPLOADS_DISPENSACIONES, dispensacionId);
@@ -501,8 +598,8 @@ export async function registrarFotoCaptura(
     }
   }
 
-  const nombreArchivo = `${tipo}.${ext}`;
-  fs.writeFileSync(path.join(carpeta, nombreArchivo), archivo.buffer);
+  const nombreArchivo = `${tipo}.${comprimida.ext}`;
+  fs.writeFileSync(path.join(carpeta, nombreArchivo), comprimida.buffer);
   const imagenUrl = `/uploads/dispensaciones/${dispensacionId}/${nombreArchivo}`;
 
   await prisma.fotoDispensacion.upsert({
@@ -526,6 +623,22 @@ export async function registrarFotoCaptura(
     });
   }
 
+  // Auditar la subida (H-14 / D-18). El celular no tiene sesión, así que se
+  // registra bajo el usuario que realizó la dispensación.
+  const disp = await prisma.dispensacion.findUnique({
+    where: { id: dispensacionId },
+    select: { usuarioId: true },
+  });
+  if (disp) {
+    await registrarAuditoria({
+      usuarioId: disp.usuarioId,
+      accion: 'CREAR',
+      entidad: 'FotoDispensacion',
+      entidadId: dispensacionId,
+      datosNuevos: { tipo, via: 'captura-token' },
+    });
+  }
+
   return { dispensacionId, fotosSubidas, completo };
 }
 
@@ -542,11 +655,15 @@ export async function limpiarTokensExpirados(): Promise<number> {
 // ============================================
 
 export async function obtenerStockMedicamento(medicamentoId: string) {
+  // Se excluyen lotes vencidos (fecha <= hoy) para que el stock mostrado coincida
+  // con lo que el despacho realmente permite dispensar (H-01).
+  const hoy = hoyMedianoche();
   const lotes = await prisma.lote.findMany({
     where: {
       medicamentoId,
       estado: 'DISPONIBLE',
       cantidadActual: { gt: 0 },
+      fechaVencimiento: { gt: hoy },
     },
     orderBy: { fechaVencimiento: 'asc' },
     select: {

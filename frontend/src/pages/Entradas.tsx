@@ -8,7 +8,7 @@ import {
   importarExcelInventario,
   type LoteEntradaInput,
 } from '../api/inventario';
-import { listarMedicamentos, listarUbicaciones, listarCategorias, buscarPorCodigoBarras } from '../api/catalogos';
+import { listarMedicamentosTodos, listarUbicaciones, listarCategorias, buscarPorCodigoBarras } from '../api/catalogos';
 import { useAuth } from '../context/AuthContext';
 import Modal from '../components/ui/Modal';
 import PageHeader from '../components/ui/PageHeader';
@@ -70,7 +70,7 @@ export default function Entradas() {
   };
 
   useEffect(() => {
-    Promise.all([listarMedicamentos(), listarCategorias(), listarUbicaciones()])
+    Promise.all([listarMedicamentosTodos(), listarCategorias(), listarUbicaciones()])
       .then(([meds, cats, ubis]) => {
         setMedicamentos(meds);
         setCategorias(cats);
@@ -185,6 +185,9 @@ export default function Entradas() {
       if (resultado.lotesRegistrados > 0) {
         toast.success(`${resultado.lotesRegistrados} lote(s) importado(s) correctamente`);
         cargarEntradas();
+      }
+      if (resultado.lotesOmitidos > 0) {
+        toast(`${resultado.lotesOmitidos} lote(s) omitido(s) por ya existir`, { icon: 'ℹ️' });
       }
       if (resultado.errores.length > 0) {
         toast.error(`${resultado.errores.length} fila(s) con errores`);
@@ -404,7 +407,8 @@ export default function Entradas() {
               <p className="mb-3 text-xs text-gray-500">
                 {resultadoImport.medicamentosExistentes} medicamento(s) ya existían · {resultadoImport.categoriasCreadas}{' '}
                 categoría(s) nueva(s) · {resultadoImport.ubicacionesCreadas} ubicación(es) nueva(s) ·{' '}
-                {resultadoImport.codigosBarrasVinculados} código(s) de barras vinculado(s)
+                {resultadoImport.codigosBarrasVinculados} código(s) de barras vinculado(s) ·{' '}
+                {resultadoImport.lotesOmitidos} lote(s) omitido(s) por ya existir
               </p>
 
               {resultadoImport.errores.length > 0 && (
@@ -417,10 +421,13 @@ export default function Entradas() {
                   </ul>
                 </div>
               )}
-              {resultadoImport.avisos.length > 0 && (
+              {(resultadoImport.avisosGenerales.length > 0 || resultadoImport.avisos.length > 0) && (
                 <div>
                   <h4 className="mb-1 text-xs font-semibold uppercase text-amber-600">Avisos</h4>
                   <ul className="max-h-32 space-y-1 overflow-y-auto rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800">
+                    {resultadoImport.avisosGenerales.map((g, i) => (
+                      <li key={`g${i}`}>{g}</li>
+                    ))}
                     {resultadoImport.avisos.map((a, i) => (
                       <li key={i}><strong>Fila {a.fila}:</strong> {a.aviso}</li>
                     ))}

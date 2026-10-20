@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient, EstadoLote } from '@prisma/client';
+import { EstadoLote } from '@prisma/client';
 import { z } from 'zod';
 import multer from 'multer';
 import ExcelJS from 'exceljs';
@@ -10,11 +10,17 @@ import {
   calcularSemaforo,
   diasParaVencer,
   esDispensable,
+  LOTE_CON_STOCK,
   hoyMedianoche,
+  validarFechaVencimientoEntrada,
+  buscarLoteDuplicado,
 } from '../services/inventario.service';
+import { textoQuery } from '../utils/validacion';
+import { formatFechaDia } from '../utils/formatDate';
+import { celdaATexto, parseFechaCelda } from '../utils/excel';
+import { prisma } from '../config/prisma';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // ============================================
 // Validación
@@ -38,9 +44,9 @@ const entradaSchema = z.object({
   lotes: z.array(loteEntradaSchema).min(1, 'Debe registrar al menos un lote'),
 });
 
-/** Convierte 'YYYY-MM-DD' a un Date a medianoche local (columna @db.Date). */
+/** Convierte 'YYYY-MM-DD' a un Date a medianoche UTC, como Prisma entrega y guarda @db.Date. */
 function parseFechaVencimiento(valor: string): Date {
-  return new Date(`${valor.slice(0, 10)}T00:00:00`);
+  return new Date(`${valor.slice(0, 10)}T00:00:00Z`);
 }
 
 // ============================================
@@ -54,6 +60,17 @@ router.post('/entradas', authMiddleware, async (req: Request, res: Response): Pr
     return;
   }
   const { observaciones, lotes } = parsed.data;
+
+  // Rechazar lotes con fecha de vencimiento hoy o anterior (H-34). Misma lógica
+  // que la importación por Excel vía validarFechaVencimientoEntrada.
+  const hoy = hoyMedianoche();
+  for (let i = 0; i < lotes.length; i++) {
+    const errorFecha = validarFechaVencimientoEntrada(parseFechaVencimiento(lotes[i].fechaVencimiento), hoy);
+    if (errorFecha) {
+      res.status(400).json({ error: `Lote ${i + 1} (${lotes[i].numeroLote}): ${errorFecha}` });
+      return;
+    }
+  }
 
   try {
     // Validar existencia de referencias para dar errores claros (en vez de P2003 de Prisma).
@@ -166,7 +183,9 @@ router.get('/entradas', authMiddleware, async (req: Request, res: Response): Pro
 // ============================================
 router.get('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { q, categoriaId } = req.query as Record<string, string | undefined>;
+    // Coerción segura: `?q=a&q=b` (arreglo) rompía el filtro Prisma `contains` → 500.
+    const q = textoQuery(req.query.q);
+    const categoriaId = textoQuery(req.query.categoriaId);
     const soloStockBajo = req.query.soloStockBajo === 'true';
     const page = Math.max(1, parseInt((req.query.page as string) || '1', 10));
     const pageSize = Math.min(100, Math.max(1, parseInt((req.query.pageSize as string) || '20', 10)));
@@ -186,7 +205,9 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
       orderBy: { nombreGenerico: 'asc' },
       include: {
         categoria: { select: { id: true, nombre: true } },
+        // Solo cuenta stock dispensable: los lotes agotados/vencidos/de baja no entran al listado.
         lotes: {
+          where: LOTE_CON_STOCK,
           select: { cantidadActual: true, fechaVencimiento: true, estado: true },
         },
       },
@@ -265,7 +286,10 @@ router.get('/alertas', authMiddleware, async (_req: Request, res: Response): Pro
             nombreGenerico: true,
             presentacion: true,
             stockMinimo: true,
-            lotes: { select: { cantidadActual: true, fechaVencimiento: true, estado: true } },
+            lotes: {
+              where: LOTE_CON_STOCK,
+              select: { cantidadActual: true, fechaVencimiento: true, estado: true },
+            },
           },
         }),
         // Próximos a vencer: DISPONIBLE, con stock, que vencen dentro del umbral amarillo.
@@ -584,42 +608,8 @@ const HEADER_A_CAMPO: Record<string, CampoExcel> = Object.fromEntries(
   COLUMNAS_EXCEL.map((c) => [normalizarHeader(c), c])
 ) as Record<string, CampoExcel>;
 
-/** Convierte un valor de celda de exceljs a texto plano (soporta rich text y fórmulas). */
-function celdaATexto(valor: ExcelJS.CellValue): string {
-  if (valor === null || valor === undefined) return '';
-  if (valor instanceof Date) return valor.toISOString();
-  if (typeof valor === 'object') {
-    if ('richText' in valor) return (valor as any).richText.map((r: any) => r.text).join('');
-    if ('result' in valor) return String((valor as any).result ?? '');
-    if ('text' in valor) return String((valor as any).text ?? '');
-    return '';
-  }
-  return String(valor).trim();
-}
-
-/** Interpreta una celda de fecha: Date nativo de Excel, 'YYYY-MM-DD' o 'DD/MM/YYYY'. */
-function parseFechaCelda(valor: ExcelJS.CellValue): Date | null {
-  if (valor instanceof Date && !isNaN(valor.getTime())) {
-    const d = new Date(valor);
-    d.setHours(0, 0, 0, 0);
-    return d;
-  }
-  const texto = celdaATexto(valor).trim();
-  if (!texto) return null;
-
-  const isoMatch = texto.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (isoMatch) {
-    const d = new Date(`${isoMatch[0]}T00:00:00`);
-    return isNaN(d.getTime()) ? null : d;
-  }
-  const dmyMatch = texto.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (dmyMatch) {
-    const [, dd, mm, yyyy] = dmyMatch;
-    const d = new Date(`${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}T00:00:00`);
-    return isNaN(d.getTime()) ? null : d;
-  }
-  return null;
-}
+/** Fila omitida porque su lote ya existe: hace rollback de la fila y se reporta como aviso. */
+class LoteDuplicadoError extends Error {}
 
 interface FilaValidada {
   nombreGenerico: string;
@@ -635,7 +625,7 @@ interface FilaValidada {
   ubicacion: string | null;
 }
 
-function validarFila(raw: Record<CampoExcel, ExcelJS.CellValue>): { datos: FilaValidada } | { error: string } {
+function validarFila(raw: Record<CampoExcel, ExcelJS.CellValue>): { datos: FilaValidada; codigoNumerico: boolean } | { error: string } {
   const errores: string[] = [];
 
   const nombreGenerico = celdaATexto(raw.nombreGenerico);
@@ -654,12 +644,19 @@ function validarFila(raw: Record<CampoExcel, ExcelJS.CellValue>): { datos: FilaV
   if (!numeroLote) errores.push('numeroLote es requerido');
 
   const cantidadTexto = celdaATexto(raw.cantidad);
-  const cantidad = parseInt(cantidadTexto, 10);
+  // Number, no parseInt: parseInt('12.5') daría 12 y guardaría una cantidad distinta a la del archivo.
+  const cantidad = Number(cantidadTexto);
   if (!cantidadTexto) errores.push('cantidad es requerida');
-  else if (!Number.isFinite(cantidad) || cantidad <= 0) errores.push('cantidad debe ser un entero mayor a 0');
+  else if (!Number.isInteger(cantidad) || cantidad <= 0) errores.push('cantidad debe ser un entero mayor a 0');
 
   const fechaVencimiento = parseFechaCelda(raw.fechaVencimiento);
-  if (!fechaVencimiento) errores.push('fechaVencimiento es requerida y debe tener formato YYYY-MM-DD o DD/MM/YYYY');
+  if (!fechaVencimiento) {
+    errores.push('fechaVencimiento es requerida y debe tener formato YYYY-MM-DD o DD/MM/YYYY');
+  } else {
+    // Misma validación que el registro manual: no se admite fecha hoy o anterior (H-34).
+    const errorFecha = validarFechaVencimientoEntrada(fechaVencimiento);
+    if (errorFecha) errores.push(errorFecha);
+  }
 
   if (errores.length > 0) return { error: errores.join('; ') };
 
@@ -682,6 +679,7 @@ function validarFila(raw: Record<CampoExcel, ExcelJS.CellValue>): { datos: FilaV
       fechaVencimiento: fechaVencimiento!,
       ubicacion,
     },
+    codigoNumerico: typeof raw.codigoBarras === 'number',
   };
 }
 
@@ -734,6 +732,7 @@ router.post(
     const filasValidas: { fila: FilaValidada; numeroFila: number }[] = [];
     const errores: { fila: number; error: string }[] = [];
     const avisos: { fila: number; aviso: string }[] = [];
+    let filasCodigoNumerico = 0;
     let totalFilas = 0;
 
     for (let r = 2; r <= sheet.rowCount; r++) {
@@ -751,6 +750,7 @@ router.post(
         errores.push({ fila: r, error: resultado.error });
       } else {
         filasValidas.push({ fila: resultado.datos, numeroFila: r });
+        if (resultado.codigoNumerico) filasCodigoNumerico++;
       }
     }
 
@@ -761,6 +761,10 @@ router.post(
     let ubicacionesCreadas = 0;
     let codigosBarrasVinculados = 0;
     let lotesRegistrados = 0;
+    let lotesOmitidos = 0;
+    // Instante de inicio: los lotes con created_at anterior vienen de importaciones previas
+    // (Prisma fija created_at con la hora del servidor de la API, la misma que esta).
+    const inicioImportacion = new Date();
 
     for (const { fila, numeroFila } of filasValidas) {
       try {
@@ -769,6 +773,11 @@ router.post(
             where: { nombre: { equals: fila.categoria, mode: 'insensitive' } },
           });
           let categoriaCreada = false;
+          if (categoria && !categoria.activo) {
+            // Misma regla que el registro manual: no se carga stock sobre una
+            // categoría inactiva (H-33).
+            throw new Error(`La categoría "${fila.categoria}" existe pero está inactiva; actívela antes de importar`);
+          }
           if (!categoria) {
             categoria = await tx.categoria.create({ data: { nombre: fila.categoria } });
             categoriaCreada = true;
@@ -796,6 +805,27 @@ router.post(
           let medicamento = candidatos.find(
             (m) => (m.concentracion || '').toLowerCase().trim() === concentracionNorm
           );
+          if (medicamento && !medicamento.activo) {
+            // Misma regla que el registro manual: no se reutiliza un medicamento
+            // inactivo ni se le carga stock oculto (H-33).
+            throw new Error(`El medicamento "${fila.nombreGenerico}" existe pero está inactivo; actívelo antes de importar`);
+          }
+          if (
+            medicamento &&
+            (await buscarLoteDuplicado(tx, {
+              medicamentoId: medicamento.id,
+              numeroLote: fila.numeroLote,
+              fechaVencimiento: fila.fechaVencimiento,
+              creadoAntesDe: inicioImportacion,
+            }))
+          ) {
+            // Al lanzar, la transacción deshace también la categoría/ubicación que esta
+            // fila hubiera creado: una fila omitida no deja nada.
+            throw new LoteDuplicadoError(
+              `Ya existe el lote ${fila.numeroLote} de ${fila.nombreGenerico} con vencimiento ${formatFechaDia(fila.fechaVencimiento)}; ` +
+                'no se importó. Si es una entrega nueva del mismo lote, regístrela desde el formulario de entradas.'
+            );
+          }
           let medicamentoCreado = false;
           if (!medicamento) {
             medicamento = await tx.medicamento.create({
@@ -913,11 +943,24 @@ router.post(
           ipAddress: req.ip,
         });
       } catch (err) {
+        if (err instanceof LoteDuplicadoError) {
+          lotesOmitidos++;
+          avisos.push({ fila: numeroFila, aviso: err.message });
+          continue;
+        }
         errores.push({
           fila: numeroFila,
           error: err instanceof Error ? err.message : 'Error desconocido al procesar la fila',
         });
       }
+    }
+
+    // Un solo aviso general: Excel ya borró los ceros a la izquierda al guardar la celda como número.
+    const avisosGenerales: string[] = [];
+    if (filasCodigoNumerico > 0) {
+      avisosGenerales.push(
+        `${filasCodigoNumerico} fila(s) tenían el código de barras como número; si alguno tenía ceros a la izquierda, se perdieron. Formatee la columna como texto en Excel.`
+      );
     }
 
     res.json({
@@ -929,8 +972,10 @@ router.post(
         ubicacionesCreadas,
         codigosBarrasVinculados,
         lotesRegistrados,
+        lotesOmitidos,
         errores,
         avisos,
+        avisosGenerales,
       },
     });
   }
@@ -961,7 +1006,7 @@ router.get(
       codigoBarras: '7501234567890',
       cantidad: 100,
       numeroLote: 'L-2026-001',
-      fechaVencimiento: new Date('2027-12-31T00:00:00'),
+      fechaVencimiento: new Date('2027-12-31T00:00:00Z'),
       ubicacion: 'A-1',
     });
     filaEjemplo.getCell('fechaVencimiento').numFmt = 'yyyy-mm-dd';

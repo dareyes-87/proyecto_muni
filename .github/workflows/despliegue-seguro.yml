@@ -1,0 +1,313 @@
+# Banco de pruebas del despliegue.
+#
+# El servidor de la municipalidad hace `git pull origin main` + `docker compose
+# up -d --build` cada 30 minutos y nadie puede intervenir en sitio. Este
+# workflow reproduce ese mismo despliegue en GitHub antes de que algo llegue a
+# main:
+#
+#   esquema      schema.prisma y prisma/migrations deben coincidir; avisa si una
+#                migración nueva borra columnas o tablas.
+#   compilacion  el backend y el frontend compilan.
+#   despliegue   levanta la versión anterior con datos, "hace git pull" a la
+#                versión nueva, reconstruye y comprueba que los datos siguen
+#                idénticos, que hay respaldo y que la API responde. Se prueba sin
+#                .env y con el .env de ejemplo (no conocemos el del servidor).
+#   instalacion  instalación desde cero con la versión nueva.
+#
+# Para que bloquee merges: Settings → Branches → regla para main → "Require
+# status checks to pass" y marcar estos cuatro trabajos.
+
+name: Despliegue seguro
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: ['**']
+  workflow_dispatch:
+
+concurrency:
+  group: despliegue-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  esquema:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/farmag?schema=public
+      SHADOW_URL: postgresql://postgres:postgres@localhost:5432/shadow
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npx prisma validate
+      - name: Crear base sombra
+        run: docker exec ${{ job.services.postgres.id }} createdb -U postgres shadow
+      - name: schema.prisma coincide con las migraciones
+        run: |
+          set +e
+          npx prisma migrate diff \
+            --from-migrations prisma/migrations \
+            --to-schema-datamodel prisma/schema.prisma \
+            --shadow-database-url "$SHADOW_URL" --script > /tmp/faltante.sql
+          npx prisma migrate diff \
+            --from-migrations prisma/migrations \
+            --to-schema-datamodel prisma/schema.prisma \
+            --shadow-database-url "$SHADOW_URL" --exit-code > /dev/null
+          rc=$?
+          if [ "$rc" -eq 2 ]; then
+            echo "::error::schema.prisma cambió y no hay migración. Genera una con: npx prisma migrate dev --name <descripcion>"
+            echo "SQL que falta:"; cat /tmp/faltante.sql
+            exit 1
+          fi
+          exit "$rc"
+      # Prueba de integración del despacho: usa la base real de este trabajo, con
+      # el esquema de las migraciones y el seed (necesita el usuario ADMIN y una
+      # categoría). Crea sus datos y los borra al terminar.
+      # La base se pone en hora de Guatemala (la imagen usa UTC) y la prueba corre con
+      # Node en Guatemala y en UTC: así falla si el filtro de vencimiento vuelve a
+      # depender de la zona horaria de la sesión de Postgres.
+      - name: Pruebas contra Postgres (despacho, importación, lector de códigos, vencimiento, seed)
+        env:
+          JWT_SECRET: ci-jwt-secret-solo-para-pruebas
+        run: |
+          docker exec ${{ job.services.postgres.id }} createdb -U postgres farmag
+          docker exec ${{ job.services.postgres.id }} psql -U postgres -c "ALTER DATABASE farmag SET timezone='America/Guatemala'"
+          npx prisma migrate deploy
+          npx prisma db seed
+          TZ=America/Guatemala node --import tsx --test --test-concurrency=1 tests/despacho_vencimiento.test.ts tests/rutas_integracion.test.ts tests/vencimiento_arranque.test.ts tests/seed.test.ts
+          TZ=UTC node --import tsx --test --test-concurrency=1 tests/despacho_vencimiento.test.ts tests/rutas_integracion.test.ts tests/vencimiento_arranque.test.ts tests/seed.test.ts
+      - name: Avisar si una migración nueva borra datos
+        run: |
+          base="${{ github.event.pull_request.base.sha }}"
+          [ -n "$base" ] || base=$(git rev-parse origin/main)
+          nuevas=$(git diff --name-only --diff-filter=AM "$base" HEAD -- prisma/migrations | grep '\.sql$' || true)
+          for f in $nuevas; do
+            if grep -nEi 'DROP (TABLE|COLUMN|TYPE)|ALTER COLUMN .* TYPE|TRUNCATE|DELETE FROM' "$f"; then
+              echo "::warning file=backend/$f::Esta migración elimina o transforma datos. Revisar antes de mergear: el servidor la aplicará sola."
+            fi
+          done
+
+  compilacion:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Backend (tsc)
+        working-directory: backend
+        run: npm install && npx prisma generate && npx tsc --noEmit
+      # Pruebas que no necesitan base de datos. Con la zona horaria del servidor
+      # (Guatemala): en UTC no se ve el desfase de un día en las fechas de vencimiento.
+      - name: Backend (pruebas sin base de datos)
+        working-directory: backend
+        env:
+          TZ: America/Guatemala
+        run: node --import tsx --test tests/env.test.ts tests/fecha.test.ts tests/inventario.service.test.ts tests/ipRateLimit.test.ts tests/loginRateLimit.test.ts tests/validacion.test.ts
+      - name: Frontend (tsc + vite build)
+        working-directory: frontend
+        run: npm install && npm run build
+
+  despliegue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      # La versión anterior (bootstrap seguro, H-002) ya no crea admin/admin2026: sin
+      # esto el seed genera una contraseña aleatoria. docker compose toma la variable
+      # del entorno del shell (tiene prioridad sobre .env), así que el caso sin-env
+      # sigue sin .env.
+      ADMIN_INITIAL_PASSWORD: Despliegue-CI-2026
+    strategy:
+      fail-fast: false
+      matrix:
+        # produccion-ejemplo: NODE_ENV y FRONTEND_TARGET en production con los
+        # secretos de ejemplo (posible configuración del servidor real).
+        env_servidor: [sin-env, env-de-ejemplo, produccion-ejemplo]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Elegir versión anterior (lo que tendría hoy el servidor)
+        id: base
+        run: |
+          if [ -n "${{ github.event.pull_request.base.sha }}" ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+          elif [ "${{ github.ref }}" = "refs/heads/main" ] && [ -n "${{ github.event.before }}" ] \
+               && git cat-file -e "${{ github.event.before }}" 2>/dev/null; then
+            base="${{ github.event.before }}"
+          else
+            base=$(git rev-parse origin/main)
+          fi
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          echo "Versión anterior: $base  →  nueva: $GITHUB_SHA"
+
+      - name: Levantar la versión anterior
+        run: |
+          git worktree add ../servidor "${{ steps.base.outputs.base }}"
+          cd ../servidor
+          case "${{ matrix.env_servidor }}" in
+            env-de-ejemplo) cp .env.example .env ;;
+            produccion-ejemplo)
+              cp .env.example .env
+              sed -i 's/^NODE_ENV=.*/NODE_ENV=production/; s/^FRONTEND_TARGET=.*/FRONTEND_TARGET=production/' .env
+              grep -q '^NODE_ENV=production' .env || echo 'NODE_ENV=production' >> .env
+              grep -q '^FRONTEND_TARGET=production' .env || echo 'FRONTEND_TARGET=production' >> .env
+              cat .env ;;
+          esac
+          docker compose -p farmag up -d --build
+          for i in $(seq 1 90); do
+            curl -sf http://localhost:3000/api/health > /dev/null && exit 0
+            sleep 5
+          done
+          docker compose -p farmag logs api; exit 1
+
+      - name: Cargar datos de prueba
+        working-directory: ../servidor
+        run: |
+          docker compose -p farmag exec -T db sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' <<'SQL'
+          INSERT INTO beneficiarios (id, nombre_completo, dpi, telefono, updated_at)
+          SELECT 'ci-' || g, 'Beneficiario de prueba ' || g, lpad(g::text, 13, '0'), '5555' || g, now()
+          FROM generate_series(1, 200) g;
+          SQL
+          TOKEN=$(curl -sf -X POST http://localhost:3000/api/auth/login \
+            -H 'Content-Type: application/json' \
+            -d "$(jq -nc --arg p "$ADMIN_INITIAL_PASSWORD" '{username:"admin",password:$p}')" | jq -r .token)
+          [ -n "$TOKEN" ] && [ "$TOKEN" != "null" ] || { echo "::error::login falló en la versión anterior"; exit 1; }
+
+      - name: Huella de datos ANTES
+        working-directory: ../servidor
+        run: |
+          docker compose -p farmag exec -T db sh -c 'psql -tA -U "$POSTGRES_USER" -d "$POSTGRES_DB"' \
+            < "$GITHUB_WORKSPACE/.github/scripts/huella-datos.sql" > /tmp/antes.txt
+          cat /tmp/antes.txt
+
+      - name: Desplegar la versión nueva (como lo hace auto-update.cmd)
+        working-directory: ../servidor
+        run: |
+          git checkout --detach "$GITHUB_SHA"
+          docker compose -p farmag up -d --build
+
+      - name: Esperar a que la API nueva esté sana
+        working-directory: ../servidor
+        run: |
+          for i in $(seq 1 90); do
+            estado=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}sin-healthcheck{{end}}' farmag_api 2>/dev/null)
+            [ "$estado" = "healthy" ] && exit 0
+            sleep 5
+          done
+          echo "::error::la API no quedó sana (estado: $estado)"
+          docker compose -p farmag logs api; exit 1
+
+      - name: Comprobar que no se perdió nada
+        working-directory: ../servidor
+        run: |
+          docker compose -p farmag exec -T db sh -c 'psql -tA -U "$POSTGRES_USER" -d "$POSTGRES_DB"' \
+            < "$GITHUB_WORKSPACE/.github/scripts/huella-datos.sql" > /tmp/despues.txt
+          if ! diff -u /tmp/antes.txt /tmp/despues.txt; then
+            echo "::error::los datos cambiaron durante el despliegue"; exit 1
+          fi
+          echo "Datos idénticos antes y después del despliegue."
+
+      - name: Comprobar arranque, migraciones y respaldos
+        working-directory: ../servidor
+        run: |
+          echo "--- ESTADO_ARRANQUE.txt"; cat backups/ESTADO_ARRANQUE.txt
+          if grep -E 'ERROR|ATENCION|SIN RESPALDO' backups/ESTADO_ARRANQUE.txt; then
+            echo "::error::el arranque reportó problemas"; exit 1
+          fi
+          if [ "${{ matrix.env_servidor }}" = "produccion-ejemplo" ]; then
+            grep -q 'AVISO: .*JWT_SECRET' backups/ESTADO_ARRANQUE.txt \
+              || { echo "::error::con secretos de ejemplo en producción debía quedar un AVISO"; exit 1; }
+            echo "La API arrancó en producción con secretos de ejemplo y dejó el AVISO."
+          fi
+          docker compose -p farmag exec -T db sh -c \
+            'psql -tA -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NOT NULL"' | tee /tmp/mig.txt
+          grep -qx 0_init /tmp/mig.txt || { echo "::error::0_init no quedó registrada"; exit 1; }
+          ls -l backups/
+          previo=$(ls backups/predeploy_*.dump | tail -1)
+          [ -n "$previo" ] || { echo "::error::no hay respaldo previo"; exit 1; }
+          # Si la versión anterior ya traía el servicio backup, su primer respaldo es de
+          # ANTES de cargar los datos de prueba y el despliegue no lo recrea. Se reinicia
+          # para forzar un respaldo nuevo y se espera uno posterior a esta marca.
+          touch /tmp/marca_respaldo
+          sleep 1
+          docker compose -p farmag restart backup
+          periodico=""
+          for i in $(seq 1 24); do
+            periodico=$(find backups -name 'farmag_*.dump' -newer /tmp/marca_respaldo | sort | tail -1)
+            [ -n "$periodico" ] && break
+            sleep 5
+          done
+          [ -n "$periodico" ] || { echo "::error::el servicio backup no generó respaldo"; docker compose -p farmag logs backup; exit 1; }
+          for f in "$previo" "$periodico"; do
+            docker cp "$f" farmag_db:/tmp/r.dump
+            docker exec farmag_db sh -c 'createdb -U "$POSTGRES_USER" prueba_restauracion && pg_restore --no-owner -U "$POSTGRES_USER" -d prueba_restauracion /tmp/r.dump'
+            n=$(docker exec farmag_db sh -c 'psql -tA -U "$POSTGRES_USER" -d prueba_restauracion -c "SELECT count(*) FROM beneficiarios WHERE id LIKE '"'"'ci-%'"'"'"' || echo "error")
+            docker exec farmag_db sh -c 'dropdb -U "$POSTGRES_USER" prueba_restauracion'
+            [ "$n" = "200" ] || { echo "::error::$f no restaura los datos ($n filas)"; exit 1; }
+            echo "$f restaura bien ($n beneficiarios de prueba)"
+          done
+
+      - name: Reinicio (como un apagón o reinicio de la PC) y login
+        working-directory: ../servidor
+        run: |
+          docker compose -p farmag restart api
+          sleep 10
+          for i in $(seq 1 60); do
+            [ "$(docker inspect -f '{{.State.Health.Status}}' farmag_api)" = healthy ] && break; sleep 5
+          done
+          [ "$(docker inspect -f '{{.State.Health.Status}}' farmag_api)" = healthy ]
+          docker compose -p farmag exec -T db sh -c 'psql -tA -U "$POSTGRES_USER" -d "$POSTGRES_DB"' \
+            < "$GITHUB_WORKSPACE/.github/scripts/huella-datos.sql" > /tmp/reinicio.txt
+          diff -u /tmp/antes.txt /tmp/reinicio.txt
+          # El login va al final: actualiza ultimo_acceso y la bitácora.
+          curl -sf -X POST http://localhost:3000/api/auth/login -H 'Content-Type: application/json' \
+            -d "$(jq -nc --arg p "$ADMIN_INITIAL_PASSWORD" '{username:"admin",password:$p}')" | jq -e .token > /dev/null
+
+      - name: Registros si algo falló
+        if: failure()
+        working-directory: ../servidor
+        run: docker compose -p farmag logs --tail 200
+
+  instalacion:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Instalación desde cero
+        run: |
+          # Desde el bootstrap seguro (H-002) no hay contraseña por defecto: se fija una.
+          echo 'ADMIN_INITIAL_PASSWORD=Instalacion-CI-2026' > .env
+          docker compose -p nueva up -d --build
+          for i in $(seq 1 90); do
+            [ "$(docker inspect -f '{{.State.Health.Status}}' farmag_api 2>/dev/null)" = healthy ] && break; sleep 5
+          done
+          cat backups/ESTADO_ARRANQUE.txt
+          if grep -E 'ERROR|ATENCION' backups/ESTADO_ARRANQUE.txt; then exit 1; fi
+          curl -sf -X POST http://localhost:3000/api/auth/login -H 'Content-Type: application/json' \
+            -d '{"username":"admin","password":"Instalacion-CI-2026"}' | jq -e .token > /dev/null
+          # La contraseña antigua por defecto ya no debe servir en una instalación nueva.
+          codigo=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:3000/api/auth/login \
+            -H 'Content-Type: application/json' -d '{"username":"admin","password":"admin2026"}')
+          [ "$codigo" = "401" ] || { echo "::error::admin2026 respondió $codigo (esperado 401)"; exit 1; }
+      - name: Registros si algo falló
+        if: failure()
+        run: docker compose -p nueva logs --tail 200

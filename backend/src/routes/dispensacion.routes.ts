@@ -1,6 +1,9 @@
 import { Router, Request, Response } from 'express';
+import { TipoFoto } from '@prisma/client';
 import { authMiddleware } from '../middleware/auth';
 import { registrarAuditoria } from '../middleware/audit';
+import { responderError } from '../utils/httpError';
+import { textoQuery } from '../utils/validacion';
 import {
   buscarBeneficiarios,
   crearBeneficiario,
@@ -12,7 +15,10 @@ import {
   obtenerStockMedicamento,
   generarTokenCaptura,
   obtenerFotos,
+  obtenerArchivoFoto,
 } from '../services/dispensacion.service';
+
+const TIPOS_FOTO_VALIDOS: TipoFoto[] = ['RECETA', 'EVIDENCIA_ENTREGA'];
 
 const router = Router();
 
@@ -23,11 +29,11 @@ const router = Router();
 // GET /api/dispensacion/beneficiarios/buscar?q=...
 router.get('/beneficiarios/buscar', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const q = (req.query.q as string) || '';
+    const q = textoQuery(req.query.q) || '';
     const data = await buscarBeneficiarios(q);
     res.json({ data });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Error al buscar beneficiarios' });
+  } catch (error) {
+    responderError(res, error);
   }
 });
 
@@ -36,9 +42,18 @@ router.post('/beneficiarios', authMiddleware, async (req: Request, res: Response
   try {
     const { nombreCompleto, dpi, telefono, direccion, observaciones } = req.body;
 
-    if (!nombreCompleto || nombreCompleto.trim().length < 3) {
+    // nombreCompleto debe ser texto: un objeto/arreglo rompía `.trim()` → 500.
+    if (typeof nombreCompleto !== 'string' || nombreCompleto.trim().length < 3) {
       res.status(400).json({ error: 'El nombre debe tener al menos 3 caracteres' });
       return;
+    }
+
+    // Los campos opcionales, si vienen, deben ser texto (evita 500 de Prisma).
+    for (const [campo, val] of Object.entries({ dpi, telefono, direccion, observaciones })) {
+      if (val !== undefined && val !== null && typeof val !== 'string') {
+        res.status(400).json({ error: `El campo ${campo} debe ser texto` });
+        return;
+      }
     }
 
     if (dpi && !/^\d{13}$/.test(dpi)) {
@@ -64,9 +79,8 @@ router.post('/beneficiarios', authMiddleware, async (req: Request, res: Response
     });
 
     res.status(201).json(beneficiario);
-  } catch (error: any) {
-    const status = error.message?.includes('Ya existe') ? 409 : 500;
-    res.status(status).json({ error: error.message || 'Error al crear beneficiario' });
+  } catch (error) {
+    responderError(res, error, [{ match: 'Ya existe', status: 409 }]);
   }
 });
 
@@ -76,9 +90,8 @@ router.get('/beneficiarios/:id', authMiddleware, async (req: Request, res: Respo
     const { id } = req.params as { id: string };
     const beneficiario = await obtenerBeneficiario(id);
     res.json(beneficiario);
-  } catch (error: any) {
-    const status = error.message?.includes('no encontrado') ? 404 : 500;
-    res.status(status).json({ error: error.message || 'Error al obtener beneficiario' });
+  } catch (error) {
+    responderError(res, error, [{ match: 'no encontrado', status: 404 }]);
   }
 });
 
@@ -88,9 +101,16 @@ router.put('/beneficiarios/:id', authMiddleware, async (req: Request, res: Respo
     const { id } = req.params as { id: string };
     const { nombreCompleto, dpi, telefono, direccion, observaciones } = req.body;
 
-    if (nombreCompleto !== undefined && nombreCompleto.trim().length < 3) {
+    if (nombreCompleto !== undefined && (typeof nombreCompleto !== 'string' || nombreCompleto.trim().length < 3)) {
       res.status(400).json({ error: 'El nombre debe tener al menos 3 caracteres' });
       return;
+    }
+
+    for (const [campo, val] of Object.entries({ dpi, telefono, direccion, observaciones })) {
+      if (val !== undefined && val !== null && typeof val !== 'string') {
+        res.status(400).json({ error: `El campo ${campo} debe ser texto` });
+        return;
+      }
     }
 
     if (dpi && !/^\d{13}$/.test(dpi)) {
@@ -118,10 +138,11 @@ router.put('/beneficiarios/:id', authMiddleware, async (req: Request, res: Respo
     });
 
     res.json(actualizado);
-  } catch (error: any) {
-    const status = error.message?.includes('no encontrado') ? 404
-      : error.message?.includes('Ya existe') ? 409 : 500;
-    res.status(status).json({ error: error.message || 'Error al editar beneficiario' });
+  } catch (error) {
+    responderError(res, error, [
+      { match: 'no encontrado', status: 404 },
+      { match: 'Ya existe', status: 409 },
+    ]);
   }
 });
 
@@ -134,7 +155,9 @@ router.post('/despachar', authMiddleware, async (req: Request, res: Response) =>
   try {
     const { beneficiarioId, items, observaciones } = req.body;
 
-    if (!beneficiarioId) {
+    // beneficiarioId debe ser una cadena: un objeto/arreglo no debe llegar a Prisma
+    // (provocaría un 500).
+    if (typeof beneficiarioId !== 'string' || !beneficiarioId) {
       res.status(400).json({ error: 'beneficiarioId es requerido' });
       return;
     }
@@ -145,8 +168,18 @@ router.post('/despachar', authMiddleware, async (req: Request, res: Response) =>
     }
 
     for (const item of items) {
-      if (!item.medicamentoId || !item.cantidad || item.cantidad <= 0) {
-        res.status(400).json({ error: 'Cada ítem debe tener medicamentoId y cantidad mayor a 0' });
+      // cantidad debe ser un ENTERO POSITIVO real. Antes una cantidad no numérica
+      // ("abc" o {"gt":0}) burlaba la comparación `stockTotal < cantidad` (NaN) y
+      // creaba una dispensación sin renglones (201) o escribía NaN en el stock (500).
+      if (
+        !item ||
+        typeof item.medicamentoId !== 'string' ||
+        !item.medicamentoId ||
+        typeof item.cantidad !== 'number' ||
+        !Number.isInteger(item.cantidad) ||
+        item.cantidad <= 0
+      ) {
+        res.status(400).json({ error: 'Cada ítem debe tener medicamentoId (texto) y cantidad entera mayor a 0' });
         return;
       }
     }
@@ -172,10 +205,12 @@ router.post('/despachar', authMiddleware, async (req: Request, res: Response) =>
     });
 
     res.status(201).json(resultado);
-  } catch (error: any) {
-    const status = error.message?.includes('Stock insuficiente') ? 409
-      : error.message?.includes('no encontrado') ? 404 : 500;
-    res.status(status).json({ error: error.message || 'Error al registrar dispensación' });
+  } catch (error) {
+    responderError(res, error, [
+      { match: 'Stock insuficiente', status: 409 },
+      { match: 'no encontrado', status: 404 },
+      { match: 'inactivo', status: 400 },
+    ]);
   }
 });
 
@@ -183,15 +218,15 @@ router.post('/despachar', authMiddleware, async (req: Request, res: Response) =>
 router.get('/historial', authMiddleware, async (req: Request, res: Response) => {
   try {
     const resultado = await obtenerHistorial({
-      fechaDesde: req.query.fechaDesde as string,
-      fechaHasta: req.query.fechaHasta as string,
-      beneficiarioId: req.query.beneficiarioId as string,
+      fechaDesde: textoQuery(req.query.fechaDesde),
+      fechaHasta: textoQuery(req.query.fechaHasta),
+      beneficiarioId: textoQuery(req.query.beneficiarioId),
       page: req.query.page ? parseInt(req.query.page as string, 10) : undefined,
       limit: req.query.limit ? parseInt(req.query.limit as string, 10) : undefined,
     });
     res.json(resultado);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Error al obtener historial' });
+  } catch (error) {
+    responderError(res, error);
   }
 });
 
@@ -201,8 +236,8 @@ router.get('/stock/:medicamentoId', authMiddleware, async (req: Request, res: Re
     const { medicamentoId } = req.params as { medicamentoId: string };
     const stock = await obtenerStockMedicamento(medicamentoId);
     res.json(stock);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Error al obtener stock' });
+  } catch (error) {
+    responderError(res, error);
   }
 });
 
@@ -227,9 +262,11 @@ router.post('/:id/generar-token', authMiddleware, async (req: Request, res: Resp
     });
 
     res.json(resultado);
-  } catch (error: any) {
-    const status = error.message?.includes('no encontrada') ? 404 : 500;
-    res.status(status).json({ error: error.message || 'Error al generar el token de captura' });
+  } catch (error) {
+    responderError(res, error, [
+      { match: 'no encontrada', status: 404 },
+      { match: 'ya está completa', status: 409 },
+    ]);
   }
 });
 
@@ -239,8 +276,34 @@ router.get('/:id/fotos', authMiddleware, async (req: Request, res: Response) => 
     const { id } = req.params as { id: string };
     const fotos = await obtenerFotos(id);
     res.json({ data: fotos });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Error al obtener las fotos' });
+  } catch (error) {
+    responderError(res, error);
+  }
+});
+
+// GET /api/dispensacion/:id/foto/:tipo
+// Sirve una foto de receta/evidencia SOLO a usuarios autenticados (H-11). Las
+// fotos ya no se exponen estáticamente en /uploads. El tipo se valida contra el
+// enum y la ruta física se deriva del registro en BD (sin path traversal).
+router.get('/:id/foto/:tipo', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { id, tipo } = req.params as { id: string; tipo: string };
+    if (!TIPOS_FOTO_VALIDOS.includes(tipo as TipoFoto)) {
+      res.status(400).json({ error: 'Tipo de foto inválido' });
+      return;
+    }
+
+    const archivo = await obtenerArchivoFoto(id, tipo as TipoFoto);
+    if (!archivo) {
+      res.status(404).json({ error: 'Foto no encontrada' });
+      return;
+    }
+
+    res.setHeader('Content-Type', archivo.mimetype);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.sendFile(archivo.filePath);
+  } catch (error) {
+    responderError(res, error);
   }
 });
 
@@ -250,9 +313,8 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
     const { id } = req.params as { id: string };
     const dispensacion = await obtenerDispensacion(id);
     res.json(dispensacion);
-  } catch (error: any) {
-    const status = error.message?.includes('no encontrada') ? 404 : 500;
-    res.status(status).json({ error: error.message || 'Error al obtener dispensación' });
+  } catch (error) {
+    responderError(res, error, [{ match: 'no encontrada', status: 404 }]);
   }
 });
 

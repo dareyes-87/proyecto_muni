@@ -17,7 +17,8 @@ import PageHeader from '../components/ui/PageHeader';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import { Field, TextInput, inputClass } from '../components/ui/Field';
-import { formatFecha } from '../utils/formatDate';
+import { obtenerConfiguracion } from '../api/inventario';
+import { formatFecha, diasParaVencer } from '../utils/formatDate';
 
 // ============================================
 // TIPOS
@@ -65,17 +66,28 @@ interface DispensacionReciente {
 // HELPERS
 // ============================================
 
-function semaforo(fechaVencimiento: string | null): { color: string; label: string } {
+interface Umbrales {
+  rojo: number;
+  amarillo: number;
+}
+
+// Mismo criterio que el backend (calcularSemaforo): días calculados a medianoche
+// y umbrales configurables, para que un lote se vea igual en Inventario y en
+// Dispensación (H-28). Un lote que vence hoy o antes es VENCIDO.
+function semaforo(
+  fechaVencimiento: string | null,
+  umbrales: Umbrales
+): { color: string; label: string } {
   if (!fechaVencimiento) return { color: 'gray', label: 'Sin datos' };
-  const dias = Math.floor((new Date(fechaVencimiento).getTime() - Date.now()) / 86400000);
-  if (dias < 0) return { color: 'red', label: 'VENCIDO' };
-  if (dias < 30) return { color: 'red', label: `${dias}d` };
-  if (dias < 90) return { color: 'yellow', label: `${dias}d` };
+  const dias = diasParaVencer(fechaVencimiento);
+  if (dias <= 0) return { color: 'red', label: 'VENCIDO' };
+  if (dias <= umbrales.rojo) return { color: 'red', label: `${dias}d` };
+  if (dias <= umbrales.amarillo) return { color: 'yellow', label: `${dias}d` };
   return { color: 'green', label: `${dias}d` };
 }
 
-function SemaforoBadge({ fecha }: { fecha: string | null }) {
-  const { color, label } = semaforo(fecha);
+function SemaforoBadge({ fecha, umbrales }: { fecha: string | null; umbrales: Umbrales }) {
+  const { color, label } = semaforo(fecha, umbrales);
   const clases: Record<string, string> = {
     green: 'bg-green-100 text-green-700',
     yellow: 'bg-yellow-100 text-yellow-700',
@@ -197,6 +209,7 @@ function EstadoFoto({ subida, etiqueta }: { subida: boolean; etiqueta: string })
 export default function Dispensacion() {
   // --- Estado del flujo ---
   const [beneficiario, setBeneficiario] = useState<Beneficiario | null>(null);
+  const [umbrales, setUmbrales] = useState<Umbrales>({ rojo: 30, amarillo: 90 });
   const [historialReciente, setHistorialReciente] = useState<DispensacionReciente[]>([]);
   const [carrito, setCarrito] = useState<ItemCarrito[]>([]);
   const [observaciones, setObservaciones] = useState('');
@@ -230,6 +243,15 @@ export default function Dispensacion() {
   // ============================================
   // BUSCAR BENEFICIARIO
   // ============================================
+
+  // Umbrales del semáforo desde el backend (H-28): mismos colores que Inventario.
+  useEffect(() => {
+    obtenerConfiguracion()
+      .then((u) => setUmbrales(u))
+      .catch(() => {
+        /* se mantienen los valores por defecto 30/90 si falla */
+      });
+  }, []);
 
   useEffect(() => {
     if (queryBenef.length < 2) {
@@ -817,7 +839,7 @@ export default function Dispensacion() {
                       {item.stock.stockTotal}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <SemaforoBadge fecha={item.stock.vencimientoProximo} />
+                      <SemaforoBadge fecha={item.stock.vencimientoProximo} umbrales={umbrales} />
                     </td>
                     <td className="px-2 py-3">
                       <button

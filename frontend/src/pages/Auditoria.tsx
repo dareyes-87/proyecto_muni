@@ -27,17 +27,22 @@ const ACCIONES: AccionAuditoria[] = [
   'DESACTIVAR',
 ];
 
-const ENTIDADES = [
-  'Beneficiario',
-  'categoria',
-  'codigo_barras',
-  'configuracion',
-  'Dispensacion',
-  'entrada',
-  'lote',
-  'medicamento',
-  'ubicacion',
-  'usuario',
+// value = lo que se envía al backend (que ahora compara sin distinguir mayúsculas,
+// H-30); label = nombre legible. Incluye todas las entidades que se auditan.
+const ENTIDADES: { value: string; label: string }[] = [
+  { value: 'beneficiario', label: 'Beneficiario' },
+  { value: 'categoria', label: 'Categoría' },
+  { value: 'codigo_barras', label: 'Código de barras' },
+  { value: 'configuracion', label: 'Configuración' },
+  { value: 'dispensacion', label: 'Dispensación' },
+  { value: 'entrada', label: 'Entrada' },
+  { value: 'FotoDispensacion', label: 'Foto de dispensación' },
+  { value: 'lote', label: 'Lote' },
+  { value: 'medicamento', label: 'Medicamento' },
+  { value: 'reporte', label: 'Reporte' },
+  { value: 'TokenCaptura', label: 'Token de captura' },
+  { value: 'ubicacion', label: 'Ubicación' },
+  { value: 'usuario', label: 'Usuario' },
 ];
 
 const accionBadgeClass: Record<AccionAuditoria, string> = {
@@ -221,8 +226,8 @@ export default function Auditoria() {
           >
             <option value="">Todas</option>
             {ENTIDADES.map((e) => (
-              <option key={e} value={e}>
-                {e}
+              <option key={e.value} value={e.value}>
+                {e.label}
               </option>
             ))}
           </select>

@@ -13,6 +13,24 @@ export async function listarMedicamentos(q?: string): Promise<MedicamentoCatalog
   return data.data;
 }
 
+/**
+ * Trae TODOS los medicamentos recorriendo todas las páginas del backend (que
+ * pagina de a 20/100). Lo usa el formulario de Registrar entrada para que el
+ * selector y el escaneo encuentren cualquier medicamento, no solo los primeros
+ * 20 (H-24).
+ */
+export async function listarMedicamentosTodos(): Promise<MedicamentoCatalogo[]> {
+  const limit = 100;
+  const primera = await api.get('/catalogos/medicamentos', { params: { page: 1, limit } });
+  let todos = (primera.data.data as MedicamentoCatalogo[]) ?? [];
+  const totalPages = primera.data.pagination?.totalPages ?? 1;
+  for (let page = 2; page <= totalPages; page++) {
+    const { data } = await api.get('/catalogos/medicamentos', { params: { page, limit } });
+    todos = todos.concat((data.data as MedicamentoCatalogo[]) ?? []);
+  }
+  return todos;
+}
+
 export async function listarUbicaciones(): Promise<Ubicacion[]> {
   const { data } = await api.get('/catalogos/ubicaciones');
   return data.data;
@@ -23,8 +41,10 @@ export async function listarCategorias(): Promise<CategoriaRef[]> {
   return data.data;
 }
 
-export async function listarCategoriasCompleto(): Promise<Categoria[]> {
-  const { data } = await api.get('/catalogos/categorias');
+export async function listarCategoriasCompleto(incluirInactivos = false): Promise<Categoria[]> {
+  const { data } = await api.get('/catalogos/categorias', {
+    params: incluirInactivos ? { incluirInactivos: true } : {},
+  });
   return data.data;
 }
 
@@ -36,6 +56,7 @@ export async function listarMedicamentosPaginado(params: {
   page?: number;
   limit?: number;
   q?: string;
+  incluirInactivos?: boolean;
 }): Promise<{ data: MedicamentoCatalogo[]; pagination: CatalogoPagination }> {
   const { data } = await api.get('/catalogos/medicamentos', { params });
   return data;

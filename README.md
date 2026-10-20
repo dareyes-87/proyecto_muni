@@ -28,11 +28,16 @@ docker compose up --build
 
 ## Credenciales Iniciales
 
-| Usuario | Contraseña | Rol |
-|---------|-----------|-----|
-| admin | admin2026 | Administrador |
+Ya **no existe una contraseña por defecto**. El primer administrador se crea en el primer `seed` así:
 
-**Cambiar la contraseña después del primer acceso.**
+- Si define `ADMIN_INITIAL_PASSWORD` en `.env` (mínimo 8 caracteres, sin valores comunes), se usa esa.
+- Si no la define, el seed **genera una contraseña aleatoria y la imprime UNA sola vez** en los logs del contenedor `api`. Para verla:
+
+  ```bash
+  docker compose logs api | grep -A4 "CREDENCIAL INICIAL"
+  ```
+
+El usuario es `admin` (configurable con `ADMIN_USERNAME`). **Cambie la contraseña después del primer acceso.**
 
 ## Equipo de Desarrollo
 
@@ -45,4 +50,5 @@ docker compose up --build
 ## Documentación
 
 - `docs/FarmaG_Especificacion_Tecnica_v1.md` — Especificación técnica completa
+- `docs/seguridad/` — Informes de auditoría y seguridad · `docs/Defensa_Backend_FarmaG.md` — Defensa del backend
 - `CLAUDE.md` — Contexto del proyecto y estado de tareas por integrante

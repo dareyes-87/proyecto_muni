@@ -29,11 +29,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const savedToken = localStorage.getItem('farmag_token');
     const savedUser = localStorage.getItem('farmag_usuario');
 
-    if (savedToken && savedUser) {
-      setToken(savedToken);
-      setUsuario(JSON.parse(savedUser));
+    if (!savedToken) {
+      setLoading(false);
+      return;
     }
-    setLoading(false);
+
+    setToken(savedToken);
+    // Render inmediato con la copia local, pero el rol REAL se confirma con el
+    // servidor: la copia en localStorage no es confiable (puede editarse) (H-19).
+    if (savedUser) {
+      try {
+        setUsuario(JSON.parse(savedUser));
+      } catch {
+        /* copia corrupta: se ignora, se usará la del servidor */
+      }
+    }
+
+    api
+      .get('/auth/perfil')
+      .then((res) => {
+        const u = res.data;
+        const usuarioServidor: Usuario = {
+          id: u.id,
+          username: u.username,
+          nombreCompleto: u.nombreCompleto,
+          rol: u.rol,
+          email: u.email ?? undefined,
+        };
+        setUsuario(usuarioServidor);
+        localStorage.setItem('farmag_usuario', JSON.stringify(usuarioServidor));
+      })
+      .catch(() => {
+        // Token inválido/expirado: el interceptor de client.ts ya limpia y redirige en 401.
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const login = async (username: string, password: string) => {

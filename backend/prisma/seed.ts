@@ -1,32 +1,73 @@
 import { PrismaClient, Rol } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 const prisma = new PrismaClient();
+
+/** Valores de contraseña conocidos/inseguros que NO se permiten como bootstrap (H-002). */
+const PASSWORDS_INSEGUROS = ['admin2026', 'admin', 'password', 'changeme', 'cambiar', '123456'];
 
 async function main() {
   console.log('🌱 Iniciando seed de la base de datos...');
 
   // ============================================
-  // Usuario Administrador
+  // Usuario Administrador inicial (bootstrap seguro, H-002)
   // ============================================
+  // Ya NO existe una contraseña por defecto hardcodeada. El primer administrador
+  // se crea con la contraseña de ADMIN_INITIAL_PASSWORD; si no se define, se
+  // genera una aleatoria que se muestra UNA sola vez en consola. En ambos casos
+  // debe cambiarse tras el primer inicio de sesión. Si el admin ya existe, no se
+  // toca (no se restablece su contraseña).
+  const adminUsername = (process.env.ADMIN_USERNAME || 'admin').trim();
   const adminExists = await prisma.usuario.findUnique({
-    where: { username: 'admin' },
+    where: { username: adminUsername },
   });
 
   if (!adminExists) {
-    const hashedPassword = await bcrypt.hash('admin2026', 12);
+    const envPass = process.env.ADMIN_INITIAL_PASSWORD?.trim();
+    let password: string;
+    let generada = false;
+
+    if (envPass) {
+      if (envPass.length < 8) {
+        throw new Error('ADMIN_INITIAL_PASSWORD debe tener al menos 8 caracteres.');
+      }
+      if (PASSWORDS_INSEGUROS.includes(envPass.toLowerCase())) {
+        throw new Error('ADMIN_INITIAL_PASSWORD usa un valor inseguro/conocido. Elija otra contraseña.');
+      }
+      password = envPass;
+    } else {
+      // Aleatoria (~22 chars base64url). Nunca se guarda en claro; solo se imprime una vez.
+      password = crypto.randomBytes(16).toString('base64url');
+      generada = true;
+    }
+
+    // email es opcional y único: solo se asigna si se define ADMIN_EMAIL, para no
+    // forzar un valor por defecto que colisione con otro admin ya existente.
+    const adminEmail = process.env.ADMIN_EMAIL?.trim() || null;
+    const hashedPassword = await bcrypt.hash(password, 12);
     await prisma.usuario.create({
       data: {
-        username: 'admin',
-        email: 'admin@farmag.local',
+        username: adminUsername,
+        email: adminEmail,
         passwordHash: hashedPassword,
         nombreCompleto: 'Administrador del Sistema',
         rol: Rol.ADMIN,
       },
     });
-    console.log('✅ Usuario admin creado (usuario: admin, contraseña: admin2026)');
+
+    if (generada) {
+      console.log('\n==================== CREDENCIAL INICIAL DEL ADMINISTRADOR ====================');
+      console.log('  (se muestra UNA sola vez — guárdela y cámbiela tras iniciar sesión)');
+      console.log(`  Usuario:    ${adminUsername}`);
+      console.log(`  Contraseña: ${password}`);
+      console.log('  Para fijar una contraseña propia, defina ADMIN_INITIAL_PASSWORD en .env.');
+      console.log('==============================================================================\n');
+    } else {
+      console.log(`✅ Usuario ${adminUsername} creado con la contraseña de ADMIN_INITIAL_PASSWORD. Cámbiela tras el primer inicio.`);
+    }
   } else {
-    console.log('ℹ️  Usuario admin ya existe, omitiendo...');
+    console.log(`ℹ️  Usuario ${adminUsername} ya existe, omitiendo (no se restablece su contraseña).`);
   }
 
   // ============================================
@@ -48,14 +89,14 @@ async function main() {
     { nombre: 'Otro', descripcion: 'Otros medicamentos no clasificados' },
   ];
 
-  for (const cat of categorias) {
-    await prisma.categoria.upsert({
-      where: { nombre: cat.nombre },
-      update: {},
-      create: cat,
-    });
+  // Solo en instalación nueva: si la tabla ya tiene filas, lo que la farmacia
+  // renombró o desactivó no debe reaparecer en cada arranque.
+  if ((await prisma.categoria.count()) === 0) {
+    await prisma.categoria.createMany({ data: categorias });
+    console.log(`✅ ${categorias.length} categorías creadas`);
+  } else {
+    console.log('ℹ️  Ya hay categorías, no se tocan');
   }
-  console.log(`✅ ${categorias.length} categorías creadas/verificadas`);
 
   // ============================================
   // Ubicaciones (estantes)
@@ -70,14 +111,12 @@ async function main() {
     { codigo: 'BOD', descripcion: 'Bodega' },
   ];
 
-  for (const ub of ubicaciones) {
-    await prisma.ubicacion.upsert({
-      where: { codigo: ub.codigo },
-      update: {},
-      create: ub,
-    });
+  if ((await prisma.ubicacion.count()) === 0) {
+    await prisma.ubicacion.createMany({ data: ubicaciones });
+    console.log(`✅ ${ubicaciones.length} ubicaciones creadas`);
+  } else {
+    console.log('ℹ️  Ya hay ubicaciones, no se tocan');
   }
-  console.log(`✅ ${ubicaciones.length} ubicaciones creadas/verificadas`);
 
   // ============================================
   // Configuración del sistema
@@ -110,14 +149,15 @@ async function main() {
   console.log(`✅ ${configs.length} configuraciones creadas/verificadas`);
 
   // ============================================
-  // Medicamentos de ejemplo (solo si no existe ninguno)
-  // Datos de prueba para el módulo de Inventario. El CRUD real es de Catálogos.
+  // Medicamentos de ejemplo: solo para desarrollo (SEED_DEMO=true) y con la tabla vacía.
+  // Nunca en producción: el catálogo real lo carga la farmacia.
   // ============================================
-  const totalMedicamentos = await prisma.medicamento.count();
-  if (totalMedicamentos === 0) {
-    const categoriasMap = new Map(
-      (await prisma.categoria.findMany()).map((c) => [c.nombre, c.id])
-    );
+  if (process.env.SEED_DEMO === 'true' && (await prisma.medicamento.count()) === 0) {
+    const categorias = await prisma.categoria.findMany();
+    const categoriasMap = new Map(categorias.map((c) => [c.nombre, c.id]));
+    // Si renombraron la categoría del ejemplo y también "Otro", se usa la primera activa.
+    const activas = categorias.filter((c) => c.activo);
+    const respaldo = (activas.find((c) => c.nombre === 'Otro') ?? activas[0])?.id;
 
     const medicamentosEjemplo = [
       { nombreGenerico: 'Acetaminofén', nombreComercial: 'Tylenol', presentacion: 'Tableta', concentracion: '500mg', unidadMedida: 'Tableta', categoria: 'Analgésico', stockMinimo: 50 },
@@ -127,20 +167,24 @@ async function main() {
       { nombreGenerico: 'Metformina', nombreComercial: null, presentacion: 'Tableta', concentracion: '850mg', unidadMedida: 'Tableta', categoria: 'Antidiabético', stockMinimo: 20 },
     ];
 
-    for (const m of medicamentosEjemplo) {
-      await prisma.medicamento.create({
-        data: {
-          nombreGenerico: m.nombreGenerico,
-          nombreComercial: m.nombreComercial,
-          presentacion: m.presentacion,
-          concentracion: m.concentracion,
-          unidadMedida: m.unidadMedida,
-          categoriaId: categoriasMap.get(m.categoria) ?? categoriasMap.get('Otro')!,
-          stockMinimo: m.stockMinimo,
-        },
-      });
+    if (!respaldo) {
+      console.warn('⚠️  SEED_DEMO: no hay categorías activas, se omiten los medicamentos de ejemplo');
+    } else {
+      for (const m of medicamentosEjemplo) {
+        await prisma.medicamento.create({
+          data: {
+            nombreGenerico: m.nombreGenerico,
+            nombreComercial: m.nombreComercial,
+            presentacion: m.presentacion,
+            concentracion: m.concentracion,
+            unidadMedida: m.unidadMedida,
+            categoriaId: categoriasMap.get(m.categoria) ?? respaldo,
+            stockMinimo: m.stockMinimo,
+          },
+        });
+      }
+      console.log(`✅ ${medicamentosEjemplo.length} medicamentos de ejemplo creados`);
     }
-    console.log(`✅ ${medicamentosEjemplo.length} medicamentos de ejemplo creados`);
   }
 
   console.log('\n🎉 Seed completado exitosamente');
