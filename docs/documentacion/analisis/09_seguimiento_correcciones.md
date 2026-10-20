@@ -126,3 +126,28 @@ probaron en ejecución.
 | H-38 | Trazabilidad (baja) | `POST /dispensacion/:id/generar-token` registra siempre una auditoría `CREAR` de `TokenCaptura`, incluso cuando devuelve el token vigente sin crear nada. | La bitácora muestra creaciones de token que no ocurrieron (la pantalla de Dispensación pide el token cada vez que muestra el QR). | backend/src/routes/dispensacion.routes.ts, líneas 250–262; backend/src/services/dispensacion.service.ts, líneas 462–468 | RN-69 |
 
 Fuente: Elaboración propia.
+
+## 5. Verificaciones posteriores en ejecución (2026-10-20)
+
+Al actualizar `01_stack_y_estructura.md`, `02_modelo_datos.md` y `05_seguridad_roles.md` al commit
+`bdf1187` se consultaron los contenedores del equipo de desarrollo levantados con ese código, solo con
+comandos que no modifican datos. **Ningún estado de las tablas 1 y 2 cambia**: lo verificado confirma
+lo que la tabla ya deducía del código, o confirma que lo pendiente sigue pendiente. Por eso no se
+modificaron las filas, y se deja aquí la evidencia adicional.
+
+| ID | Estado (sin cambio) | Evidencia en ejecución (2026-10-20) |
+|----|---------------------|-------------------------------------|
+| H-02 | Resuelto | `farmag_api`: `TZ=America/Guatemala`; `date` → `Tue Oct 20 03:00:42 CST 2026` |
+| H-04 | Resuelto | `docker compose ps`: `127.0.0.1:5432->5432/tcp` (db) y `127.0.0.1:3000->3000/tcp` (api) |
+| H-05 / D-13 | Resuelto | `_prisma_migrations` con `0_init` y `20261017052535_indices_consultas` aplicadas; `prisma migrate diff` contra la base → sin diferencias; `ESTADO_ARRANQUE.txt` registra "migraciones al día" |
+| H-07 | Resuelto parcialmente | `NODE_ENV=development` en `farmag_api`; `GET /api/health` → `"environment":"development"` |
+| H-08 | Pendiente | El puerto 80 está publicado y una petición a `127.0.0.1:80` recibe respuesta vacía (no hay proceso) |
+| H-11 / D-23 | Resuelto / Resuelto parcialmente | `GET /uploads/dispensaciones/x/RECETA.webp` → 404; `GET /api/dispensacion/x/foto/RECETA` sin token → 401 |
+| H-12 | Resuelto | `GET /api/noexiste` → 404 `{"error":"Ruta no encontrada"}` |
+| H-17 | Resuelto parcialmente | `GET /api/health`: cabeceras de `helmet` presentes y sin `X-Powered-By`; con `Origin: http://evil.example` responde `Access-Control-Allow-Origin: http://evil.example` (CORS reflejado en desarrollo). Ver también H-40 |
+| D-14 | Pendiente | La sección de tecnologías de `01_stack_y_estructura.md` ya refleja la eliminación de Recharts; P-03 se marcó resuelta. El texto de D-14 se conserva como registro histórico |
+
+Hallazgos nuevos de esta actualización: **H-39, H-40 y H-41**, registrados en
+`hallazgos_defectos.md` (sección "Actualización de la extracción al commit bdf1187 — parte 1").
+Discrepancia nueva: **D-28**. Preguntas nuevas: **P-21 y P-22**; P-03 pasó a resuelta y P-05 a
+resuelta parcialmente (`preguntas_abiertas.md`).
