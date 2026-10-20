@@ -40,7 +40,8 @@ Total: 10 archivos, 53 casos `test()` (conteo de llamadas `test(` en cada archiv
 `docs/seguridad/CIERRE_SEGURIDAD.md` (2026-10-08) declara "37/37 pruebas verdes"; los archivos
 `seed.test.ts`, `vencimiento_arranque.test.ts`, `rutas_integracion.test.ts` y `env.test.ts` se
 agregaron después (PRs #3 a #8), por lo que esa cifra no corresponde al estado actual.
-`[COMPLETAR: resultado de ejecutar npm test sobre bdf1187, si se quiere citar en el Cap. 8]`.
+Resultado de ejecutar `npm test` sobre `bdf1187` (2026-10-20, contenedor `farmag_api`, Node v20.20.2,
+PostgreSQL 16.14): 53 casos, 53 aprobados, 0 fallidos (ver `11_resultados_pruebas_automatizadas.md`).
 
 ## 2. Workflow `.github/workflows/despliegue-seguro.yml`
 
