@@ -38,6 +38,8 @@ ORDEN = [
 
 RE_CAPTION = re.compile(r"^(Tabla|Figura)\s+(\d+)\.\s*$")
 RE_IMAGEN = re.compile(r"^\{\{\s*imagen:\s*([^}|]+?)\s*(?:\|\s*ancho\s*=\s*([\d.]+)\s*cm\s*)?\}\}\s*$")
+# ![](../diagramas/imagenes/x.png) o ![](../diagramas/imagenes/x.png){width=12cm}, en una línea sola
+RE_IMAGEN_MD = re.compile(r"^!\[[^\]]*\]\(\s*<?([^)>\s]+)>?\s*\)(?:\{[^}]*?width=([\d.]+)cm[^}]*\})?\s*$")
 RE_REF_TITULO = re.compile(r"^(#{1,6})\s+REFERENCIAS\b", re.IGNORECASE)
 RE_TITULO = re.compile(r"^(#{1,6})\s")
 RE_FENCE = re.compile(r"^\s*(```|~~~)")
@@ -283,6 +285,19 @@ def main():
             if m:
                 volcar_texto()
                 resultado += bloque_imagen(raiz, m.group(1), m.group(2), rel)
+                i += 1
+                continue
+            m = RE_IMAGEN_MD.match(linea)
+            if m:
+                volcar_texto()
+                # La ruta es relativa al capítulo y debe apuntar a diagramas/imagenes/.
+                destino = os.path.normpath(os.path.join(os.path.dirname(rel), m.group(1))).replace("\\", "/")
+                carpeta, nombre = os.path.split(destino)
+                if carpeta != "diagramas/imagenes":
+                    errores.append(f"{rel}: la imagen {m.group(1)} no está en diagramas/imagenes/")
+                    resultado.append(f"**[FALTA IMAGEN: {m.group(1)}]**")
+                else:
+                    resultado += bloque_imagen(raiz, nombre, m.group(2), rel)
                 i += 1
                 continue
             if linea.startswith("Fuente:") and (i == 0 or not lineas[i - 1].strip()):

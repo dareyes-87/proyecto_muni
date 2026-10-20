@@ -55,8 +55,14 @@ Se toman de `capitulos/`. Los que no existen se saltan con un aviso.
   El número de origen da igual: se renumera de forma corrida. Las menciones se resuelven primero
   dentro del mismo archivo y, si no, en el único otro archivo que tenga ese número.
 - **Fuente:** el párrafo que empieza con `Fuente:` toma el estilo "Fuente" (sencillo).
-- **Imágenes:** en una línea sola, con el nombre del archivo de `diagramas/imagenes/`
-  (la extensión `.png` es opcional):
+- **Imágenes:** en una línea sola, con cualquiera de estas dos sintaxis:
+  - `{{imagen: 05_despliegue.png}}`: nombre del archivo de `diagramas/imagenes/` (la extensión
+    `.png` es opcional).
+  - `![](../diagramas/imagenes/05_despliegue.png)`: imagen markdown estándar con la ruta relativa
+    al capítulo; debe apuntar a `diagramas/imagenes/`. El texto alternativo se ignora (el título va
+    en la línea "Figura N." y la siguiente).
+
+  Ambas se tratan igual (estilo "Imagen", ancho máximo 15 cm). Ejemplo:
 
   ```markdown
   Figura 5.
@@ -67,7 +73,8 @@ Se toman de `capitulos/`. Los que no existen se saltan con un aviso.
   Fuente: Elaboración propia.
   ```
 
-  Ancho máximo 15 cm (alto máximo 19 cm). Para un ancho menor: `{{imagen: 05_despliegue | ancho=12cm}}`.
+  Ancho máximo 15 cm (alto máximo 19 cm). Para un ancho menor: `{{imagen: 05_despliegue | ancho=12cm}}`
+  o `![](../diagramas/imagenes/05_despliegue.png){width=12cm}`.
 - Los comentarios HTML `<!-- … -->` se eliminan.
 
 ## Archivos
