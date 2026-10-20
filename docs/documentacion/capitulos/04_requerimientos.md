@@ -1569,3 +1569,144 @@ Caso de uso #19: Consultar bitácora de auditoría
 
 Fuente: Elaboración propia.
 
+
+## 4.7 Matrices de trazabilidad
+
+### 4.7.1 Requerimientos funcionales, casos de uso y componentes
+
+La Tabla 67 relaciona cada requerimiento funcional con el caso de uso que lo realiza y con los
+componentes que lo implementan: el endpoint de la API, cuyas rutas se escriben sin el prefijo `/api`,
+y la página o el componente de la interfaz, ubicados en `frontend/src/pages/` salvo que se indique
+otra carpeta.
+
+Tabla 67.
+Matriz de trazabilidad de requerimientos funcionales, casos de uso y componentes
+
+| RF | CU | Backend (endpoint o módulo) | Frontend |
+|----|----|-----------------------------|----------|
+| RF-01 | CU-01 | `POST /auth/login` | `Login.tsx`, `context/AuthContext.tsx` |
+| RF-02 | CU-01 | `POST /auth/login`, `middleware/ipRateLimit.ts`, `middleware/loginRateLimit.ts` | `Login.tsx` |
+| RF-03 | CU-01, CU-02 | `middleware/auth.ts`, `GET /auth/perfil` | `App.tsx`, `components/layout/Layout.tsx` |
+| RF-04 | CU-01 | Sin endpoint | `components/layout/Layout.tsx`, `context/AuthContext.tsx` |
+| RF-05 | CU-02 | `POST /usuarios` | `Usuarios.tsx` |
+| RF-06 | CU-02 | `PUT /usuarios/:id` | `Usuarios.tsx` |
+| RF-07 | CU-02 | `PUT /usuarios/:id/password` | `Usuarios.tsx` |
+| RF-08 | CU-02 | `PUT /usuarios/:id/toggle` | `Usuarios.tsx` |
+| RF-09 | CU-03 | `POST /catalogos/medicamentos` | `components/MedicamentoFormModal.tsx`, `Entradas.tsx` |
+| RF-10 | CU-03 | `POST /catalogos/medicamentos` | `components/MedicamentoFormModal.tsx` |
+| RF-11 | CU-03 | `GET /catalogos/medicamentos/lookup-fda/:codigoBarras` | `components/MedicamentoFormModal.tsx` |
+| RF-12 | CU-03 | `GET /catalogos/medicamentos`, `PUT /catalogos/medicamentos/:id` | `Catalogos/Medicamentos.tsx`, `components/MedicamentoFormModal.tsx` |
+| RF-13 | CU-03 | `POST /catalogos/medicamentos/:id/imagen` | `components/MedicamentoFormModal.tsx` |
+| RF-14 | CU-04 | `POST /catalogos/medicamentos/:id/codigos`, `DELETE /catalogos/codigos/:id` | `Catalogos/Medicamentos.tsx` |
+| RF-15 | CU-04, CU-07, CU-15 | `GET /catalogos/medicamentos/barcode/:codigo` | `Entradas.tsx`, `Dispensacion.tsx`, `components/MedicamentoFormModal.tsx` |
+| RF-16 | CU-05 | `GET`, `POST` y `PUT /catalogos/categorias` | `Catalogos/Categorias.tsx` |
+| RF-17 | CU-06 | `GET`, `POST` y `PUT /catalogos/ubicaciones` | `Catalogos/Ubicaciones.tsx` |
+| RF-18 | CU-07 | `POST /inventario/entradas` | `Entradas.tsx` |
+| RF-19 | CU-07, CU-08 | `POST /inventario/entradas`, `POST /inventario/importar-excel` | `Entradas.tsx` |
+| RF-20 | CU-07, CU-03 | `POST /catalogos/medicamentos` | `Entradas.tsx`, `components/MedicamentoFormModal.tsx` |
+| RF-21 | CU-07 | `GET /inventario/entradas` | `Entradas.tsx` |
+| RF-22 | CU-08 | `GET /inventario/plantilla-excel` | `Entradas.tsx` |
+| RF-23 | CU-08 | `POST /inventario/importar-excel` | `Entradas.tsx` |
+| RF-24 | CU-08 | `POST /inventario/importar-excel` | `Entradas.tsx` |
+| RF-25 | CU-09 | `GET /inventario` | `Inventario.tsx` |
+| RF-26 | CU-09 | `GET /inventario/medicamento/:id` | `Inventario.tsx` |
+| RF-27 | CU-09, CU-12, CU-15 | `GET /inventario`, `GET /inventario/medicamento/:id`, `GET /inventario/alertas`, `GET /inventario/configuracion` | `Inventario.tsx`, `Dashboard.tsx`, `Dispensacion.tsx` |
+| RF-28 | CU-09, CU-12 | `GET /inventario`, `GET /inventario/alertas` | `Inventario.tsx`, `Dashboard.tsx` |
+| RF-29 | CU-10 | `PUT /inventario/lotes/:id/baja` | `Inventario.tsx` |
+| RF-30 | CU-11 | `services/vencimiento.service.ts` (tarea programada y arranque) | Sin interfaz |
+| RF-31 | Ninguno | `PUT /inventario/configuracion` | Sin interfaz |
+| RF-32 | CU-13, CU-15 | `POST /dispensacion/beneficiarios` | `Beneficiarios.tsx`, `Dispensacion.tsx` |
+| RF-33 | CU-13, CU-14, CU-15 | `GET /dispensacion/beneficiarios/buscar` | `Beneficiarios.tsx`, `Dispensacion.tsx` |
+| RF-34 | CU-13 | `PUT /dispensacion/beneficiarios/:id` | `Beneficiarios.tsx` |
+| RF-35 | CU-14 | `GET /dispensacion/beneficiarios/:id` | `Beneficiarios.tsx` |
+| RF-36 | CU-15 | `GET /catalogos/medicamentos/barcode/:codigo`, `GET /catalogos/medicamentos/buscar`, `GET /dispensacion/stock/:medicamentoId` | `Dispensacion.tsx` |
+| RF-37 | CU-15 | `POST /dispensacion/despachar` | `Dispensacion.tsx` |
+| RF-38 | CU-15 | `POST /dispensacion/despachar` (`services/dispensacion.service.ts`) | `Dispensacion.tsx` |
+| RF-39 | CU-15 | `POST /dispensacion/despachar` (`services/dispensacion.service.ts`) | `Dispensacion.tsx` |
+| RF-40 | CU-15, CU-14 | `POST /dispensacion/despachar`, `GET /dispensacion/beneficiarios/:id` | `Dispensacion.tsx`, `Beneficiarios.tsx` |
+| RF-41 | CU-15 | `POST /dispensacion/beneficiarios`, `GET /dispensacion/beneficiarios/:id` | `Dispensacion.tsx` |
+| RF-42 | CU-16 | `POST /dispensacion/:id/generar-token` | `Dispensacion.tsx` |
+| RF-43 | CU-16 | `GET /captura/:token/info`, `POST /captura/:token/foto` | `Captura.tsx`, `Dispensacion.tsx` |
+| RF-44 | CU-16 | `GET /dispensacion/:id/fotos` | `Dispensacion.tsx` |
+| RF-45 | CU-16 | `POST /captura/:token/foto`, `POST /dispensacion/:id/generar-token` | `Captura.tsx`, `Dispensacion.tsx` |
+| RF-46 | CU-14, CU-16 | `GET /dispensacion/:id/foto/:tipo` | `Beneficiarios.tsx`, `components/ui/AuthImage.tsx`, `components/ui/EvidenciaBadge.tsx` |
+| RF-47 | CU-17 | `GET /reportes/dispensaciones` | `Reportes.tsx` |
+| RF-48 | CU-17 | `GET /reportes/consumo-medicamentos` | `Reportes.tsx` |
+| RF-49 | CU-17 | `GET /reportes/inventario-actual` | `Reportes.tsx` |
+| RF-50 | CU-17 | `GET /reportes/por-vencer` | `Reportes.tsx` |
+| RF-51 | CU-17 | `GET /reportes/entradas` | `Reportes.tsx` |
+| RF-52 | CU-17 | `GET /reportes/medicamentos-baja` | `Reportes.tsx` |
+| RF-53 | CU-18 | `GET /reportes/exportar/:tipo/:formato` | `Reportes.tsx` |
+| RF-54 | CU-01 a CU-08, CU-10, CU-13, CU-15, CU-16, CU-18 | `middleware/audit.ts` (`registrarAuditoria`), invocado por los endpoints de escritura | Sin interfaz |
+| RF-55 | CU-19 | `GET /auditoria` | `Auditoria.tsx` |
+| RF-56 | CU-12 | `GET /inventario/alertas` | `Dashboard.tsx` |
+| RF-57 | CU-12 | `GET /inventario/alertas` | `Dashboard.tsx` |
+| RF-58 | CU-12 | `GET /inventario/entradas` | `Dashboard.tsx` |
+
+Fuente: Elaboración propia.
+
+Todos los casos de uso tienen al menos un requerimiento funcional asociado. El único requerimiento
+sin caso de uso es RF-31, porque la modificación de los umbrales del semáforo existe en la API pero no
+en la interfaz.
+
+### 4.7.2 Casos de uso originales y casos de uso del sistema
+
+La Tabla 68 relaciona los 37 casos de uso del análisis de requerimientos inicial (CUO) con los casos
+de uso del sistema. La columna "Cobertura" indica el caso de uso que lo realiza, total o
+parcialmente; "Solo API" cuando la función existe en la API sin pantalla; "Excluido" cuando quedó
+fuera del alcance por una decisión documentada; y "No aplica" cuando una regla de negocio lo hace
+innecesario.
+
+Tabla 68.
+Matriz de trazabilidad de los casos de uso originales a los casos de uso del sistema
+
+| CUO | Nombre en el análisis inicial | Cobertura | Observación |
+|-----|-------------------------------|-----------|-------------|
+| CUO-01 | Registrar entrada de medicamentos | CU-07, CU-08 | Parcial: sin proveedor ni origen de los medicamentos (R-01) |
+| CUO-02 | Consultar inventario | CU-09 | Completa |
+| CUO-03 | Actualizar stock manualmente | Excluido (R-05) | La baja de un lote completo (CU-10) es la única corrección disponible |
+| CUO-04 | Visualizar alertas de stock mínimo | CU-12 | Completa |
+| CUO-05 | Visualizar alertas de vencimiento | CU-09, CU-12 | Semáforo en el inventario y alertas en el panel |
+| CUO-06 | Registrar venta y generar ticket | Excluido (R-04) | Farmacia de venta fuera del alcance |
+| CUO-07 | Consultar pedidos pendientes | Excluido (R-04) | Farmacia de venta fuera del alcance |
+| CUO-08 | Confirmar entrega o completar ticket | Excluido (R-04) | Farmacia de venta fuera del alcance |
+| CUO-09 | Modificar ticket (anulación parcial) | Excluido (R-04) | Farmacia de venta fuera del alcance |
+| CUO-10 | Anular ticket manualmente | Excluido (R-04) | Farmacia de venta fuera del alcance |
+| CUO-11 | Reimprimir ticket | Excluido (R-04) | Farmacia de venta fuera del alcance |
+| CUO-12 | Registrar devolución de venta | Excluido (R-04) | Farmacia de venta fuera del alcance |
+| CUO-13 | Consultar ventas del día (propias) | Excluido (R-04) | Farmacia de venta fuera del alcance |
+| CUO-14 | Registrar dispensación gratuita | CU-15 | Completa; se agrega la evidencia fotográfica opcional (CU-16) |
+| CUO-15 | Registrar o buscar beneficiario | CU-13 | Completa |
+| CUO-16 | Ver historial de beneficiario | CU-14 | Completa |
+| CUO-17 | Registrar devolución de beneficencia | No aplica (R-06) | Los medicamentos se dispensan con receta y no se aceptan devoluciones |
+| CUO-18 | Consultar dispensaciones del día (propias) | CU-17 | Parcial: el reporte filtra por fecha y no por usuario (R-08) |
+| CUO-19 | Reporte de movimientos de inventario | CU-17 | Parcial: reportes separados de entradas, inventario actual, por vencer, dados de baja y dispensaciones |
+| CUO-20 | Reporte de ventas | Excluido (R-04) | Farmacia de venta fuera del alcance |
+| CUO-21 | Reporte de beneficencia (día, mes o año) | CU-17 | Filtro por rango de fechas |
+| CUO-22 | Dashboard de ventas | Excluido (R-04) | Farmacia de venta fuera del alcance |
+| CUO-23 | Dashboard de beneficencia | CU-12 | Parcial: un solo panel general, sin gráficos |
+| CUO-24 | Dashboard diario propio (ventas) | Excluido (R-04) | Farmacia de venta fuera del alcance |
+| CUO-25 | Dashboard diario propio (beneficencia) | CU-12 | Parcial: indicadores de todos los usuarios, no del usuario en sesión |
+| CUO-26 | Historial con filtros para Farmacéutico y Encargado de Beneficencia | CU-17 | Parcial: la pantalla de reportes solo se muestra al Administrador (R-07) |
+| CUO-27 | Exportar reportes a PDF | CU-18 | Completa; también exporta a Excel |
+| CUO-28 | Gestionar usuarios | CU-02 | Completa |
+| CUO-29 | Gestionar catálogo de medicamentos | CU-03, CU-04 | Completa |
+| CUO-30 | Gestionar catálogo de proveedores | Excluido (R-01) | Proveedores eliminados del sistema |
+| CUO-31 | Gestionar catálogo de categorías | CU-05 | Completa |
+| CUO-32 | Configurar umbrales de alertas de vencimiento | Solo API | Existe la modificación por API (RF-31) sin pantalla, por lo que no tiene caso de uso |
+| CUO-33 | Consultar log de auditoría | CU-19 | Completa |
+| CUO-34 | Iniciar o cerrar sesión | CU-01 | Completa; se agrega el límite de intentos |
+| CUO-35 | Anular tickets pendientes tras 12 horas | Excluido (R-04) | Farmacia de venta fuera del alcance |
+| CUO-36 | Generar alertas de stock mínimo (automático) | CU-12 | Parcial: las alertas se calculan al consultar el panel, sin proceso automático |
+| CUO-37 | Generar alertas de vencimiento de 30 y 15 días | CU-11, CU-12 | Parcial: umbrales por defecto de 30 y 90 días; el proceso automático solo marca los lotes vencidos |
+
+Fuente: Elaboración propia con base en el análisis de requerimientos inicial del proyecto.
+
+De los 37 casos de uso originales, 21 están cubiertos por casos de uso del sistema, 8 de ellos de
+forma parcial (CUO-01, CUO-18, CUO-19, CUO-23, CUO-25, CUO-26, CUO-36 y CUO-37); uno existe solo en la
+API (CUO-32); 14 quedaron excluidos del alcance, 12 por la delimitación a la farmacia de
+dispensación gratuita (R-04), uno por la eliminación de proveedores (R-01) y uno por la exclusión del
+ajuste manual de stock (R-05); y uno no aplica por regla de negocio (CUO-17, R-06). Cuatro casos de
+uso del sistema no tienen un caso original de origen y corresponden a funciones agregadas durante la
+construcción: la gestión de ubicaciones (CU-06), la importación desde Excel (CU-08, relacionada con
+CUO-01), la baja de lotes (CU-10) y la evidencia fotográfica (CU-16).
