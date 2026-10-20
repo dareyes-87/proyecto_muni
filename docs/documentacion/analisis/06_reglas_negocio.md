@@ -53,7 +53,7 @@
 | RN-15 | En la interfaz, un medicamento solo puede agregarse una vez a la misma dispensación, y no se agrega si su stock consultado es 0. El backend no impide ítems repetidos. | Dispensación | Frontend | F: "Este medicamento ya está en la lista"; "<nombre genérico> no tiene stock disponible"; "Error al consultar stock" | Código | pg/Dispensacion.tsx, líneas 345–365 |
 | RN-16 | Antes de registrar, la interfaz muestra un diálogo de confirmación con el beneficiario, los medicamentos, las cantidades y las observaciones. | Dispensación | Frontend | — (acción del usuario: "Cancelar" / "Dispensar") | Código | pg/Dispensacion.tsx, líneas 902–954 |
 | RN-17 | Cada línea de detalle guarda un *snapshot* inmutable del nombre genérico, la presentación y la concentración del medicamento, y el lote exacto del que se descontó. El historial se muestra desde los *snapshots*. | Dispensación | Backend | — | Código | svc/dispensacion.service.ts, líneas 248–255; schema, líneas 227–244; pg/Beneficiarios.tsx, líneas 147–154 |
-| RN-18 | La receta **no** es un dato obligatorio del sistema: las observaciones son opcionales (el ejemplo de la interfaz es "Receta Dr. García…") y las fotos de receta y de entrega se piden **después** de registrada la dispensación y se pueden omitir. | Dispensación | Ambos | F: botón "Omitir fotos" | Código (ver P-16) | rt/dispensacion.routes.ts, líneas 156 y 187–192; pg/Dispensacion.tsx, líneas 868–878, 406–418 y 593–602 |
+| RN-18 | La receta **no** es un dato obligatorio del sistema: las observaciones son opcionales (el ejemplo de la interfaz es "Receta Dr. García…") y las fotos de receta y de entrega se piden **después** de registrada la dispensación y se pueden omitir. | Dispensación | Ambos | F: botón "Omitir fotos". Es intencional (R-16): no todos los medicamentos requieren receta; ver RN-78 | Código y R-16 | rt/dispensacion.routes.ts, líneas 156 y 187–192; pg/Dispensacion.tsx, líneas 868–878, 406–418 y 593–602 |
 | RN-19 | Una dispensación registrada no se puede editar ni anular (no existe endpoint para ello). | Dispensación | Backend (ausencia de endpoint) | — | Código | rt/dispensacion.routes.ts, líneas 1–321 (solo `POST /despachar` escribe dispensaciones) |
 | RN-20 | No se aceptan devoluciones de medicamentos dispensados: los medicamentos se dispensan con receta y no se reintegran al inventario. | Dispensación | — (regla del negocio; no hay código de devoluciones) | — | R-06 | preguntas_abiertas.md, R-06; schema (sin modelo de devoluciones) |
 | RN-21 | Cualquier usuario autenticado, de cualquier rol, consulta las dispensaciones de todos los usuarios (historial por beneficiario, detalle, reporte). | Dispensación | Backend | — | R-08 (pendiente de confirmación) y Código | svc/dispensacion.service.ts, líneas 74–101 y 323–412; D-16 |
@@ -164,11 +164,18 @@
 | RN-76 | **Acceso a las fotos:** las fotos de receta y entrega solo se obtienen con sesión iniciada, por `GET /api/dispensacion/:id/foto/:tipo` (sin caché, ruta del archivo tomada de la base de datos); ya no se sirven como archivos estáticos. Las fotos de medicamentos siguen siendo públicas en `/uploads/medicamentos`. | Captura de evidencia / Beneficiarios | Ambos | B: "Tipo de foto inválido" (400); "Foto no encontrada" (404); 401 sin sesión | Código (commit `254d0f8`) | rt/dispensacion.routes.ts, líneas 284–308; svc/dispensacion.service.ts, líneas 545–569; backend/src/server.ts, líneas 44–47; cmp/ui/AuthImage.tsx, líneas 12–30; pg/Beneficiarios.tsx, líneas 164–170 y 212–213 |
 | RN-77 | **Recodificación de imágenes:** toda imagen subida (foto de evidencia o de medicamento) se recodifica a WebP con calidad 80, respetando la orientación EXIF y reduciéndola, sin ampliarla, a un lado máximo de 1600 px (evidencia) o 1000 px (medicamento). Si el archivo no se puede decodificar como imagen, se rechaza. | Captura de evidencia / Catálogos | Backend | B: "El archivo no es una imagen válida" (400) | Código (commits `b25c06e`, `254d0f8`) | ut/imagen.ts, líneas 26–55; svc/dispensacion.service.ts, líneas 586–588 y 601–602; rt/catalogos.routes.ts, líneas 697–699 y 711–712 |
 
+## 13. Reglas por decisión del equipo (2026-10-20)
+
+| ID | Regla | Módulo | Dónde se aplica | Mensaje si se incumple | Origen | Fuente |
+|----|-------|--------|-----------------|------------------------|--------|--------|
+| RN-78 | **Qué se fotografía como evidencia:** las fotos son opcionales porque no todos los medicamentos requieren receta. Cuando hay receta se fotografía la receta (`RECETA`); cuando el medicamento no la requiere, se fotografía el medicamento entregado como foto de evidencia de entrega (`EVIDENCIA_ENTREGA`). Se mantiene el comportamiento actual: ninguna foto se exige para registrar la dispensación (RN-18) y "Omitir fotos" no se registra en la auditoría (mejora posterior). | Dispensación / Captura de evidencia | — (regla del negocio; el código ya la permite) | — | R-16 | preguntas_abiertas.md, R-16 (P-16); RN-18, RN-37, RN-40 |
+
 ---
 
-**Total: 77 reglas registradas** (RN-01 a RN-77): **76 vigentes** y **1 eliminada** (RN-26). Reglas
-nuevas en esta actualización: **7** (RN-71 a RN-77). Confirmadas por el responsable: RN-07 (R-05),
-RN-08 (R-01), RN-20 (R-06), RN-21 (R-08), RN-62 (R-09), RN-66 (R-07); las demás se derivan del código.
+**Total: 78 reglas registradas** (RN-01 a RN-78): **77 vigentes** y **1 eliminada** (RN-26). Reglas
+nuevas en la actualización a bdf1187: **7** (RN-71 a RN-77); por decisión del equipo (2026-10-20): **1**
+(RN-78). Confirmadas por el responsable: RN-07 (R-05), RN-08 (R-01), RN-18 y RN-78 (R-16), RN-20 (R-06),
+RN-21 (R-08), RN-62 (R-09), RN-66 (R-07); las demás se derivan del código.
 
 ### Mensajes que difieren entre frontend y backend
 
