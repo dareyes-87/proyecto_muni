@@ -1,5 +1,7 @@
 # 06 — Reglas de negocio
 
+> Extraído del commit 194f8fb. Pendiente de actualizar al commit bdf1187.
+
 > Fase: Extracción (parte 3 de 4). Documento de hechos con fuente; no es texto final de la tesis.
 > Fecha de extracción: 2026-09-25. Rama: `docs/documentacion`.
 > Solo se listan reglas que el código aplica (o decisiones confirmadas por el responsable, R-XX).

@@ -1,5 +1,7 @@
 # 05 — Seguridad, roles y matriz de permisos
 
+> Extraído del commit 194f8fb. Pendiente de actualizar al commit bdf1187.
+
 > Fase: Extracción, parte 2 de 4. Documento de hechos con fuente; no es texto final de la tesis.
 > Fecha de extracción: 2026-09-25. Complementa a `04_api.md` (detalle de cada endpoint).
 > Las verificaciones en ejecución se hicieron el 2026-09-25 contra los contenedores del equipo de

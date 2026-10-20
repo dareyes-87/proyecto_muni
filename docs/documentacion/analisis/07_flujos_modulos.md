@@ -1,5 +1,7 @@
 # 07 — Flujos por módulo
 
+> Extraído del commit 194f8fb. Pendiente de actualizar al commit bdf1187.
+
 > Fase: Extracción (parte 3 de 4). Documento de hechos con fuente; no es texto final de la tesis.
 > Fecha de extracción: 2026-09-25. Rama: `docs/documentacion`.
 > Reglas citadas: `06_reglas_negocio.md`. Endpoints: `04_api.md`. Permisos: `05_seguridad_roles.md`.

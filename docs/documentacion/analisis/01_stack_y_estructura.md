@@ -1,5 +1,7 @@
 # 01 — Stack tecnológico y estructura del repositorio
 
+> Extraído del commit 194f8fb. Pendiente de actualizar al commit bdf1187.
+
 > Fase: Extracción (parte 1 de 4). Documento de hechos con fuente; no es texto final de la tesis.
 > Rama analizada: `docs/documentacion` (código idéntico a `194f8fb`, último commit de código).
 > Fecha de extracción: 2026-09-25.

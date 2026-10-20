@@ -1,5 +1,7 @@
 # 02 — Modelo de datos
 
+> Extraído del commit 194f8fb. Pendiente de actualizar al commit bdf1187.
+
 > Fase: Extracción (parte 1 de 4). Documento de hechos con fuente; no es texto final de la tesis.
 > Fuente principal: `backend/prisma/schema.prisma` (286 líneas). Fecha de extracción: 2026-09-25.
 

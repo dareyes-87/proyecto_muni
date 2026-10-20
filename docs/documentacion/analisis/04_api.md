@@ -1,5 +1,7 @@
 # 04 — Especificación de la API REST
 
+> Extraído del commit 194f8fb. Pendiente de actualizar al commit bdf1187.
+
 > Fase: Extracción, parte 2 de 4. Documento de hechos con fuente; no es texto final de la tesis.
 > Fecha de extracción: 2026-09-25. Rama: `docs/documentacion`.
 > Archivos leídos completos: `backend/src/server.ts`, `backend/src/routes/*.ts` (8 archivos),
