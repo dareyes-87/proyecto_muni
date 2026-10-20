@@ -1,0 +1,42 @@
+CP-04 — Límite de 20 solicitudes de inicio de sesión por IP en 10 minutos (CU-01)
+Ejecutado: 2026-10-20 17:44 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+$ docker compose restart api   (17:44:40)
+GET /api/health → 200 tras 6 s
+> POST /auth/login  noexiste01  → 401 "Credenciales inválidas"
+> POST /auth/login  noexiste02  → 401 "Credenciales inválidas"
+> POST /auth/login  noexiste03  → 401 "Credenciales inválidas"
+> POST /auth/login  noexiste04  → 401 "Credenciales inválidas"
+> POST /auth/login  noexiste05  → 401 "Credenciales inválidas"
+> POST /auth/login  noexiste06  → 401 "Credenciales inválidas"
+> POST /auth/login  noexiste07  → 401 "Credenciales inválidas"
+> POST /auth/login  noexiste08  → 401 "Credenciales inválidas"
+> POST /auth/login  noexiste09  → 401 "Credenciales inválidas"
+> POST /auth/login  noexiste10  → 401 "Credenciales inválidas"
+> POST /auth/login  noexiste11  → 401 "Credenciales inválidas"
+> POST /auth/login  noexiste12  → 401 "Credenciales inválidas"
+> POST /auth/login  noexiste13  → 401 "Credenciales inválidas"
+> POST /auth/login  noexiste14  → 401 "Credenciales inválidas"
+> POST /auth/login  noexiste15  → 401 "Credenciales inválidas"
+> POST /auth/login  noexiste16  → 401 "Credenciales inválidas"
+> POST /auth/login  noexiste17  → 401 "Credenciales inválidas"
+> POST /auth/login  noexiste18  → 401 "Credenciales inválidas"
+> POST /auth/login  noexiste19  → 401 "Credenciales inválidas"
+> POST /auth/login  noexiste20  → 401 "Credenciales inválidas"
+> POST /auth/login  noexiste21  → 429 "Demasiadas solicitudes de inicio de sesión desde esta red. Intente de nuevo más tarde." (Retry-After: 600)
+Paso 2, admin con su contraseña correcta:
+> POST /auth/login   [sin Authorization]
+> cuerpo: {"username": "admin", "password": "***"}
+< 429  (Retry-After: 600)  Content-Type: application/json
+< {"error": "Demasiadas solicitudes de inicio de sesión desde esta red. Intente de nuevo más tarde."}
+
+$ docker compose restart api   (17:44:47)
+GET /api/health → 200 tras 9 s
+Tras el reinicio, admin con su contraseña correcta:
+> POST /auth/login   [sin Authorization]
+> cuerpo: {"username": "admin", "password": "***"}
+< 200  Content-Type: application/json
+< {"token": "<jwt>", "usuario": {"id": "285baf1d-3e2d-4d31-825 …
+
+RESULTADO: Aprobado
+Obtenido: Peticiones 1 a 20: 401 "Credenciales inválidas"; 21 y la de admin: 429 con el mensaje esperado y Retry-After; tras reiniciar la API, admin inicia sesión (200)

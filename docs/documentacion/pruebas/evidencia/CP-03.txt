@@ -1,0 +1,37 @@
+CP-03 — Bloqueo tras tres intentos fallidos (CU-01)
+Ejecutado: 2026-10-20 17:39 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+Precondición: API reiniciada en CP-52 (17:39:07); ningún inicio de sesión desde entonces.
+Intento 1 (contraseña incorrecta):
+> POST /auth/login   [sin Authorization]
+> cuerpo: {"username": "qa_temporal", "password": "***"}
+< 401  Content-Type: application/json
+< {"error": "Credenciales inválidas", "intentosRestantes": 2}
+
+Intento 2 (contraseña incorrecta):
+> POST /auth/login   [sin Authorization]
+> cuerpo: {"username": "qa_temporal", "password": "***"}
+< 401  Content-Type: application/json
+< {"error": "Credenciales inválidas", "intentosRestantes": 1}
+
+Intento 3 (contraseña incorrecta):
+> POST /auth/login   [sin Authorization]
+> cuerpo: {"username": "qa_temporal", "password": "***"}
+< 429  (Retry-After: 300)  Content-Type: application/json
+< {"error": "Demasiados intentos fallidos. Intente de nuevo en 5 minuto(s)."}
+
+Intento 4 (contraseña correcta):
+> POST /auth/login   [sin Authorization]
+> cuerpo: {"username": "qa_temporal", "password": "***"}
+< 429  (Retry-After: 300)  Content-Type: application/json
+< {"error": "Demasiados intentos fallidos. Intente de nuevo en 5 minuto(s)."}
+
+Fin de la primera parte: 17:39:35. El paso 3 se ejecuta pasados 5 minutos.
+Paso 3, 17:44:40 (más de 5 minutos después del bloqueo), contraseña correcta:
+> POST /auth/login   [sin Authorization]
+> cuerpo: {"username": "qa_temporal", "password": "***"}
+< 200  Content-Type: application/json
+< {"token": "<jwt>", "usuario": {"id": "0bdb2244-33de-43d8-a4aa-8d17f3feeeef", "username": "qa_temporal", "nombreCompleto" …
+
+RESULTADO: Aprobado
+Obtenido: Intentos 1 y 2: 401 "Credenciales inválidas"; intento 3: 429 "Demasiados intentos fallidos. Intente de nuevo en 5 minuto(s)." con Retry-After; intento 4 (contraseña correcta): 429; después de 5 minutos inicia sesión (200)

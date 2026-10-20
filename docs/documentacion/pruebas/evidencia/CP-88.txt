@@ -1,0 +1,9 @@
+CP-88 — Exportación de inventario con estado inválido (hallazgo abierto H-44)
+Ejecutado: 2026-10-20 17:38 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+> GET /reportes/exportar/inventario/pdf?estado=XYZ   [sesión: qa_admin2, ADMIN]
+< 500  Content-Type: application/json
+< {"error": "Error interno del servidor", "mensaje": "\nInvalid `prisma.lote.findMany()` invocation in\n/app/src/services/reportes.service.ts:160:17\n\n  157 if (filtros.estado) where.estado = filtros.estado;\n  158 \n  159 const [lotes, total] = await Promise.all([\n→ 160   prisma.lote.findMany({\n          where: {\n            estado: \"XYZ\"\n                    ~~~~~\n          },\n          include: {\n            medicamento: {\n              include: {\n                categoria: true,\n                codigosBarras: true\n              }\n            },\n            ubicacion: true\n          },\n          orderBy: {\n            fechaVencimiento: \"asc\"\n          },\n          skip …
+
+RESULTADO: Fallido
+Obtenido: 500 "Error interno del servidor"

@@ -1,0 +1,29 @@
+CP-71 — Filtro de fechas del historial de dispensaciones (hallazgo abierto H-45)
+Ejecutado: 2026-10-20 17:38 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+Dispensación preparada de 1 unidad de QA Ácido Fólico para Beneficiario Prueba Uno (no de QA Enalapril, ver registro_ejecucion.md, "Datos preparados"). Se preparan dos: una a las 10:00 de hoy y otra a las 19:00 de ayer (hora de Guatemala).
+$ psql: UPDATE dispensaciones SET created_at = ((((now() AT TIME ZONE 'America/Guatemala')::date - 0) + time '10:00') AT TIME ZONE 'America/Guatemala') AT TIME ZONE 'UTC' WHERE id = '638c908c-013d-42b8-bf8b-8cd7a06d7bb9'
+UPDATE 1
+
+$ psql: SELECT id, created_at AS utc, (created_at AT TIME ZONE 'UTC') AT TIME ZONE 'America/Guatemala' AS guatemala FROM dispensaciones WHERE id = '638c908c-013d-42b8-bf8b-8cd7a06d7bb9'
+                  id                  |         utc         |      guatemala      
+--------------------------------------+---------------------+---------------------
+ 638c908c-013d-42b8-bf8b-8cd7a06d7bb9 | 2026-10-20 16:00:00 | 2026-10-20 10:00:00
+(1 row)
+
+$ psql: UPDATE dispensaciones SET created_at = ((((now() AT TIME ZONE 'America/Guatemala')::date - 1) + time '19:00') AT TIME ZONE 'America/Guatemala') AT TIME ZONE 'UTC' WHERE id = '9cb60988-30d3-456d-892d-ea3f9c2cfecf'
+UPDATE 1
+
+$ psql: SELECT id, created_at AS utc, (created_at AT TIME ZONE 'UTC') AT TIME ZONE 'America/Guatemala' AS guatemala FROM dispensaciones WHERE id = '9cb60988-30d3-456d-892d-ea3f9c2cfecf'
+                  id                  |         utc         |      guatemala      
+--------------------------------------+---------------------+---------------------
+ 9cb60988-30d3-456d-892d-ea3f9c2cfecf | 2026-10-20 01:00:00 | 2026-10-19 19:00:00
+(1 row)
+
+> GET /dispensacion/historial?fechaDesde=2026-10-20&fechaHasta=2026-10-20&limit=100   [sesión: qa_admin2, ADMIN]
+< 200  Content-Type: application/json
+< {"data": [{"id": "9cb60988-30d3-456d-892d-ea3f9c2cfecf", "beneficiarioId": "7b77f0e4-125a-4900-9bc2-acaace3ea1bb", "usuarioId": "5803c9c3-c664-423c-849e-8604e91cea21", "observaciones": null, "createdA …
+
+¿Incluye la de las 10:00 de hoy? False. ¿Incluye la de las 19:00 de ayer? True. Total devuelto: 2.
+RESULTADO: Fallido
+Obtenido: 10:00 de hoy incluida: False; 19:00 de ayer incluida: True

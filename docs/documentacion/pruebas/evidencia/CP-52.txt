@@ -1,0 +1,54 @@
+CP-52 — Marcado de lotes vencidos al arrancar la API (CU-11)
+Ejecutado: 2026-10-20 17:39 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+Precondiciones: QA-V-HOY DISPONIBLE con fecha de hoy y QA-V-AGO AGOTADO con fecha de ayer (SQL, ver 00_preparacion_datos.txt); el enlace de captura de la dispensación de CP-74 (a0367d24-8265-42b1-ac0c-20ad0e0df5c9) se vence con SQL.
+$ psql: UPDATE tokens_captura SET expira_en = (now() AT TIME ZONE 'UTC') - interval '1 minute' WHERE dispensacion_id = 'a0367d24-8265-42b1-ac0c-20ad0e0df5c9'
+UPDATE 1
+
+$ psql: SELECT numero_lote, cantidad_actual, fecha_vencimiento, estado FROM lotes WHERE numero_lote IN ('QA-V-HOY','QA-V-AGO','QA-V-OK') ORDER BY numero_lote
+ numero_lote | cantidad_actual | fecha_vencimiento |   estado   
+-------------+-----------------+-------------------+------------
+ QA-V-AGO    |               0 | 2026-10-19        | AGOTADO
+ QA-V-HOY    |               4 | 2026-10-20        | DISPONIBLE
+ QA-V-OK     |               1 | 2027-01-28        | DISPONIBLE
+(3 rows)
+
+$ psql: SELECT dispensacion_id, expira_en < (now() AT TIME ZONE 'UTC') AS vencido FROM tokens_captura ORDER BY expira_en
+           dispensacion_id            | vencido 
+--------------------------------------+---------
+ a0367d24-8265-42b1-ac0c-20ad0e0df5c9 | t
+ 46f33e1b-d844-4f61-9016-4d38d10bc99c | f
+ 2a8971da-1014-40f3-9d25-f18f27d92efa | f
+ 1e8c8179-25c1-4d69-a6c5-9511ad0a3892 | f
+ 392bfc95-2059-4906-919b-cc8d287ba5a2 | f
+(5 rows)
+
+$ docker compose restart api   (17:39:07)
+Container farmag_api Restarting 
+ Container farmag_api Started
+GET /api/health → 200 tras 9 s
+Log de arranque de la API (líneas de mantenimiento):
+   ⚠️  1 lote(s) marcado(s) como VENCIDO
+   🧹 1 token(s) de captura expirado(s) eliminado(s)
+$ psql: SELECT numero_lote, cantidad_actual, fecha_vencimiento, estado FROM lotes WHERE numero_lote IN ('QA-V-HOY','QA-V-AGO','QA-V-OK') ORDER BY numero_lote
+ numero_lote | cantidad_actual | fecha_vencimiento |   estado   
+-------------+-----------------+-------------------+------------
+ QA-V-AGO    |               0 | 2026-10-19        | AGOTADO
+ QA-V-HOY    |               4 | 2026-10-20        | VENCIDO
+ QA-V-OK     |               1 | 2027-01-28        | DISPONIBLE
+(3 rows)
+
+$ psql: SELECT count(*) AS tokens_de_la_dispensacion FROM tokens_captura WHERE dispensacion_id = 'a0367d24-8265-42b1-ac0c-20ad0e0df5c9'
+ tokens_de_la_dispensacion 
+---------------------------
+                         0
+(1 row)
+
+Registros en log_auditoria antes del reinicio 79, después 79.
+> GET /inventario/alertas   [sesión: qa_encargado, ENCARGADO_BENEFICENCIA]
+< 200  Content-Type: application/json
+< {"data": { …
+
+Panel ("Vencidos sin baja", GET /api/inventario/alertas → vencidos): ['QA-V-HOY']
+RESULTADO: Aprobado
+Obtenido: QA-V-HOY pasó a VENCIDO; QA-V-AGO sigue AGOTADO; el token vencido se eliminó; QA-V-HOY aparece en vencidos sin baja; la bitácora no registra estos cambios

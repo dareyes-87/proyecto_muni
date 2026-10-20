@@ -1,0 +1,18 @@
+CP-90 — Filtros inválidos de la bitácora (CU-19)
+Ejecutado: 2026-10-20 17:38 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+> GET /auditoria?accion=BORRAR   [sesión: qa_admin2, ADMIN]
+< 400  Content-Type: application/json
+< {"error": "accion inválida. Use: CREAR, EDITAR, ELIMINAR, DISPENSAR, BAJA, LOGIN, LOGOUT, ACTIVAR, DESACTIVAR"}
+
+> GET /auditoria?accion=LOGOUT&limit=20   [sesión: qa_admin2, ADMIN]
+< 200  Content-Type: application/json
+< {"data": [], "pagination": {"page": 1, "limit": 20, "total": 0, "totalPages": 0}}
+
+> GET /auditoria?desde=abc   [sesión: qa_admin2, ADMIN]
+< 400  Content-Type: application/json
+< {"error": "El filtro de fecha desde no es una fecha válida (use AAAA-MM-DD)"}
+
+Paso 2: la pantalla de Auditoría envía el mismo filtro (Auditoria.tsx:84-90); lista vacía → "Sin resultados" (Auditoria.tsx:283).
+RESULTADO: Aprobado
+Obtenido: 400 "accion inválida…"; LOGOUT sin resultados; 400 "El filtro de fecha desde no es una fecha válida (use AAAA-MM-DD)"

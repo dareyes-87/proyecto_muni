@@ -7,14 +7,14 @@
 
 | Campo | Valor |
 |-------|-------|
-| Ciclo | [COMPLETAR: número de ciclo, p. ej. 1] |
-| Commit probado | [COMPLETAR: hash del commit; `bdf1187` para el primer ciclo] |
-| Fecha de carga de datos ("hoy" de los cálculos) | [COMPLETAR] |
-| Ejecutor | [COMPLETAR] |
-| Navegador y versión | [COMPLETAR] |
+| Ciclo | 1 |
+| Commit probado | `bdf1187` (el código de `backend/` y `frontend/` de la rama `docs/documentacion` no difiere de ese commit) |
+| Fecha de carga de datos ("hoy" de los cálculos) | 2026-10-20 (hora de Guatemala) |
+| Ejecutor | Casos API: ejecución por peticiones HTTP con Claude Code el 2026-10-20, a solicitud del responsable de la documentación. Casos UI y DISPOSITIVO: [COMPLETAR] |
+| Navegador y versión | No aplica a los casos API. Casos UI: [COMPLETAR] |
 | Teléfono y navegador (CP-77) | [COMPLETAR] |
-| `npm test` antes del ciclo | [COMPLETAR: aprobadas / total] |
-| `npm test` después del ciclo | [COMPLETAR: aprobadas / total] |
+| `npm test` antes del ciclo | [COMPLETAR: no se ejecutó en esta sesión; la última ejecución registrada es 53/53 (`analisis/11_resultados_pruebas_automatizadas.md`)] |
+| `npm test` después del ciclo | [COMPLETAR] |
 
 ## Instrucciones
 
@@ -84,8 +84,8 @@ Fuente: Elaboración propia.
 |----|-------|--------------------|--------|----------------|-----------|
 | CP-01 | | | | | |
 | CP-02 | | | | | |
-| CP-03 | | | | | |
-| CP-04 | | | | | |
+| CP-03 | 2026-10-20 | 401, 401, 429 "Demasiados intentos fallidos. Intente de nuevo en 5 minuto(s)." con Retry-After, 429 con la contraseña correcta; tras 5 minutos, 200 | Aprobado |  | `evidencia/CP-03.txt` |
+| CP-04 | 2026-10-20 | 1 a 20: 401; la 21 y la de admin con contraseña correcta: 429 "Demasiadas solicitudes de inicio de sesión desde esta red…" con Retry-After; tras reiniciar, 200 | Aprobado |  | `evidencia/CP-04.txt` |
 | CP-05 | | | | | |
 | CP-06 | | | | | |
 | CP-07 | | | | H-47 (esperado) | |
@@ -133,7 +133,7 @@ Fuente: Elaboración propia.
 | CP-49 | 2026-10-20 | Paso 1: 500 "Error interno del servidor"; paso 2: 200 con lista vacía, page 1 y pageSize y totalPages nulos (el caso preveía también page nulo) | Fallido | H-43 (esperado) | `evidencia/CP-49.txt` |
 | CP-50 | | | | | |
 | CP-51 | | | | | |
-| CP-52 | | | | | |
+| CP-52 | 2026-10-20 | Tras reiniciar: QA-V-HOY → VENCIDO, QA-V-AGO sigue AGOTADO, token vencido eliminado; QA-V-HOY en "vencidos sin baja"; sin registros nuevos en la bitácora | Aprobado |  | `evidencia/CP-52.txt` |
 | CP-53 | 2026-10-20 | Stock 6 y QA-V-HOY en "Vencido"; /stock 6; 201; las 5 u salieron de QA-V-OK (queda 1) y QA-V-HOY conserva 4 | Aprobado |  | `evidencia/CP-53.txt` |
 | CP-54 | | | | | |
 | CP-55 | 2026-10-20 | Con la base vacía, /inventario/alertas devuelve las tres listas vacías y /inventario/entradas vacío; el panel muestra "Todo en orden…" y los cuatro textos de panel vacío (Dashboard.tsx:78, 118, 132, 144, 165) | Aprobado |  | `evidencia/CP-55.txt` |
@@ -152,7 +152,7 @@ Fuente: Elaboración propia.
 | CP-68 | | | | | |
 | CP-69 | 2026-10-20 | 400, 400, 404 "Medicamento no encontrado o inactivo: <id>", 404 "Beneficiario no encontrado o inactivo" y 400 por items vacío; nada registrado | Aprobado |  | `evidencia/CP-69.txt` |
 | CP-70 | | | | | |
-| CP-71 | | | | H-45 (esperado) | |
+| CP-71 | 2026-10-20 | Con desde = hasta = hoy, la de las 10:00 de hoy no aparece y la de las 19:00 de ayer aparece | Fallido | H-45 (esperado) | `evidencia/CP-71.txt` |
 | CP-72 | | | | | |
 | CP-73 | | | | | |
 | CP-74 | 2026-10-20 | 400 por formato, por tamaño y por imagen no válida; la receta sigue pendiente | Aprobado |  | `evidencia/CP-74.txt` |
@@ -162,36 +162,52 @@ Fuente: Elaboración propia.
 | CP-78 | 2026-10-20 | Mismo token en las dos llamadas, pero 2 registros CREAR de TokenCaptura | Fallido | H-38 (esperado) | `evidencia/CP-78.txt` |
 | CP-79 | 2026-10-20 | Dos CREAR a nombre de qa_encargado y sin dirección IP; no hay EDITAR con la foto reemplazada | Fallido | H-35 (esperado) | `evidencia/CP-79.txt` |
 | CP-80 | | | | | |
-| CP-81 | | | | | |
-| CP-82 | | | | H-46 (esperado) | |
-| CP-83 | | | | | |
-| CP-84 | | | | | |
+| CP-81 | 2026-10-20 | La dispensación de las 23:30 de hoy aparece con hasta = hoy y no con hasta = ayer | Aprobado |  | `evidencia/CP-81.txt` |
+| CP-82 | 2026-10-20 | Con desde = hoy aparecen la dispensación (Dispensaciones y Consumo) y la entrada de las 19:00 de ayer | Fallido | H-46 (esperado) | `evidencia/CP-82.txt` |
+| CP-83 | 2026-10-20 | 400 "Estado inválido…", 400 "El filtro de fecha desde no es una fecha válida…", 400 "El rango de fechas es inválido…"; rango sin datos → lista vacía | Aprobado |  | `evidencia/CP-83.txt` |
+| CP-84 | 2026-10-20 | Por vencer: 90 días por defecto (QA-S-90 sí, QA-S-91 no) y 30 días (QA-S-30 sí, QA-S-31 no); Dados de baja: QA-B-API (sustituye a QA-B-1) y QA-V-HOY, con 7 u y costo estimado 6.40 | Aprobado |  | `evidencia/CP-84.txt` |
 | CP-85 | | | | | |
-| CP-86 | | | | | |
-| CP-87 | | | | | |
-| CP-88 | | | | H-44 (esperado) | |
+| CP-86 | 2026-10-20 | Sin filtros: 400 "El reporte tiene 5026 registros y el máximo exportable es 5000…"; filtrado por Analgésico: PDF descargado | Aprobado |  | `evidencia/CP-86.txt` |
+| CP-87 | 2026-10-20 | 400 por tipo, 400 por formato; PDF de un rango sin datos con "Sin registros para los filtros aplicados." | Aprobado |  | `evidencia/CP-87.txt` |
+| CP-88 | 2026-10-20 | 500 "Error interno del servidor" en lugar de 400 | Fallido | H-44 (esperado) | `evidencia/CP-88.txt` |
 | CP-89 | | | | | |
-| CP-90 | | | | | |
-| CP-91 | | | | H-46 (esperado) | |
-| CP-92 | | | | | |
+| CP-90 | 2026-10-20 | 400 "accion inválida. Use: …"; LOGOUT sin resultados; 400 "El filtro de fecha desde no es una fecha válida (use AAAA-MM-DD)" | Aprobado |  | `evidencia/CP-90.txt` |
+| CP-91 | 2026-10-20 | Con desde = hoy aparece el registro de las 19:00 de ayer | Fallido | H-46 (esperado) | `evidencia/CP-91.txt` |
+| CP-92 | 2026-10-20 | 12 registros DISPENSAR = 12 dispensaciones; DELETE y PUT sobre /api/auditoria/<id> → 404 | Aprobado |  | `evidencia/CP-92.txt` |
+
 
 
 ## Defectos nuevos de la ejecución
 
-Ninguno hasta el momento.
+Ninguno. Los 13 casos API fallidos corresponden a hallazgos ya registrados (columna "Defecto").
+
+## Observaciones de la ejecución
+
+- **CP-49:** falla por H-43 como se esperaba, con una diferencia menor respecto de la descripción del
+  caso: con `pageSize=x` la respuesta trae `page: 1` (no `null`); `pageSize` y `totalPages` sí son
+  `null`.
+- **CP-50 (pendiente, UI):** el resultado esperado dice que el stock de QA Cetirizina baja a 0, pero con
+  los datos de `datos_prueba.md` queda QA-B-2 (5 unidades) disponible, así que el stock debe quedar en
+  5. Es un error del caso, no del sistema; ver `guia_ejecucion_manual.md`, sección 4.
+- **CP-84:** el paso 3 se verificó con el lote QA-B-API (dado de baja por la API) en lugar de QA-B-1,
+  cuya baja es el caso UI CP-50.
+- **CP-86:** la exportación sin filtros informa 5026 registros (los 5001 de QA Carga más los demás
+  lotes de la base).
+- **Casos UI con datos alterados por la ejecución API:** CP-44 (QA Paracetamol con 17 unidades tras
+  CP-64), CP-54, CP-61 y CP-63. La guía manual indica el resultado esperado con el estado actual.
 
 ## Resumen del ciclo
 
 | Prioridad | Casos | Ejecutados | Aprobados | Fallidos | Fallidos por hallazgo ya registrado | Bloqueados |
 |-----------|------:|-----------:|----------:|---------:|------------------------------------:|-----------:|
-| Alta | 38 | | | | | |
-| Media | 40 | | | | | |
-| Baja | 14 | | | | | |
-| **Total** | **92** | | | | | |
+| Alta | 38 | 20 | 18 | 2 | 2 | 0 |
+| Media | 40 | 20 | 17 | 3 | 3 | 0 |
+| Baja | 14 | 12 | 4 | 8 | 8 | 0 |
+| **Total** | **92** | **52** | **39** | **13** | **13** | **0** |
 
-Defectos nuevos registrados en el ciclo: [COMPLETAR]
+Defectos nuevos registrados en el ciclo: ninguno en los 52 casos API (ver "Defectos nuevos de la ejecución"). Quedan 40 casos UI y DISPOSITIVO por ejecutar con `guia_ejecucion_manual.md`.
 
-¿Se cumplen los criterios de salida de `plan_pruebas.md`, sección 6? [COMPLETAR: Sí/No y motivo]
+¿Se cumplen los criterios de salida de `plan_pruebas.md`, sección 6? [COMPLETAR: Sí/No y motivo; pendiente hasta ejecutar los casos UI y DISPOSITIVO y `npm test` después del ciclo]
 
 | Rol | Nombre | Fecha |
 |-----|--------|-------|

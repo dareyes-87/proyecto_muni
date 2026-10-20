@@ -1,0 +1,22 @@
+CP-83 — Filtros inválidos de reportes (CU-17)
+Ejecutado: 2026-10-20 17:38 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+> GET /reportes/inventario-actual?estado=XYZ   [sesión: qa_admin2, ADMIN]
+< 400  Content-Type: application/json
+< {"error": "Estado inválido. Use: DISPONIBLE, AGOTADO, VENCIDO, DADO_DE_BAJA"}
+
+> GET /reportes/dispensaciones?desde=2026-13-01   [sesión: qa_admin2, ADMIN]
+< 400  Content-Type: application/json
+< {"error": "El filtro de fecha desde no es una fecha válida (use AAAA-MM-DD)"}
+
+> GET /reportes/dispensaciones?desde=2026-10-20&hasta=2026-10-19   [sesión: qa_admin2, ADMIN]
+< 400  Content-Type: application/json
+< {"error": "El rango de fechas es inválido: \"desde\" es posterior a \"hasta\""}
+
+> GET /reportes/dispensaciones?desde=2020-01-01&hasta=2020-01-31T23:59:59.999   [sesión: qa_admin2, ADMIN]
+< 200  Content-Type: application/json
+< {"data": [], "pagination": {"page": 1, "limit": 20, "total": 0, "totalPages": 0}}
+
+Paso 4: lista vacía → la tabla muestra "Sin resultados" (Reportes.tsx:571).
+RESULTADO: Aprobado
+Obtenido: Tres 400 con los mensajes esperados; un rango sin datos devuelve lista vacía ("Sin resultados")

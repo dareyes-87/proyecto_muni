@@ -1,0 +1,26 @@
+CP-84 — Reportes Por vencer y Dados de baja (CU-17)
+Ejecutado: 2026-10-20 17:40 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+Dato preparado para el paso 3: lote QA-B-API de QA Cetirizina (3 u, hoy + 150, BOD, costo 0.80) registrado por la API y dado de baja por la API con motivo "Empaque dañado", porque la baja de QA-B-1 es el caso CP-50, que se ejecuta desde la pantalla.
+> PUT /inventario/lotes/abea2566-7858-41af-bbf3-330781d298a3/baja   [sesión: qa_admin2, ADMIN]
+> cuerpo: {"motivo": "Empaque dañado"}
+< 200  Content-Type: application/json
+< {"data": {"id": "abea2566-7858-41af-bbf3-330781d298a3", "entradaId": "cd98a81a-4be9-478c-8a71-38d353b2c664", "medicamentoId": "c2cd948e-945a-476b-bdde-c2e701859c26", "cantidad": 3, "cantidadActual": 3, "numeroLote": "QA-B-API", "fechaVencimiento": "2027-03-19T00:00:00.000Z", "costoUnitario": "0.8", "ubicacionId": "9bd156b7-32c7-4e34-83dd-da084fea616c", "estado": "DADO_DE_BAJA", "createdAt": "2026-10-20T23:40:08.557Z"}}
+
+> GET /reportes/por-vencer?limit=100   [sesión: qa_admin2, ADMIN]
+< 200  Content-Type: application/json
+< {"data": [{"loteId": "7392ba1c-4d80-42b8-90b9-078148b5ca3b", "numeroLote": "QA-S-30", "medicamento": {"id": "25f0b609-0f08-4834-8087-0e090eca2f6d", "n …
+
+> GET /reportes/por-vencer?dias=30&limit=100   [sesión: qa_admin2, ADMIN]
+< 200  Content-Type: application/json
+< {"data": [{"loteId": "7392ba1c-4d80-42b8-90b9-078148b5ca3b", "numeroLote": "QA-S-30", "medicamento": {"id": "25f0b609-0f08-4834-8087-0e090eca2f6d", "n …
+
+> GET /reportes/medicamentos-baja?limit=100   [sesión: qa_admin2, ADMIN]
+< 200  Content-Type: application/json
+< {"data": [{"loteId": "abea2566-7858-41af-bbf3-330781d298a3", "numeroLote": "QA-B-API", "medicamento": {"nombreGenerico": "QA Cetirizina", "presentacio …
+
+Por vencer sin días (umbralDias 90): [('QA-S-30', 30), ('QA-S-31', 31), ('QA-F-B', 60), ('QA-S-90', 90)]
+Por vencer con 30 días: [('QA-S-30', 30)]
+Dados de baja: [('QA-B-API', 'DADO_DE_BAJA', 3, 2.4000000000000004), ('QA-V-HOY', 'VENCIDO', 4, 4)]; resumen {'totalUnidadesPerdidas': 7, 'costoTotalEstimado': 6.4}
+RESULTADO: Aprobado
+Obtenido: Sin días: hasta hoy + 90 (QA-S-90 sí, QA-S-91 no); 30 días: QA-S-30 sí, QA-S-31 no; Dados de baja: ['QA-B-API', 'QA-V-HOY'] con total {'totalUnidadesPerdidas': 7, 'costoTotalEstimado': 6.4}

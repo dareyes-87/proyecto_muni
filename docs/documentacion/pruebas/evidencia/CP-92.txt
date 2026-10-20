@@ -1,0 +1,24 @@
+CP-92 — La bitácora coincide con las dispensaciones y no se puede modificar (CU-19)
+Ejecutado: 2026-10-20 17:40 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+> GET /auditoria?accion=DISPENSAR&limit=1   [sesión: qa_admin2, ADMIN]
+< 200  Content-Type: application/json
+< {"data": [{"id": "b30ae006-b7e7-4720-842c-b7c7087d7ee0", "usuarioId": "5803c9c3-c664-423c-849e-8604e91cea21", "accion":  …
+
+$ psql: SELECT count(*) AS dispensaciones FROM dispensaciones
+ dispensaciones 
+----------------
+             12
+(1 row)
+
+> DELETE /auditoria/b30ae006-b7e7-4720-842c-b7c7087d7ee0   [sesión: qa_admin2, ADMIN]
+< 404  Content-Type: application/json
+< {"error": "Ruta no encontrada"}
+
+> PUT /auditoria/b30ae006-b7e7-4720-842c-b7c7087d7ee0   [sesión: qa_admin2, ADMIN]
+> cuerpo: {"accion": "LOGIN"}
+< 404  Content-Type: application/json
+< {"error": "Ruta no encontrada"}
+
+RESULTADO: Aprobado
+Obtenido: DISPENSAR en la bitácora 12 = 12 dispensaciones; DELETE y PUT → 404; el registro sigue igual

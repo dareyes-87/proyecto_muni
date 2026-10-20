@@ -1,0 +1,24 @@
+CP-81 — El fin del rango incluye todo el día (CU-17)
+Ejecutado: 2026-10-20 17:38 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+Dispensación preparada de 1 unidad de QA Ácido Fólico para Beneficiario Prueba Uno (no de QA Enalapril, ver registro_ejecucion.md, "Datos preparados"). Se prepara a las 23:30 de hoy (hora de Guatemala). La pantalla envía "hasta" como AAAA-MM-DDT23:59:59.999 (Reportes.tsx:189).
+$ psql: UPDATE dispensaciones SET created_at = ((((now() AT TIME ZONE 'America/Guatemala')::date - 0) + time '23:30') AT TIME ZONE 'America/Guatemala') AT TIME ZONE 'UTC' WHERE id = 'fd68b50e-8a1a-4a90-802b-5a9eed791f1b'
+UPDATE 1
+
+$ psql: SELECT id, created_at AS utc, (created_at AT TIME ZONE 'UTC') AT TIME ZONE 'America/Guatemala' AS guatemala FROM dispensaciones WHERE id = 'fd68b50e-8a1a-4a90-802b-5a9eed791f1b'
+                  id                  |         utc         |      guatemala      
+--------------------------------------+---------------------+---------------------
+ fd68b50e-8a1a-4a90-802b-5a9eed791f1b | 2026-10-21 05:30:00 | 2026-10-20 23:30:00
+(1 row)
+
+> GET /reportes/dispensaciones?hasta=2026-10-20T23:59:59.999&limit=100   [sesión: qa_admin2, ADMIN]
+< 200  Content-Type: application/json
+< {"data": [{"id": "fd68b50e-8a1a-4a90-802b-5a9eed791f1b", "createdAt": "2026-10-21T05:30:00.000Z", "observaciones": null, "beneficiario": {"nombreCompl …
+
+> GET /reportes/dispensaciones?hasta=2026-10-19T23:59:59.999&limit=100   [sesión: qa_admin2, ADMIN]
+< 200  Content-Type: application/json
+< {"data": [{"id": "63f6472c-4be2-491c-9ba4-e5b89ff9d759", "createdAt": "2026-10-20T01:00:00.000Z", "observaciones": null, "beneficiario": {"nombreCompl …
+
+hasta = hoy: aparece True; hasta = ayer: aparece False
+RESULTADO: Aprobado
+Obtenido: Con hasta = hoy la dispensación de las 23:30 aparece; con hasta = ayer no aparece

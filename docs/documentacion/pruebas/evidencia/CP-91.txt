@@ -1,0 +1,20 @@
+CP-91 — "desde" de la bitácora incluye registros del día anterior (hallazgo abierto H-46)
+Ejecutado: 2026-10-20 17:38 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+Registro de auditoría preparado: el CREAR de la entrada auxiliar de CP-82 (40333a07-bc22-460a-9191-7d44fcc0aa76), movido a las 19:00 de ayer.
+$ psql: UPDATE log_auditoria SET created_at = ((((now() AT TIME ZONE 'America/Guatemala')::date - 1) + time '19:00') AT TIME ZONE 'America/Guatemala') AT TIME ZONE 'UTC' WHERE id = '40333a07-bc22-460a-9191-7d44fcc0aa76'
+UPDATE 1
+
+$ psql: SELECT id, created_at AS utc, (created_at AT TIME ZONE 'UTC') AT TIME ZONE 'America/Guatemala' AS guatemala FROM log_auditoria WHERE id = '40333a07-bc22-460a-9191-7d44fcc0aa76'
+                  id                  |         utc         |      guatemala      
+--------------------------------------+---------------------+---------------------
+ 40333a07-bc22-460a-9191-7d44fcc0aa76 | 2026-10-20 01:00:00 | 2026-10-19 19:00:00
+(1 row)
+
+> GET /auditoria?desde=2026-10-20&limit=100   [sesión: qa_admin2, ADMIN]
+< 200  Content-Type: application/json
+< {"data": [{"id": "fd95146d-62c7-405f-b165-489240efbf5a", "usuarioId": "6243acd1-ed72-4243-a74a-9999b84c3da7", "accion":  …
+
+Total con desde = hoy: 78; el registro de las 19:00 de ayer aparece: True
+RESULTADO: Fallido
+Obtenido: El registro de las 19:00 de ayer aparece con desde = hoy

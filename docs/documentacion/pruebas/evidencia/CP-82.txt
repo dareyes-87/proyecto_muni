@@ -1,0 +1,37 @@
+CP-82 — "desde" incluye registros del día anterior (hallazgo abierto H-46)
+Ejecutado: 2026-10-20 17:38 (hora de Guatemala del equipo), commit bdf1187, http://localhost:3000/api
+
+Se preparan una dispensación de 1 unidad de QA Sales de Rehidratación (medicamento que no se dispensa en ningún otro caso, para distinguirlo en Consumo) y una entrada de 1 lote de QA Ácido Fólico (QA-AUX-82), ambas movidas a las 19:00 de ayer (hora de Guatemala).
+$ psql: UPDATE dispensaciones SET created_at = ((((now() AT TIME ZONE 'America/Guatemala')::date - 1) + time '19:00') AT TIME ZONE 'America/Guatemala') AT TIME ZONE 'UTC' WHERE id = '63f6472c-4be2-491c-9ba4-e5b89ff9d759'
+UPDATE 1
+
+$ psql: SELECT id, created_at AS utc, (created_at AT TIME ZONE 'UTC') AT TIME ZONE 'America/Guatemala' AS guatemala FROM dispensaciones WHERE id = '63f6472c-4be2-491c-9ba4-e5b89ff9d759'
+                  id                  |         utc         |      guatemala      
+--------------------------------------+---------------------+---------------------
+ 63f6472c-4be2-491c-9ba4-e5b89ff9d759 | 2026-10-20 01:00:00 | 2026-10-19 19:00:00
+(1 row)
+
+$ psql: UPDATE entradas SET created_at = ((((now() AT TIME ZONE 'America/Guatemala')::date - 1) + time '19:00') AT TIME ZONE 'America/Guatemala') AT TIME ZONE 'UTC' WHERE id = '27d27def-41e6-491a-a86d-6c2959ba65cd'
+UPDATE 1
+
+$ psql: SELECT id, created_at AS utc, (created_at AT TIME ZONE 'UTC') AT TIME ZONE 'America/Guatemala' AS guatemala FROM entradas WHERE id = '27d27def-41e6-491a-a86d-6c2959ba65cd'
+                  id                  |         utc         |      guatemala      
+--------------------------------------+---------------------+---------------------
+ 27d27def-41e6-491a-a86d-6c2959ba65cd | 2026-10-20 01:00:00 | 2026-10-19 19:00:00
+(1 row)
+
+> GET /reportes/dispensaciones?desde=2026-10-20&limit=100   [sesión: qa_admin2, ADMIN]
+< 200  Content-Type: application/json
+< {"data": [{"id": "fd68b50e-8a1a-4a90-802b-5a9eed791f1b", "createdAt": "2026-10-21T05:30:00.000Z", "observaciones": null, "beneficiario": {"nombreCompl …
+
+> GET /reportes/consumo-medicamentos?desde=2026-10-20&limit=100   [sesión: qa_admin2, ADMIN]
+< 200  Content-Type: application/json
+< {"data": [{"medicamentoId": "12465866-500a-4f21-8357-32d8bd6388c8", "nombreGenerico": "QA Ibuprofeno", "presentacion": "Tableta", "categoria": "Antiinflamatorio", "cantidadTotalDispensada": 15, "numeroDispensaciones": 1}, {"medicamentoId": "98186058-121d-4e62-bb49-b888248a6e51", "nombreGenerico": "QA Ácido Fólico", "presentacion": "Tableta", "categoria": "QA Importada", "cantidadTotalDispensada":  …
+
+> GET /reportes/entradas?desde=2026-10-20&limit=100   [sesión: qa_admin2, ADMIN]
+< 200  Content-Type: application/json
+< {"data": [{"id": "913d9706-a55e-463f-8218-58fc77d074af", "createdAt": "2026-10-20T23:30:07.132Z", "usuario": "Administrador Prueba", "totalLotes": 1,  …
+
+Con desde = hoy: dispensación de ayer 19:00 aparece True; QA Sales de Rehidratación aparece en Consumo True; entrada de ayer 19:00 aparece True.
+RESULTADO: Fallido
+Obtenido: Dispensaciones: True; Consumo: True; Entradas: True (True = el registro de las 19:00 de ayer aparece)
