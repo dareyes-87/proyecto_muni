@@ -459,8 +459,8 @@ tratados].
 
 [COMPLETAR: fecha de entrega del sistema a la municipalidad y forma de aceptación].
 
-El uso de cada pantalla del sistema se describe en el manual de usuario, que se incluye como anexo de
-este documento. [COMPLETAR: número o letra del anexo del manual de usuario].
+El uso de cada pantalla del sistema se describe en el manual de usuario, que se incluye como Anexo A de
+este documento.
 
 ## REFERENCIAS DEL CAPÍTULO
 
