@@ -378,14 +378,15 @@ automatizada, porque el frontend no cuenta con un framework de pruebas.
 Además del stack descrito en el capítulo 2, el equipo utilizó herramientas de apoyo que no forman
 parte del sistema desplegado.
 
-Claude Code, el asistente de programación de Anthropic, se usó durante todo el desarrollo. `CLAUDE.md`
-se declara la "fuente de verdad para cualquier sesión de Claude" que trabaje en el proyecto; cada
-integrante debía actualizar su sección al terminar una sesión, y `docs/PROMPTS_EQUIPO.md` contiene las
-instrucciones iniciales asignadas a cada uno. De los 103 commits del historial, 71 incluyen una línea
-`Co-Authored-By` que nombra un modelo Claude, lo que indica que el cambio se elaboró en una sesión de
-Claude Code. El historial de sesiones registra además el uso de Playwright con Chromium sin interfaz
-gráfica, instalado temporalmente para verificar páginas en navegador, sin quedar como dependencia del
-proyecto.
+El equipo utilizó Claude Code, el asistente de programación de Anthropic, como herramienta de apoyo
+durante el desarrollo, en las condiciones que establece `docs/HERRAMIENTAS_IA.md`. `CLAUDE.md` reúne
+el contexto del proyecto que el asistente consulta al iniciar cada sesión, y `docs/PROMPTS_EQUIPO.md`
+contiene las instrucciones iniciales asignadas a cada integrante. Los cambios no llegaron a `main`
+directamente desde el asistente: en la primera etapa pasaron por la auditoría de la rama previa a cada
+*merge* (sección 6.3.2) y, desde octubre de 2026, se integraron mediante *pull request*, revisión y
+los trabajos de pruebas automatizadas del workflow "Despliegue seguro" (sección 6.3.3). El historial
+de sesiones registra además el uso de Playwright con Chromium sin interfaz gráfica, instalado
+temporalmente para verificar páginas en navegador, sin quedar como dependencia del proyecto.
 
 En octubre de 2026 se documentó en `docs/HERRAMIENTAS_IA.md` (PR #9) el uso de *skills* de Claude
 Code, que son conjuntos de instrucciones que el asistente sigue y que no se despliegan al servidor.
