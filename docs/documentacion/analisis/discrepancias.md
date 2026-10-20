@@ -51,3 +51,9 @@ Especificación = `docs/FarmaG_Especificacion_Tecnica_v1.md`.
 | ID | Tema | Especificación dice | Código dice | Fuente |
 |----|------|---------------------|-------------|--------|
 | D-28 | Número de servicios de Docker Compose | "Docker Compose (3 servicios)": nginx, api y db | `docker-compose.yml` y `docker-compose.prod.yml` definen **4** servicios: `db`, `api`, `web` y `backup` (respaldo periódico con `pg_dump`). Además existen dos archivos de composición (desarrollo y producción), que la especificación no prevé | Espec. línea 26 y §2.1, líneas 30–59; docker-compose.yml, líneas 1–147; docker-compose.prod.yml, líneas 16–122 |
+
+## Actualización de la extracción al commit bdf1187 — parte 3 (2026-10-20)
+
+| ID | Tema | Especificación dice | Código dice | Fuente |
+|----|------|---------------------|-------------|--------|
+| D-29 | Comportamiento ante dos dispensaciones simultáneas | "Mientras una transacción tiene el bloqueo, cualquier otra transacción sobre los mismos lotes espera hasta que termine la primera" | La transacción usa aislamiento `Serializable` además de `FOR UPDATE`: PostgreSQL puede abortar la segunda por conflicto de serialización. El backend la reintenta hasta 3 veces (10·n ms) y, si el conflicto persiste, responde 409 "No se pudo completar la dispensación por un conflicto de concurrencia. Intente de nuevo." aunque haya stock suficiente. La integridad del stock se mantiene en ambos casos | Espec. §4.2, línea 367; backend/src/services/dispensacion.service.ts, líneas 286–317 |

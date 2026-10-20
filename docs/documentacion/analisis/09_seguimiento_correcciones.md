@@ -174,3 +174,16 @@ coinciden; los de configuración, `prisma/` y `frontend/` no se revisaron en est
 Hallazgos nuevos de esta actualización: **H-42 a H-46**, registrados en `hallazgos_defectos.md`
 (sección "Actualización de la extracción al commit bdf1187 — parte 2"). Pregunta nueva: **P-23**. Sin
 discrepancias nuevas con la especificación.
+
+### 5.2 Actualización de `06_reglas_negocio.md`, `07_flujos_modulos.md` y `08_casos_uso_candidatos.md` (parte 3, 2026-10-20)
+
+Se actualizaron por lectura del código en `bdf1187`, sin ejecución. **Ningún estado de las tablas 1 y 2
+cambia.** Las correcciones resueltas o parciales se reflejaron como reglas modificadas (RN-02, RN-04,
+RN-06, RN-09, RN-11 a RN-14, RN-23 a RN-25, RN-30, RN-33, RN-35, RN-37 a RN-39, RN-41, RN-43, RN-45 a
+RN-52, RN-54 a RN-59, RN-61, RN-63, RN-67, RN-69, RN-70) o como reglas nuevas (RN-71 a RN-77); RN-26 se marcó
+como eliminada (H-28). `08_casos_uso_candidatos.md` fija la numeración final CU-01 a CU-19, sin el
+caso "Configurar umbrales de vencimiento" (H-22, D-24).
+
+Hallazgos nuevos de esta actualización: **H-47 y H-48** (`hallazgos_defectos.md`, sección
+"Actualización de la extracción al commit bdf1187 — parte 3"). Discrepancia nueva: **D-29**. Pregunta
+nueva: **P-24**.

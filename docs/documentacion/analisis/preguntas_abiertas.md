@@ -54,6 +54,12 @@ antes, `FRONTEND_TARGET=development`). No se hicieron en el equipo de la municip
 |----|--------|----------|----------|--------|
 | P-23 | Abierta | ¿Qué código debe responder `POST /dispensacion/despachar` cuando el beneficiario o un medicamento están inactivos: 400 (dato no válido para dispensar) o 404 (no encontrado)? | La ruta declara una regla `inactivo → 400`, pero los mensajes del servicio (`… no encontrado o inactivo`) coinciden antes con la regla `no encontrado → 404`, así que hoy siempre responde 404 y no se distingue un id inexistente de un registro inactivo. Afecta a la especificación de la API y a los casos de prueba del despacho. | backend/src/routes/dispensacion.routes.ts, líneas 209–213; backend/src/services/dispensacion.service.ts, líneas 174–176 y 206–208; `04_api.md`, sección 2.5 |
 
+## Actualización de la extracción al commit bdf1187 — parte 3 (2026-10-20)
+
+| ID | Estado | Pregunta | Contexto | Fuente |
+|----|--------|----------|----------|--------|
+| P-24 | Abierta | ¿Cómo se corrige una foto de evidencia equivocada después de subir las dos (receta y entrega)? | Desde `254d0f8`, al completar las dos fotos el token queda usado y no se puede generar otro (409), así que ninguna foto se puede reemplazar; antes de completarlas, repetir una foto la reemplaza sin conservar la anterior. No existe otra vía para corregirla. Según la respuesta, el flujo alternativo de CU-16 describirá la imposibilidad como regla intencional o como brecha. | backend/src/services/dispensacion.service.ts, líneas 444–455 y 594–624; backend/src/routes/dispensacion.routes.ts, líneas 266–269; RN-37, RN-39 |
+
 ## Respuestas del responsable
 
 | ID | Tema | Respuesta | Fuente |
