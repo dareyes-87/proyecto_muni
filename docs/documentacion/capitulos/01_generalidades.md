@@ -11,9 +11,9 @@ Según el análisis de requerimientos inicial del proyecto, la farmacia operaba 
 herramientas digitales para el control de inventario, lo que generaba pérdida de información,
 dificultad para auditar las existencias y falta de trazabilidad en las dispensaciones.
 
-El proyecto se originó en una reunión de levantamiento de requerimientos entre el Alcalde Municipal
-de Gualán y el equipo de desarrollo, realizada durante el primer trimestre de 2026. En ella, el
-Alcalde expresó la siguiente solicitud, transcrita textualmente en el documento de análisis: "Tener
+El proyecto se originó en una reunión de levantamiento de requerimientos entre el encargado de
+recursos humanos de la Municipalidad de Gualán y el equipo de desarrollo, realizada durante el primer
+trimestre de 2026. En ella, el encargado expresó la siguiente solicitud, transcrita textualmente en el documento de análisis: "Tener
 un control de inventario de medicina. Parte que se regala y parte de la farmacia de la que se vende.
 Control de lo que sale y entra de la farmacia. Tanto pagado como no pagado."
 
@@ -154,6 +154,7 @@ transversal a las fases, se presenta en el capítulo 8.
 
 Los requerimientos se redactan con base en la norma ISO/IEC/IEEE 29148, los requerimientos no
 funcionales se clasifican según la norma ISO/IEC 25010 y los diagramas se elaboran en UML 2.5. El
-trabajo se dividió por módulos entre los tres integrantes, y el código se gestionó con Git en un
-repositorio común. Las iteraciones de la Construcción se reconstruyen a partir del historial real del
+equipo estuvo formado por cinco integrantes: tres se dividieron por módulos el desarrollo del sistema, otro
+tuvo a su cargo el manual de usuario y otro las pruebas de seguridad. El código se gestionó con Git en
+un repositorio común. Las iteraciones de la Construcción se reconstruyen a partir del historial real del
 repositorio, sin asignar fechas ni duraciones que ese historial no registre.

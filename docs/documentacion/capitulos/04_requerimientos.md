@@ -7,7 +7,7 @@
 Este capítulo presenta los requerimientos funcionales y no funcionales de FarmaG, las reglas de
 negocio, el modelo de casos de uso con la especificación de cada caso y la matriz de trazabilidad. Los
 requerimientos provienen del análisis de requerimientos inicial del proyecto, cuyos casos de uso se
-citan como CUO-01 a CUO-37; de la entrevista con el Alcalde Municipal de Gualán incluida en ese
+citan como CUO-01 a CUO-37; de la entrevista con la municipalidad incluida en ese
 análisis; de las decisiones de alcance tomadas por el equipo y la municipalidad (R-01 a R-09); y de
 las funciones agregadas durante la construcción. Se redactan con base en la norma ISO/IEC/IEEE 29148
 (ISO, 2018) y describen el sistema tal como quedó construido.

@@ -65,7 +65,7 @@ técnico.
 Las iteraciones se reconstruyeron agrupando los cambios del historial por periodos de actividad
 continua y por objetivo común. Las fases de Inicio y Elaboración no tienen cambios en el repositorio,
 porque se realizaron antes de crearlo; sus artefactos son el análisis inicial, elaborado a partir de
-la reunión con el Alcalde, y la especificación técnica del 26 de junio de 2026, que define el stack,
+la entrevista con la municipalidad, y la especificación técnica del 26 de junio de 2026, que define el stack,
 el modelo de datos, los módulos y la estrategia de concurrencia. La Tabla 16 resume las iteraciones
 de la Construcción y la Transición.
 
@@ -104,6 +104,8 @@ Distribución del trabajo por integrante
 | Daniel Reyes | Inventario, configuración base y administración | Configuración base; Inventario; usuarios; tablero principal; Auditoría; Reportes con exportación a PDF y Excel; paleta institucional; importación desde Excel, OpenFDA y fotografía de medicamentos; evidencia fotográfica por QR; integración de las ramas; despliegue seguro, respaldos e integración continua; correcciones de octubre |
 | Jorge Vargas | Dispensación | Dispensación con descuento por vencimiento y control de concurrencia; Beneficiarios; lector de códigos de barras; QR con la dirección de la red local; preparación para producción; rediseño de la interfaz y eliminación de proveedores; auditoría y correcciones de seguridad |
 | Audias Guevara | Catálogos | Catálogos de medicamentos con detección de duplicados, códigos de barras, categorías y ubicaciones, con sus páginas; documentación del trabajo de graduación |
+| Integrante a cargo del manual de usuario | Manual de usuario | Manual de usuario del Anexo A; no registra cambios en el historial del repositorio |
+| Integrante a cargo de las pruebas de seguridad | Pruebas de seguridad | Pruebas de seguridad del Anexo B; no registra cambios en el historial del repositorio |
 
 Fuente: Elaboración propia con base en la asignación de módulos y el historial del repositorio.
 

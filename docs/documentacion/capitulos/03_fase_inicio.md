@@ -39,10 +39,10 @@ Interesados y usuarios del sistema
 
 | Tipo | Interesado o usuario | Descripción y responsabilidades |
 |------|----------------------|---------------------------------|
-| Interesado | Alcalde Municipal de Gualán | Patrocinador y cliente; expresó la solicitud que dio origen al sistema y aprobó la delimitación del alcance |
+| Interesado | Encargado de recursos humanos de la Municipalidad de Gualán | Solicitante y cliente; expresó la solicitud que dio origen al sistema y aprobó la delimitación del alcance |
 | Interesado | Municipalidad de Gualán | Propietaria de la farmacia y del sistema; provee el equipo y la red local y recibe los reportes |
 | Interesado | Beneficiarios | Ciudadanos que reciben medicamentos sin costo y presentan su identificación y la receta; no usan el sistema |
-| Interesado | Equipo de desarrollo | Daniel Reyes, Jorge Vargas y Audias Guevara; analizaron, diseñaron, construyeron, instalaron y documentaron el sistema |
+| Interesado | Equipo de desarrollo | Cinco integrantes: Daniel Reyes, Jorge Vargas y Audias Guevara analizaron, diseñaron, construyeron, instalaron y documentaron el sistema; un integrante elaboró el manual de usuario y otro realizó las pruebas de seguridad |
 | Interesado | Asesor del curso de Seminario | Docente de la Universidad Mariano Gálvez de Guatemala que revisa y aprueba la documentación |
 | Usuario | Administrador | Acceso a todas las funciones: usuarios, catálogos, entradas e importación, baja de lotes, dispensaciones, reportes y auditoría. En la operación actual es la cuenta que usa la única persona que opera la farmacia |
 | Usuario | Encargado de Beneficencia | Rol definido para quien despacha: beneficiarios, dispensaciones, entradas manuales y consulta del inventario. Existe en el sistema pero no se usa en la operación actual |
@@ -52,7 +52,7 @@ Fuente: Elaboración propia.
 
 ## 3.3 Necesidades del producto
 
-Las necesidades se tomaron de la solicitud del Alcalde y de los problemas identificados en el análisis
+Las necesidades se tomaron de la solicitud del encargado de recursos humanos de la municipalidad y de los problemas identificados en el análisis
 inicial. La Tabla 8 relaciona cada necesidad con las características del producto que la atienden y
 con los casos de uso originales correspondientes.
 
