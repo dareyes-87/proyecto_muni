@@ -1,0 +1,4 @@
+$ curl -s -X POST http://192.168.65.254:5173/api/auth/login -H "Content-Type: application/json" -d '{"username":"qa_encargado","password":"Incorrecta2"}'
+(ejecutada desde el mismo contenedor del navegador, a través del proxy de Vite, para conservar la misma IP de origen)
+HTTP 401
+{"error":"Credenciales inválidas","intentosRestantes":1}

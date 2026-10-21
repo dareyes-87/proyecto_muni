@@ -1,0 +1,5 @@
+CP-18 — 2026-10-21 — qa_admin2, "Nuevo medicamento" en Registrar entrada: Paracetamol, Tableta, 500 mg, Tableta, Analgésico.
+Paso 1, diálogo: Posibles duplicados Se encontraron medicamentos similares. Revisa antes de continuar o confirma el registro. QA Paracetamol 500 mg · Tableta Revisar de nuevo Crear de todos modos
+Paso 2, "Revisar de nuevo": el formulario conserva ["Paracetamol","","Tableta","500 mg","Tableta"].
+Paso 3, "Crear de todos modos": "Medicamento creado" (queda creado el medicamento "Paracetamol" sin lotes).
+Captura: CP-18.png (diálogo).

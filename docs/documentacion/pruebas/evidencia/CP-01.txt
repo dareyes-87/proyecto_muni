@@ -1,0 +1,6 @@
+CP-01 — 2026-10-21 — API reiniciada antes del caso. Usuario qa_admin2 (en lugar de admin, según la guía).
+Aviso: "Bienvenido al sistema". Menú visible: Dashboard Dispensación Beneficiarios Inventario Catálogos Reportes Administración Usuarios Auditoría
+localStorage contiene farmag_token: true (no se registra su valor).
+Bitácora, acción LOGIN, registro más reciente:  21/10/2026 00:23 Administrador Prueba @qa_admin2 LOGIN usuario 172.18.0.1
+Detalle expandido: ID de entidad: 6243acd1-ed72-4243-a74a-9999b84c3da7 Datos anteriores — Datos nuevos —
+Capturas: CP-01_a.png (panel y menú), CP-01_b.png (bitácora).

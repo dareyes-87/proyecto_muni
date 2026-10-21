@@ -1,0 +1,7 @@
+CP-17 — 2026-10-21 — qa_admin2, Registrar entrada → "Nuevo medicamento" junto al lote 1.
+Stock mínimo propuesto: 10.
+No hubo aviso de duplicados.
+Aviso: "Medicamento creado". Medicamento seleccionado en el lote 1: "QA Diclofenaco (50 mg)" (selector: "QA Diclofenaco (50 mg)").
+Catálogo: QA Diclofenaco, Tableta, 50 mg, activo=true, id 51bd874f-cf0e-4ced-bf92-5299dd5c2a40.
+Bitácora: CREAR medicamento 2026-10-21T06:26:31.998Z por qa_admin2.
+Captura: CP-17.png.

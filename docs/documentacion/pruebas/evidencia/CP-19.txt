@@ -1,0 +1,7 @@
+CP-19 — 2026-10-21 — qa_admin2.
+Paso 1: "Nuevo medicamento" en Registrar entrada, todo lleno menos la categoría, "Guardar".
+  El navegador detiene el envío por el atributo required del selector: validationMessage = "Please select an item in the list." (checkValidity = false).
+  Avisos de la aplicación: ninguno. El aviso "Seleccione una categoría" no se muestra: el código que lo emite (MedicamentoFormModal.tsx, función guardar) no llega a ejecutarse.
+  No se creó ningún medicamento. (El texto del navegador sale en inglés porque el Chromium de la imagen de Playwright corre con idioma en-US; en un navegador en español el mensaje equivalente es "Selecciona un elemento de la lista".)
+Pasos 2 y 3 (API): 400 {"error":"La categoría especificada no existe"} · 400 {"error":"Datos inválidos","detalles":{"formErrors":[],"fieldErrors":{"nombreGenerico":["El nombre genérico es requerido"]}}} (ver CP-19_curl.txt).
+Captura: CP-19.png (con el mensaje de validación del navegador superpuesto).

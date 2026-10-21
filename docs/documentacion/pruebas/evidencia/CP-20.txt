@@ -1,0 +1,10 @@
+CP-20 — 2026-10-21 — qa_admin2, Catálogos > Medicamentos > QA Diclofenaco.
+Paso 1: stock mínimo 10 → 15: "Medicamento actualizado".
+Paso 2: "Subir foto" con foto_medicamento.jpg: "Foto actualizada"; vista previa cargada (1000px de ancho), src /uploads/medicamentos/51bd874f-cf0e-4ced-bf92-5299dd5c2a40.webp.
+Paso 3: guardar sin cambios → avisos ["Medicamento actualizado"]; respuesta de la API: {"data":{"id":"51bd874f-cf0e-4ced-bf92-5299dd5c2a40","nombreGenerico":"QA Diclofenaco","nombreComercial":"","presentacion":"Tableta","concentracion":"50 mg","unidadMedida":"Tableta","categoriaId":"66821301-ddb7-4b32-aeb9-1bb12f59ad8e","stockMinimo":15,"imagenUrl":"/uploads/medicamentos/51bd874f-cf0e-4ced-bf92-5299dd5c2a40.webp","activo":true,"createdAt":"2026-10-21T06:26:31.992Z","updatedAt":"2026-10-21T06:29:44.765Z"},"mensaje":"No hubo cambios que aplicar"}.
+Registros EDITAR nuevos de QA Diclofenaco tras los pasos 1 y 2: [{"fecha":"2026-10-21T06:29:44.770Z","antes":{"imagenUrl":null},"nuevos":{"imagenUrl":"/uploads/medicamentos/51bd874f-cf0e-4ced-bf92-5299dd5c2a40.webp"}},{"fecha":"2026-10-21T06:29:42.331Z","antes":{"stockMinimo":10,"nombreComercial":null},"nuevos":{"stockMinimo":15,"nombreComercial":""}}]
+Registros EDITAR nuevos tras el paso 3: 0.
+Archivo guardado: 51bd874f-cf0e-4ced-bf92-5299dd5c2a40.webp (ver comprobación en la carpeta backend/uploads/medicamentos/ al final).
+Capturas: CP-20_a.png (vista previa), CP-20_b.png (bitácora).
+Comprobación en el host: backend/uploads/medicamentos/51bd874f-cf0e-4ced-bf92-5299dd5c2a40.webp (11 238 bytes) existe; es el único archivo de ese medicamento.
+Diferencia con lo esperado: el EDITAR del paso 1 no trae solo el campo cambiado; incluye también nombreComercial (null → ""), porque el formulario envía "" cuando el nombre comercial está vacío y el servidor lo compara contra null. Registrado como DP-03.

@@ -1,0 +1,4 @@
+CP-25 — 2026-10-21 — qa_admin2, contador de códigos de QA Diclofenaco.
+Paso 1, agregar 7790000000011: ["Este código de barras ya está registrado en otro medicamento"]. Lista de códigos del medicamento después: "Sin códigos registrados".
+Paso 2, "Agregar" con el campo vacío: ["Escanee o escriba un código de barras"].
+Capturas: CP-25.png (paso 1), CP-25_b.png (paso 2).

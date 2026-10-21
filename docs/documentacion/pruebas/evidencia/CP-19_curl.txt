@@ -1,0 +1,6 @@
+Peticiones con el token de qa_admin2 (desde la sesión del navegador; el token no se registra).
+POST /api/catalogos/medicamentos {"nombreGenerico":"QA Sin Categoria","presentacion":"Tableta","unidadMedida":"Tableta","categoriaId":"00000000-0000-0000-0000-000000000000"}
+HTTP 400 {"error":"La categoría especificada no existe"}
+POST /api/catalogos/medicamentos {"nombreGenerico":"A","presentacion":"Tableta","unidadMedida":"Tableta","categoriaId":"<id de Analgésico>"}
+HTTP 400 {"error":"Datos inválidos","detalles":{"formErrors":[],"fieldErrors":{"nombreGenerico":["El nombre genérico es requerido"]}}}
+Comprobación: medicamentos "QA Sin Categoria" = 0; existe "A" = false

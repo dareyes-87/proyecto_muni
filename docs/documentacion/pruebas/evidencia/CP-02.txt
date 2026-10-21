@@ -1,0 +1,5 @@
+CP-02 — 2026-10-21 — API reiniciada antes del caso (docker compose restart api).
+Paso 1 (pantalla): inicio de sesión de qa_encargado con "Incorrecta1" → aviso "Credenciales inválidas"; la URL sigue en /login (captura CP-02_a.png).
+Paso 2: POST /api/auth/login con "Incorrecta2" desde el mismo equipo del navegador → HTTP 401 {"error":"Credenciales inválidas","intentosRestantes":1} (CP-02_curl.txt).
+Paso 3 (bitácora, revisada con qa_admin2 tras CP-01): registros LOGIN de qa_encargado con datos nuevos {"exito":false,"motivo":"credenciales inválidas","bloqueado":false,"intentosRestantes":2} (00:22:22) y {"exito":false,…,"intentosRestantes":1} (00:22:24). Hay otros dos LOGIN con exito false de las 00:22:52 y 00:22:54: son los de CP-07, ejecutado después (captura CP-02_b.png, registro de las 00:22:24 expandido).
+El usuario inexistente no se repitió aquí: ya se verificó por la API en CP-04 (401 con el mismo mensaje).

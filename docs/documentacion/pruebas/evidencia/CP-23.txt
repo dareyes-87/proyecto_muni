@@ -1,0 +1,6 @@
+CP-23 — 2026-10-21 — qa_admin2.
+Paso 1: "Medicamento desactivado"; fila en el catálogo: QA Diclofenaco 50 mg · Tableta Analgésico Tableta 0 Inactivo 
+Paso 2: ¿aparece en el selector de Registrar entrada? false. ¿En la búsqueda de Dispensación ("QA Diclofenaco")? false — lista mostrada: "QA Diclofenaco API Ampolla — 75 mg/3 ml". ¿En Existencias? false — tabla: "QA Diclofenaco API 75 mg/3 ml · Ampolla Antiinflamatorio 0 / mín 10 0 Sin stock — Detalle".
+Paso 3: "Medicamento activado"; vuelve al selector de Registrar entrada: true; Existencias: "QA Diclofenaco 50 mg · Tableta Analgésico 0 / mín 15 0 Sin stock — Detalle QA Diclofenaco API 75 mg/3 ml · Ampolla Antiinflamatorio 0 / mín 10 0 Sin stock — Detalle".
+Bitácora (EDITAR de QA Diclofenaco): [{"fecha":"2026-10-21T06:30:13.001Z","antes":{"activo":false},"nuevos":{"activo":true}},{"fecha":"2026-10-21T06:29:59.986Z","antes":{"activo":true},"nuevos":{"activo":false}}]
+Capturas: CP-23_a.png (inactivo en el catálogo), CP-23_b.png (búsqueda de Dispensación sin QA Diclofenaco), CP-23_c.png (Existencias).

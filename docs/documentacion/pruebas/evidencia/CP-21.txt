@@ -1,0 +1,6 @@
+CP-21 — 2026-10-21 — qa_admin2, "Nuevo medicamento" en Registrar entrada (el contenedor de la API tiene salida a internet).
+Paso 1, código de datos_prueba.md 00303789205353: avisos ["No se encontraron datos en OpenFDA para este código. Complete el formulario manualmente."] (captura CP-21_a0.png). OpenFDA ya no tiene ese NDC: la consulta directa a api.fda.gov de openfda.package_ndc:"0378-9205-35" responde 404 "No matches found!" (comprobado desde el contenedor de la API el 2026-10-21).
+Se repitió con un código vigente armado con la misma regla (GTIN-14 = 00 + 3 + NDC-10 + dígito verificador) a partir del NDC 42291-936-90 de Sucralfate: 00342291936904 → avisos ["Datos sugeridos por OpenFDA — verifique antes de guardar"]; banda "Datos sugeridos por OpenFDA" visible: true; campos del formulario: ["Sucralfate","Sucralfate","","",""].
+Paso 2, 7790000000011: avisos ["Este medicamento ya está registrado: QA Paracetamol"].
+Paso 3, 7790000000099: avisos ["No se encontraron datos en OpenFDA para este código. Complete el formulario manualmente."].
+No se guardó ningún medicamento (se canceló el formulario). Capturas: CP-21_a.png, CP-21_b.png, CP-21_c.png.

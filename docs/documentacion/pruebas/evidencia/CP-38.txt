@@ -1,0 +1,6 @@
+CP-38 — 2026-10-21 — qa_admin2, Registrar entrada.
+Paso 1, lectura de 7790000000059 en el lote 1 (escrito + Enter): ["No se encontró medicamento con ese código de barras"].
+Paso 2: "Nuevo medicamento" QA Clotrimazol, Crema, 1 %, Tubo, Dermatológico → "Medicamento creado"; seleccionado en el lote 1: "QA Clotrimazol (1 %)".
+Paso 3: lote QA-CL-1, 10 unidades, vence 2027-05-09 → "Entrada registrada".
+Catálogo: QA Clotrimazol con 0 códigos de barras; GET /barcode/7790000000059 → 404 {"error":"Código de barras no registrado"}.
+Captura: CP-38.png.

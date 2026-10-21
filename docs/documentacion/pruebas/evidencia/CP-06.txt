@@ -1,0 +1,10 @@
+CP-06 — 2026-10-21 — Ventana A: qa_admin2; ventana C: qa_temporal (contexto separado).
+Paso 2: "Usuario desactivado".
+Paso 3: al abrir /inventario en la ventana C, respuestas 401 observadas en la red:
+  401 /api/auth/perfil {"error":"La cuenta ya no está activa. Inicie sesión nuevamente."}
+  401 /api/auth/perfil {"error":"La cuenta ya no está activa. Inicie sesión nuevamente."}
+URL final: /login; almacenamiento local tras el 401: farmag_token=false, farmag_usuario=false.
+Paso 4: nuevo inicio de sesión de qa_temporal: "Credenciales inválidas".
+Paso 5: "Usuario activado".
+Capturas: CP-06_a.png (pantalla tras el 401, con las respuestas de red superpuestas), CP-06_b.png.
+Nota: el caso se ejecutó dos veces. En la primera el script no alcanzó a leer el cuerpo de la respuesta 401 antes de la redirección (falla del script, no del sistema; el resto de los pasos dio el mismo resultado); se repitió interceptando la respuesta.

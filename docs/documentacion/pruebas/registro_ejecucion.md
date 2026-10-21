@@ -82,36 +82,36 @@ Fuente: Elaboración propia.
 
 | ID | Fecha | Resultado obtenido | Estado | Defecto (H-XX) | Evidencia |
 |----|-------|--------------------|--------|----------------|-----------|
-| CP-01 | | | | | |
-| CP-02 | | | | | |
+| CP-01 | 2026-10-21 | "Bienvenido al sistema" y panel; menú con Usuarios, Reportes y Auditoría; registro LOGIN de qa_admin2 (el inicio exitoso se registra sin datos nuevos, no con exito: true); farmag_token presente | Aprobado |  | `evidencia/CP-01_a.png`, `evidencia/CP-01_b.png`, `evidencia/CP-01.txt` |
+| CP-02 | 2026-10-21 | Pantalla: "Credenciales inválidas" y sigue en /login; petición: 401 con "intentosRestantes":1; bitácora: dos LOGIN de qa_encargado con exito false | Aprobado |  | `evidencia/CP-02_a.png`, `evidencia/CP-02_curl.txt`, `evidencia/CP-02_b.png`, `evidencia/CP-02.txt` |
 | CP-03 | 2026-10-20 | 401, 401, 429 "Demasiados intentos fallidos. Intente de nuevo en 5 minuto(s)." con Retry-After, 429 con la contraseña correcta; tras 5 minutos, 200 | Aprobado |  | `evidencia/CP-03.txt` |
 | CP-04 | 2026-10-20 | 1 a 20: 401; la 21 y la de admin con contraseña correcta: 429 "Demasiadas solicitudes de inicio de sesión desde esta red…" con Retry-After; tras reiniciar, 200 | Aprobado |  | `evidencia/CP-04.txt` |
 | CP-05 | | | | | |
-| CP-06 | | | | | |
-| CP-07 | | | | H-47 (esperado) | |
+| CP-06 | 2026-10-21 | La petición recibe 401 "La cuenta ya no está activa. Inicie sesión nuevamente." y vuelve al inicio de sesión; nuevo intento: "Credenciales inválidas"; "Usuario activado" | Aprobado |  | `evidencia/CP-06_a.png`, `evidencia/CP-06_b.png`, `evidencia/CP-06.txt` |
+| CP-07 | 2026-10-21 | Intentos 1 y 2: solo "Credenciales inválidas", sin los intentos restantes | Fallido | H-47 (esperado) | `evidencia/CP-07.png`, `evidencia/CP-07.txt` |
 | CP-08 | 2026-10-20 | No hay endpoint de cierre de sesión (404 "Ruta no encontrada"); la bitácora tiene 0 registros LOGOUT | Fallido | H-10 (esperado) | `evidencia/CP-08.txt` |
 | CP-09 | 2026-10-20 | 201; qa_nuevo activo, rol Encargado; sin contraseña ni hash en la respuesta; CREAR de usuario en la bitácora | Aprobado |  | `evidencia/CP-09.txt` |
 | CP-10 | 2026-10-20 | 409 "El nombre de usuario ya existe"; no se creó usuario | Aprobado |  | `evidencia/CP-10.txt` |
 | CP-11 | 2026-10-20 | 400 con los cuatro mensajes esperados; no se creó ningún usuario | Aprobado |  | `evidencia/CP-11.txt` |
-| CP-12 | | | | | |
+| CP-12 | 2026-10-21 | "Usuario actualizado" y EDITAR con datos anteriores y nuevos; al recargar, qa_nuevo ve Usuarios, Reportes y Auditoría; "Contraseña actualizada" e inicio de sesión correcto con la nueva; la bitácora no muestra la contraseña | Aprobado |  | `evidencia/CP-12_a.png`, `evidencia/CP-12_b.png`, `evidencia/CP-12.txt` |
 | CP-13 | 2026-10-20 | Ambos 400 con los mensajes esperados; la cuenta sigue activa y con rol Administrador | Aprobado |  | `evidencia/CP-13.txt` |
 | CP-14 | 2026-10-20 | Desactivado y visible como inactivo; login 401 "Credenciales inválidas"; reactivado; DESACTIVAR y ACTIVAR en la bitácora | Aprobado |  | `evidencia/CP-14.txt` |
 | CP-15 | | | | | |
 | CP-16 | 2026-10-20 | 500 "Error interno del servidor" en lugar de 409; no se creó el usuario | Fallido | H-15 (esperado) | `evidencia/CP-16.txt` |
-| CP-17 | | | | | |
-| CP-18 | | | | | |
-| CP-19 | | | | | |
-| CP-20 | | | | | |
-| CP-21 | | | | | |
+| CP-17 | 2026-10-21 | Stock mínimo propuesto 10; "Medicamento creado"; queda seleccionado en el lote 1; aparece en el catálogo; CREAR en la bitácora | Aprobado |  | `evidencia/CP-17.png`, `evidencia/CP-17.txt` |
+| CP-18 | 2026-10-21 | Diálogo "Posibles duplicados" con el texto esperado y QA Paracetamol; "Revisar de nuevo" vuelve al formulario con los datos; "Crear de todos modos" → "Medicamento creado" | Aprobado |  | `evidencia/CP-18.png`, `evidencia/CP-18.txt` |
+| CP-19 | 2026-10-21 | Paso 1: no se crea nada, pero el formulario lo detiene la validación del navegador ("Please select an item in the list.") y no aparece "Seleccione una categoría". Paso 2: 400 "La categoría especificada no existe". Paso 3: 400 "Datos inválidos" | Fallido | DP-01 | `evidencia/CP-19.png`, `evidencia/CP-19_curl.txt`, `evidencia/CP-19.txt` |
+| CP-20 | 2026-10-21 | "Medicamento actualizado", pero el EDITAR incluye además nombreComercial null → "" (no solo el stock mínimo); "Foto actualizada" con vista previa y archivo .webp; sin cambios: la API responde "No hubo cambios que aplicar" y no registra EDITAR (la pantalla muestra "Medicamento actualizado") | Fallido | DP-03 | `evidencia/CP-20_a.png`, `evidencia/CP-20_b.png`, `evidencia/CP-20.txt` |
+| CP-21 | 2026-10-21 | Paso 1: el código 00303789205353 ya no tiene datos en OpenFDA (404 de api.fda.gov); con el código vigente 00342291936904 (Sucralfate) el formulario se llena (Sucralfate, Sucralfate) con "Datos sugeridos por OpenFDA — verifique antes de guardar"; paso 2: "Este medicamento ya está registrado: QA Paracetamol"; paso 3: "No se encontraron datos en OpenFDA para este código. Complete el formulario manualmente." | Aprobado |  | `evidencia/CP-21_a0.png`, `evidencia/CP-21_a.png`, `evidencia/CP-21_b.png`, `evidencia/CP-21_c.png`, `evidencia/CP-21.txt` |
 | CP-22 | 2026-10-20 | 400 "Formato de imagen no permitido…", 400 "El archivo supera el tamaño máximo permitido" y 400 "El archivo no es una imagen válida"; la foto anterior no cambió | Aprobado |  | `evidencia/CP-22.txt` |
-| CP-23 | | | | | |
+| CP-23 | 2026-10-21 | "Medicamento desactivado", sigue en el catálogo como inactivo y EDITAR en la bitácora; no aparece en Registrar entrada, Dispensación ni Existencias; "Medicamento activado" y vuelve a aparecer | Aprobado |  | `evidencia/CP-23_a.png`, `evidencia/CP-23_b.png`, `evidencia/CP-23_c.png`, `evidencia/CP-23.txt` |
 | CP-24 | 2026-10-20 | Código guardado sin espacios (201); consulta 200 con stockActual; eliminado; luego 404 "Código de barras no registrado"; CREAR y ELIMINAR en la bitácora | Aprobado |  | `evidencia/CP-24.txt` |
-| CP-25 | | | | | |
+| CP-25 | 2026-10-21 | "Este código de barras ya está registrado en otro medicamento" y no se vincula; campo vacío: "Escanee o escriba un código de barras" | Aprobado |  | `evidencia/CP-25.png`, `evidencia/CP-25_b.png`, `evidencia/CP-25.txt` |
 | CP-26 | 2026-10-20 | 409 "Este código de barras ya está registrado en otro medicamento" (mensaje de otro medicamento) | Fallido | H-31 (esperado) | `evidencia/CP-26.txt` |
-| CP-27 | | | | | |
+| CP-27 | 2026-10-21 | "Categoría creada", "Categoría actualizada", "Categoría desactivada" (no aparece en el selector), "Categoría activada"; CREAR y EDITAR en la bitácora | Aprobado |  | `evidencia/CP-27.png`, `evidencia/CP-27.txt` |
 | CP-28 | 2026-10-20 | 409, 400, 409 "Ya existe un registro con el mismo nombre" y 400 con los mensajes esperados; no se creó ni cambió ninguna categoría | Aprobado |  | `evidencia/CP-28.txt` |
 | CP-29 | 2026-10-20 | 500 "Error interno del servidor" | Fallido | H-42 (esperado) | `evidencia/CP-29.txt` |
-| CP-30 | | | | | |
+| CP-30 | 2026-10-21 | "Ubicación creada", "Ubicación actualizada"; QA-02 en el selector de Registrar entrada; la fila solo tiene el botón Editar | Aprobado |  | `evidencia/CP-30.png`, `evidencia/CP-30.txt` |
 | CP-31 | 2026-10-20 | 409 y 400/400 con los mensajes esperados; no se creó ni cambió ninguna ubicación | Aprobado |  | `evidencia/CP-31.txt` |
 | CP-32 | 2026-10-20 | 500 "Error interno del servidor" | Fallido | H-42 (esperado) | `evidencia/CP-32.txt` |
 | CP-33 | | | | | |
@@ -119,10 +119,10 @@ Fuente: Elaboración propia.
 | CP-35 | 2026-10-20 | 400 "Lote 2 (QA-E-4): La fecha de vencimiento ya pasó o es hoy…" con hoy y con ayer; ningún lote de la entrada quedó registrado | Aprobado |  | `evidencia/CP-35.txt` |
 | CP-36 | | | | | |
 | CP-37 | 2026-10-20 | 400 "Uno o más medicamentos no existen o están inactivos" y 400 "Una o más ubicaciones no existen"; no se registró nada | Aprobado |  | `evidencia/CP-37.txt` |
-| CP-38 | | | | | |
+| CP-38 | 2026-10-21 | "No se encontró medicamento con ese código de barras"; "Medicamento creado" y queda seleccionado; "Entrada registrada"; QA Clotrimazol sin el código 7790000000059 (0 códigos) | Aprobado |  | `evidencia/CP-38.png`, `evidencia/CP-38.txt` |
 | CP-39 | 2026-10-20 | Plantilla correcta (2 hojas, 11 encabezados, 1 fila de ejemplo); 3 filas → 3 lotes, 2 medicamentos, 1 categoría (QA Importada), 1 ubicación (QA-IMP), 1 código vinculado; CREAR en la bitácora por cada uno | Aprobado |  | `evidencia/CP-39.txt` |
 | CP-40 | 2026-10-20 | 3 filas con errores (4, 5 y 6) con los tres mensajes esperados; se importaron solo QA-I-4 y QA-I-5 | Aprobado |  | `evidencia/CP-40.txt` |
-| CP-41 | | | | | |
+| CP-41 | 2026-10-21 | Paso 1: el botón "Importar" está deshabilitado sin archivo y no se muestra "Seleccione un archivo .xlsx". Paso 2: "Faltan columnas en el Excel: fechaVencimiento. Descargue la plantilla actualizada.", "El archivo no es un Excel (.xlsx) válido", "El archivo no contiene filas de datos"; no se importa nada | Fallido | DP-02 | `evidencia/CP-41_a.png` … `evidencia/CP-41_d.png`, `evidencia/CP-41.txt` |
 | CP-42 | 2026-10-20 | Fila 2: aviso "Ya existe el lote QA-F-B…" y 1 lote omitido; fila 3: error de QA Ranitidina inactivo; fila 4: lote importado con aviso de código no vinculado | Aprobado |  | `evidencia/CP-42.txt` |
 | CP-43 | 2026-10-20 | La fila se rechazó: "La categoría "QA Categoría Inactiva" existe pero está inactiva; actívela antes de importar" | Fallido | H-48 (esperado) | `evidencia/CP-43.txt` |
 | CP-44 | | | | | |

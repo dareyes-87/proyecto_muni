@@ -1,0 +1,5 @@
+CP-07 — 2026-10-21 — API reiniciada antes del caso.
+Dos inicios de sesión fallidos de qa_encargado desde la pantalla de inicio de sesión.
+Mensajes mostrados: intento 1 = ["Credenciales inválidas"]; intento 2 = ["Credenciales inválidas"].
+La pantalla no muestra los intentos restantes.
+Captura: CP-07.png (después del segundo intento).

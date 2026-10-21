@@ -1,0 +1,45 @@
+CP-12 — 2026-10-21 — Ventana A: qa_admin2; ventana C: qa_nuevo (contexto de navegador separado).
+Menú de qa_nuevo antes del cambio: Dashboard Dispensación Beneficiarios Inventario Catálogos
+Paso 2: "Usuario actualizado". Paso 3 (recarga sin volver a iniciar sesión): Dashboard Dispensación Beneficiarios Inventario Catálogos Reportes Administración Usuarios Auditoría
+Paso 4: "Usuario actualizado" (rol de vuelta a Encargado).
+Paso 5: "Contraseña actualizada"; nuevo inicio de sesión de qa_nuevo con la contraseña nueva: "Bienvenido al sistema".
+Últimos EDITAR de usuario en la bitácora (la contraseña no aparece en texto plano: true):
+[
+  {
+    "fecha": "2026-10-21T06:24:22.805Z",
+    "usuario": "qa_admin2",
+    "antes": null,
+    "nuevos": {
+      "password": "***restablecida***"
+    }
+  },
+  {
+    "fecha": "2026-10-21T06:24:22.381Z",
+    "usuario": "qa_admin2",
+    "antes": {
+      "rol": "ADMIN",
+      "email": "qa_nuevo@example.com",
+      "nombreCompleto": "Usuario Prueba Nuevo"
+    },
+    "nuevos": {
+      "rol": "ENCARGADO_BENEFICENCIA",
+      "email": "qa_nuevo@example.com",
+      "nombreCompleto": "Usuario Prueba Nuevo"
+    }
+  },
+  {
+    "fecha": "2026-10-21T06:24:20.187Z",
+    "usuario": "qa_admin2",
+    "antes": {
+      "rol": "ENCARGADO_BENEFICENCIA",
+      "email": "qa_nuevo@example.com",
+      "nombreCompleto": "Usuario Prueba Nuevo"
+    },
+    "nuevos": {
+      "rol": "ADMIN",
+      "email": "qa_nuevo@example.com",
+      "nombreCompleto": "Usuario Prueba Nuevo"
+    }
+  }
+]
+Capturas: CP-12_a.png (menú de qa_nuevo como Administrador), CP-12_b.png (bitácora).

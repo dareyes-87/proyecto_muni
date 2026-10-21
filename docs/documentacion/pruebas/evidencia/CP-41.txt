@@ -1,0 +1,7 @@
+CP-41 — 2026-10-21 — qa_admin2, "Importar desde Excel".
+Paso 1, sin archivo: el botón "Importar" está deshabilitado (disabled = true); al intentar pulsarlo no ocurre nada. Avisos: []. El aviso "Seleccione un archivo .xlsx" (Entradas.tsx, subirExcel) no se puede mostrar porque el botón no se habilita sin archivo.
+Paso 2:
+  import_sin_columnas.xlsx → ["Faltan columnas en el Excel: fechaVencimiento. Descargue la plantilla actualizada."]
+  no_excel.xlsx → ["El archivo no es un Excel (.xlsx) válido"]
+  import_vacia.xlsx → ["El archivo no contiene filas de datos"]
+No se importó nada. Capturas: CP-41_a.png (botón deshabilitado), CP-41_b.png, CP-41_c.png, CP-41_d.png.

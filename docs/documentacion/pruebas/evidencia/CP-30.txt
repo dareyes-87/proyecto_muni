@@ -1,0 +1,4 @@
+CP-30 — 2026-10-21 — qa_admin2, Catálogos > Ubicaciones.
+Paso 1: "Ubicación creada". Paso 2: "Ubicación actualizada"; fila: QA-02 Estante de prueba (editado) ; botones de la fila: ["Editar"] (no hay desactivar ni eliminar).
+Paso 3: opciones del selector de ubicación de un lote en Registrar entrada: ["—","A","B","BOD","C","D","E","F","QA-01","QA-02","QA-IMP"]; QA-02 elegida.
+Captura: CP-30.png (QA-02 elegida en el lote 1).
