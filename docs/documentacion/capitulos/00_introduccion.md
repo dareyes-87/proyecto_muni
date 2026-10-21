@@ -51,7 +51,9 @@ funcionales, las pruebas automatizadas, los resultados de las pruebas funcionale
 defectos, la referencia a las pruebas de seguridad y la evaluación frente a los requerimientos no
 funcionales.
 
-El Glosario define, en orden alfabético, los términos técnicos y del dominio que se usan en el
-documento. Las Referencias bibliográficas reúnen las fuentes citadas en los capítulos. El Anexo A
-contiene el manual de usuario; el Anexo B, el informe de pruebas de penetración, y el Anexo C, las
-reglas de negocio vigentes del sistema.
+Las Conclusiones evalúan el cumplimiento del objetivo general y de cada objetivo específico, y las
+Recomendaciones indican las acciones pendientes y a quién corresponde ejecutarlas. El Glosario
+define, en orden alfabético, los términos técnicos y del dominio que se usan en el documento. Las
+Referencias bibliográficas reúnen las fuentes citadas en los capítulos. El Anexo A contiene el manual
+de usuario; el Anexo B, el informe de pruebas de penetración, y el Anexo C, la lista de las reglas de
+negocio vigentes del sistema, con el identificador, la regla y el módulo al que pertenece cada una.

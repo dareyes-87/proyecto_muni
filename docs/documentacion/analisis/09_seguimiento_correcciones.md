@@ -139,6 +139,14 @@ probaron en ejecución.
 
 Fuente: Elaboración propia.
 
+### 4.1 Hallazgos de la instalación (2026-10-21)
+
+| ID | Tipo | Estado | Descripción | Fuente |
+|----|------|--------|-------------|--------|
+| H-52 | Seguridad (instalación) | Resuelto (2026-10-21, cambio de contraseña desde Usuarios, confirmado por el personal de la farmacia) | La instalación de la farmacia conservaba el usuario `admin` con la contraseña fija `admin2026` del seed anterior a `254d0f8`. `admin2026` ya no está vigente. No requirió cambio de código; el cambio no se verificó en el servidor (R-10). | `hallazgos_defectos.md` (H-52); R-33; confirmación de Audias Guevara, 2026-10-21 |
+
+Fuente: Elaboración propia.
+
 ## 5. Verificaciones posteriores en ejecución (2026-10-20)
 
 Al actualizar `01_stack_y_estructura.md`, `02_modelo_datos.md` y `05_seguridad_roles.md` al commit

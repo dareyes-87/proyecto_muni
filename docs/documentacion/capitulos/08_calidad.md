@@ -199,10 +199,18 @@ responsable y un lote de corrección. Las correcciones se integraron por lotes, 
 automatizado aprobado, y cada hallazgo se marcó como resuelto solo cuando el código lo mostraba. De
 los 34 primeros hallazgos, verificados uno por uno, 19 quedaron resueltos, 10 resueltos parcialmente,
 4 pendientes y 1 no verificable en el código; los 17 detectados después en esa verificación siguen
-pendientes, y se agregaron 4 más, H-52 por la instalación y H-53 a H-55 por las pruebas funcionales.
+pendientes, y se agregaron 4 más: H-52, por la instalación, que ya se resolvió, y H-53 a H-55, por las
+pruebas funcionales, que siguen pendientes. En total se resolvieron 20 hallazgos, 10 de forma parcial,
+y quedan 24 pendientes y 1 no verificable en el código.
 Entre los resueltos están el despacho de lotes que vencían el mismo día, el proceso de vencimiento
 desfasado por la zona horaria, el borrado de datos al actualizar el esquema, las fotografías de
 recetas accesibles sin sesión y la falta de límite de intentos de inicio de sesión.
+
+El hallazgo H-52, de prioridad crítica, se detectó y resolvió antes de la entrega. La instalación de
+la farmacia conservaba el usuario administrador con la contraseña fija que creaba la carga inicial
+anterior al 7 de octubre de 2026, publicada en el historial del repositorio, lo que permitía a
+cualquier persona de la red local entrar con control total del sistema. El 21 de octubre de 2026 el
+personal de la farmacia cambió esa contraseña desde la gestión de usuarios, sin cambios en el código.
 
 En la Tabla 311 se presentan los hallazgos abiertos de prioridad crítica y alta. Cuatro de ellos
 (H-36, H-03, H-07 y H-17) dependen de la configuración con que se ejecuta el servidor de la farmacia,
@@ -214,7 +222,6 @@ Hallazgos abiertos de prioridad crítica y alta
 
 | ID | Hallazgo | Prioridad | Corrección |
 |----|----------|-----------|------------|
-| H-52 | La instalación de la farmacia puede conservar la contraseña fija del administrador que creaba la carga inicial anterior | Crítica | Inmediata: restablecer la contraseña desde la gestión de usuarios |
 | H-36 | La actualización automática del servidor usa la configuración de desarrollo, con secretos por defecto | Crítica | Después de la entrega |
 | H-03 | La configuración conserva valores por defecto de la contraseña de la base de datos y de la clave de firma de sesiones | Crítica | Bloqueada: requiere acceso al servidor |
 | H-46 | El filtro de fecha inicial de reportes y bitácora incluye horas del día anterior | Alta | Después del cierre de la documentación |

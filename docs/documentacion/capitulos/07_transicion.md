@@ -173,11 +173,7 @@ instalación presenta los siguientes riesgos:
 1. Secretos por defecto. Se asume que los secretos del servidor no se cambiaron, porque el archivo de
    variables se creó a partir de la plantilla y nadie del equipo ha accedido después al equipo. La
    clave de firma de ejemplo es pública en el repositorio y permite firmar desde cualquier equipo de
-   la red local un token con rol de Administrador. Además, la instalación es anterior al 7 de octubre
-   de 2026, cuando el administrador inicial se creaba con una contraseña fija que figura en el
-   historial público del repositorio; esa contraseña sigue vigente si nadie la cambió. La acción
-   inmediata, que no requiere acceso al servidor, es restablecer la contraseña de `admin` desde la
-   página de gestión de usuarios.
+   la red local un token con rol de Administrador.
 2. Modo de desarrollo. La actualización automática usa el archivo de composición por defecto, cuyo
    modo es el de desarrollo salvo que el archivo de variables lo cambie. En ese modo las respuestas de
    error muestran detalles internos, la API acepta peticiones de cualquier origen y el endurecimiento
@@ -193,6 +189,14 @@ instalación presenta los siguientes riesgos:
    copia fuera del servidor, por lo que una falla del disco perdería a la vez la base de datos, sus
    respaldos y las fotografías. Queda pendiente una copia semanal de las carpetas `backups/` y
    `backend/uploads/` a una memoria USB cifrada, a cargo del administrador municipal.
+
+Al revisar la instalación se detectó además un riesgo crítico que ya se resolvió. La instalación es
+anterior al 7 de octubre de 2026, cuando la carga inicial creaba el usuario `admin` con una contraseña
+fija que figura en el historial público del repositorio, y la carga inicial actual no cambia la
+contraseña de un administrador que ya existe. Mientras esa contraseña estuvo vigente, cualquier
+persona de la red local podía entrar al sistema como Administrador. El 21 de octubre de 2026 el
+personal de la farmacia la cambió desde la página de gestión de usuarios, sin cambios en el código ni
+acceso al servidor; el cambio lo confirmó el personal y no se comprobó en el servidor.
 
 ## 7.6 Mantenimiento
 

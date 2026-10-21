@@ -122,12 +122,13 @@ Detectados al redactar el Capítulo VII; verificados por lectura de la configura
 
 ## Respuestas del equipo sobre la instalación (2026-10-21)
 
-Registrado a partir de la respuesta de Daniel Reyes del 2026-10-20 (R-33); el estado de la contraseña
-en el servidor no se verificó, porque nadie del equipo accede a él (R-10).
+Registrado a partir de la respuesta de Daniel Reyes del 2026-10-20 (R-33). El 2026-10-21 Audias Guevara
+confirmó que el personal de la farmacia cambió la contraseña de `admin`; el cambio lo confirmó el personal,
+no se verificó en el servidor, porque nadie del equipo accede a él (R-10).
 
 | ID | Tipo | Descripción | Impacto | Fuente | Referencia |
 |----|------|-------------|---------|--------|------------|
-| H-52 | Seguridad (instalación) | La instalación de la farmacia (≈25/09/2026) se hizo con el seed anterior a `254d0f8` (07/10/2026), que creaba el usuario `admin` con la contraseña fija `admin2026`. Esa contraseña figura en el historial del repositorio, que es público, y el seed actual no modifica la contraseña de un administrador que ya existe. No consta que se haya cambiado. | Prioridad **Crítica**: si no se cambió, cualquier persona en la red local puede iniciar sesión como ADMIN (control total del sistema, datos de beneficiarios incluidos). Acción inmediata que no requiere acceso al servidor: quien opera la farmacia, con su sesión de ADMIN, restablece la contraseña de `admin` desde Usuarios → restablecer contraseña. | `git show 254d0f8^:backend/prisma/seed.ts`, líneas 17 y 27; backend/prisma/seed.ts (rama del administrador existente); hoja "Prioritario" #9 de `FarmaG_Pendientes_respondido.xlsx` | R-33, H-39, H-23 |
+| H-52 | Seguridad (instalación) | La instalación de la farmacia (≈25/09/2026) se hizo con el seed anterior a `254d0f8` (07/10/2026), que creaba el usuario `admin` con la contraseña fija `admin2026`. Esa contraseña figura en el historial del repositorio, que es público, y el seed actual no modifica la contraseña de un administrador que ya existe. **Estado: Resuelto (2026-10-21, cambio de contraseña desde Usuarios, confirmado por el personal de la farmacia); `admin2026` ya no está vigente (Audias Guevara, 2026-10-21).** | Prioridad **Crítica**: si no se cambió, cualquier persona en la red local puede iniciar sesión como ADMIN (control total del sistema, datos de beneficiarios incluidos). Acción inmediata que no requiere acceso al servidor: quien opera la farmacia, con su sesión de ADMIN, restablece la contraseña de `admin` desde Usuarios → restablecer contraseña. | `git show 254d0f8^:backend/prisma/seed.ts`, líneas 17 y 27; backend/prisma/seed.ts (rama del administrador existente); hoja "Prioritario" #9 de `FarmaG_Pendientes_respondido.xlsx` | R-33, H-39, H-23 |
 
 ## Pruebas funcionales de interfaz, ciclo 1 (2026-10-21)
 

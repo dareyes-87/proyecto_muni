@@ -13,6 +13,7 @@
 > Actualizado el 2026-10-21 con las respuestas de Daniel Reyes del 2026-10-20 (R-25 a R-35,
 > `FarmaG_Pendientes_respondido.xlsx`): nuevo hallazgo H-52, P-24 decidida (R-34) y comentarios de la
 > hoja "Trabajo posterior" (sección 5).
+> Actualizado el 2026-10-21: H-52 resuelto (2026-10-21, cambio de contraseña desde Usuarios, confirmado por el personal de la farmacia) (Audias Guevara).
 > No se corrigió nada: este documento solo propone.
 
 ## Criterios
@@ -53,7 +54,7 @@ Hallazgos y discrepancias abiertos, con la corrección propuesta
 
 | ID | Problema (una línea) | Prioridad | Entrega | Tipo de acción | Módulo y responsable original | Archivos a tocar | Corrección propuesta | Esfuerzo | Prueba que la verificaría |
 |----|----------------------|-----------|---------|----------------|-------------------------------|------------------|----------------------|-----------|---------------------------|
-| H-52 | La instalación de la farmacia se hizo con el seed que creaba `admin`/`admin2026`, contraseña publicada en el historial del repositorio; no consta que se haya cambiado | Crítica | Antes del 24/10 | Operación (inmediata, sin acceso al servidor) | Operación — persona que opera la farmacia (cuenta ADMIN); seguimiento: Daniel Reyes | Ninguno | **Respuesta (R-33):** preguntar hoy al personal si siguen entrando con `admin2026`; si es así, restablecer la contraseña de `admin` desde Usuarios → restablecer contraseña, con una contraseña de 8 o más caracteres (R-12). No requiere cambio de código ni acceso al servidor. El cambio obligatorio del lote 4 (H-39) no lo cubre, porque solo aplica al administrador creado por el seed nuevo. | S | Inicio de sesión con `admin`/`admin2026` desde un equipo de la red → 401 |
+| H-52 | La instalación de la farmacia se hizo con el seed que creaba `admin`/`admin2026`, contraseña publicada en el historial del repositorio; no consta que se haya cambiado | Crítica | **Resuelto (2026-10-21, cambio de contraseña desde Usuarios, confirmado por el personal de la farmacia)** | Operación (inmediata, sin acceso al servidor) | Operación — persona que opera la farmacia (cuenta ADMIN); seguimiento: Daniel Reyes | Ninguno | **Respuesta (R-33):** preguntar hoy al personal si siguen entrando con `admin2026`; si es así, restablecer la contraseña de `admin` desde Usuarios → restablecer contraseña, con una contraseña de 8 o más caracteres (R-12). No requiere cambio de código ni acceso al servidor. El cambio obligatorio del lote 4 (H-39) no lo cubre, porque solo aplica al administrador creado por el seed nuevo. | S | Inicio de sesión con `admin`/`admin2026` desde un equipo de la red → 401 |
 | H-36 | La actualización automática usa `docker-compose.yml` (modo desarrollo: `tsx watch`, Vite, `NODE_ENV=development`, secretos por defecto) | Crítica | Después del 24/10 | Código (decisión R-10) | Setup/despliegue — Daniel Reyes (`docker-compose.yml`: dareyes-87; `DESPLIEGUE.md`/entrypoint: Jorge Vargas, Daniel Reyes) | docker-compose.yml; .github/workflows/despliegue-seguro.yml; docs/DESPLIEGUE.md | **Decisión (R-10):** no se usará `docker-compose.prod.yml` ni se cambiará `auto-update.cmd`, porque nadie puede acceder al servidor. La configuración de producción se lleva a `docker-compose.yml` (`NODE_ENV=production`, backend compilado con `node dist/server.js`, frontend servido por nginx), con secretos con valor por defecto y sin `${VAR:?}`, probada en el workflow y conservando el puerto actual de acceso. **Propuesta (R-28):** como el puerto actual no está confirmado (R-27), publicar nginx en `80:80` y `5173:80`. Antes del merge, el workflow debe pasar con el escenario `produccion-ejemplo` y el merge se hace fuera del horario de atención (R-26). Se descarta la recomendación anterior (cambiar `auto-update.cmd`). | L | En el workflow, con `docker-compose.yml`: `GET /api/health` responde en modo producción; `ps` en `farmag_api` muestra `node dist/server.js`; el frontend responde con nginx en el puerto actual |
 | H-03 | `docker-compose.yml` conserva `farmag_secret_2026` y `farmag_jwt_secret_cambiar_en_produccion` como respaldo, y el backend arranca con ellos | Crítica | Bloqueado | Bloqueado (R-10) | Setup — Daniel Reyes (`docker-compose.yml`: dareyes-87; `env.ts`: jorgevargas83) | `.env` del servidor; después docker-compose.yml (líneas 8, 38, 39, 116) | **Decisión (R-10):** el paso 1 no se puede hacer porque nadie accede al servidor, y el paso 2 (`${VAR:?}`) no entra a `main`: los secretos conservan su valor por defecto en `docker-compose.yml`. El riesgo queda abierto y documentado. **Respuesta (R-25):** no confirmado; se asume que no se cambiaron. `JWT_SECRET` es riesgo abierto (el valor de ejemplo permite firmar un token de ADMIN desde la red local); `DB_PASSWORD` es riesgo aceptado porque PostgreSQL solo escucha en `127.0.0.1`. **Propuesta para el lote 2:** si `JWT_SECRET` es el valor de ejemplo, el entrypoint genera uno aleatorio y lo guarda en un volumen (sin `${VAR:?}`; solo cierra las sesiones una vez). 1) En sitio: definir `DB_PASSWORD` y `JWT_SECRET` propios en el `.env` (cambiar la contraseña del usuario de Postgres con `ALTER USER`, no solo la variable). 2) Solo después, cambiar `${VAR:-valor}` por `${VAR:?mensaje}` en `docker-compose.yml`. **El orden importa:** si el paso 2 llega a `main` antes que el 1, el servidor deja de arrancar en la siguiente actualización y no hay acceso remoto. | M | `docker compose config` sin `.env` falla con el mensaje; con `.env`, `grep farmag_jwt_secret` sobre `docker compose config` no devuelve nada; `backend/tests/env.test.ts` sigue pasando |
 | H-07 | `NODE_ENV=development` por defecto: errores 500 con mensaje interno y `/api/health` revela el entorno | Alta | Después del 24/10 | Código (con R-10) | Setup — Daniel Reyes (`server.ts`: dareyes-87) | `.env` del servidor (o H-36); backend/src/server.ts, línea 65 | **Decisión (R-10):** `NODE_ENV=production` se fija en `docker-compose.yml`; además se quita `environment` de `/api/health`. Se resuelve en la instalación con H-36 (`NODE_ENV=production`). En el código: quitar `environment` de la respuesta de `/api/health`. | S | `curl /api/health` no incluye `environment`; con `NODE_ENV=production`, un error forzado responde `{"error":"Error interno del servidor"}` sin `mensaje` |
@@ -112,14 +113,14 @@ Resumen por prioridad y entrega
 
 | Prioridad | Antes del 24/10 | Después del 24/10 | Bloqueado | Aceptado | Total |
 |-----------|-----------------|-------------------|-----------|----------|-------|
-| Crítica | 1 (H-52) | 1 (H-36) | 1 (H-03) | 0 | 3 |
+| Crítica | 0 | 1 (H-36) | 1 (H-03) | 0 | 2 |
 | Alta | 1 (H-46) | 3 (H-07, H-17, H-39) | 0 | 0 | 4 |
 | Media | 1 (H-15 (ubicaciones)) | 16 (H-40, H-50, H-51 / D-34, D-30, D-31, H-45, H-15 (usuarios), H-16, H-41, H-10, H-35, H-29, H-20 / D-17, H-22 / D-24, H-27 / D-27, H-23) | 0 | 1 (H-49) | 18 |
 | Baja | 3 (H-42, H-31, H-44) | 11 (H-38, H-43, D-18, H-47, H-48, D-32, D-33, D-35, H-53, H-54, H-55) | 0 | 12 (D-19, D-16, H-30, H-19, H-37, H-08, D-23, D-20, D-22, D-14, D-28, D-29) | 26 |
-| **Total** | **6** | **31** | **1** | **13** | **51** |
+| **Total** | **5** | **31** | **1** | **13** | **50** |
 
 Fuente: Elaboración propia, con las decisiones R-10 a R-35 y los hallazgos H-53 a H-55 de las pruebas de interfaz (2026-10-21). Cada fila de la Tabla 1 cuenta una vez;
-H-15 cuenta dos veces porque se dividió por lote.
+H-15 cuenta dos veces porque se dividió por lote. H-52 no se cuenta: resuelto (2026-10-21, cambio de contraseña desde Usuarios, confirmado por el personal de la farmacia).
 
 ## 2. Preguntas abiertas que bloquean una corrección
 
@@ -225,6 +226,7 @@ Fuente: `FarmaG_Pendientes_respondido.xlsx`, respuestas de Daniel Reyes del 2026
 **Tareas de operación que no requieren cambios de código:**
 
 1. H-52 (R-33): restablecer hoy la contraseña de `admin` desde Usuarios si sigue siendo `admin2026`.
+   **Resuelto (2026-10-21, cambio de contraseña desde Usuarios, confirmado por el personal de la farmacia).**
 2. Copia fuera del servidor (R-30): no existe. Tarea pendiente: copia semanal de `backups/` y
    `backend/uploads/` a una USB cifrada, a cargo del administrador municipal.
 3. Plataforma Docker (R-29): casi seguro Docker Desktop sobre Windows 10, sin comprobar. Riesgo legal
@@ -247,7 +249,7 @@ Comentarios de Daniel Reyes sobre el trabajo posterior (hoja "Trabajo posterior"
 | H-27 / D-27 | Motivo de baja opcional y solo en la auditoría (R-15) | Después del 24/10 | Decidido en R-15; lleva migración, por eso va después. |
 | D-33 | `RESPALDOS.md` usa `docker compose stop/start` sin indicar el archivo | Después del 24/10 | Solo documentación. Mismo PR que D-30. |
 | D-35 | `DESPLIEGUE.md` dice que el trabajo `despliegue` prueba dos configuraciones; son tres | Después del 24/10 | Solo documentación. Mismo PR que D-30. |
-| H-23 | La operación diaria se hace con una cuenta ADMIN (crear cuenta Encargado tras H-20) | Después del 24/10 | Depende de H-20 (lote 7). Antes de eso, cambiar la contraseña `admin2026` si sigue vigente (ver H-52). |
+| H-23 | La operación diaria se hace con una cuenta ADMIN (crear cuenta Encargado tras H-20) | Después del 24/10 | Depende de H-20 (lote 7). La contraseña `admin2026` ya se cambió (H-52, resuelto el 2026-10-21). |
 
 Fuente: Elaboración propia con base en la hoja "Trabajo posterior" de `FarmaG_Pendientes_respondido.xlsx`.
 Las filas H-40, D-31, H-15 (usuarios), H-41, H-10, H-47, H-35, H-38, H-20 / D-17, H-22 / D-24, H-43,
