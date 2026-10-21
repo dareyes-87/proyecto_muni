@@ -194,8 +194,10 @@ sistema (riesgo 11 de la Tabla 9).
 ### 3.5.3 Factibilidad económica
 
 Las bibliotecas, el motor de base de datos y el servidor web del sistema son de código abierto y no
-requieren pago de licencias. [COMPLETAR: indicar si el servidor de la farmacia ejecuta Docker Desktop y, en ese caso,
-si los términos de licencia de Docker exigen una suscripción para la municipalidad]. El
+requieren pago de licencias. La excepción es la plataforma de contenedores: según el equipo, el
+servidor de la farmacia ejecuta casi con seguridad Docker Desktop, aunque no se comprobó, y los
+términos de Docker exigen una suscripción de pago a las entidades de gobierno que lo usan (Docker
+Inc., s.f.-c). Este riesgo legal y sus alternativas se tratan en la sección 7.1.3. El
 desarrollo lo realizó el equipo de estudiantes como proyecto académico.
 
 Los rubros de costo del proyecto son el equipo servidor de la farmacia, donde se ejecuta el sistema;

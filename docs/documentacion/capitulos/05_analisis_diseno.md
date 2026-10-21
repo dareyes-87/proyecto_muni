@@ -694,7 +694,9 @@ ejecuta con recarga automática y monta el código fuente, y los secretos tienen
 el archivo de composición. Según la guía de despliegue del proyecto, la actualización automática del
 servidor de la farmacia usa el archivo de composición por defecto, que corresponde al modo de
 desarrollo salvo que el archivo de variables del servidor lo cambie; esta situación es el riesgo 3 de
-la Tabla 9. [COMPLETAR: archivo de composición y modo que usa el servidor de la farmacia].
+la Tabla 9. El uso de `docker-compose.yml` en el servidor se deduce de la configuración, porque el
+comando de actualización no indica otro archivo; no se comprobó en el equipo, y el modo y el puerto
+con que se ejecuta tampoco están confirmados.
 
 ### 5.6.5 Escenarios
 

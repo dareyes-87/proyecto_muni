@@ -283,7 +283,9 @@ Fuente: Elaboración propia con base en `.github/workflows/despliegue-seguro.yml
 `analisis/10_material_calidad.md`, Tabla 5.
 
 Para que el workflow impida integrar un cambio con errores, la protección de la rama `main` debe estar
-activada en GitHub. [COMPLETAR: confirmar si la protección de `main` está activada en GitHub].
+activada en GitHub, y esa configuración no se confirmó. Desde el 11 de octubre de 2026 todos los
+cambios entraron a `main` por *pull request* con el workflow aprobado, pero se trata del
+procedimiento acordado por el equipo, no de un bloqueo técnico.
 
 ### 8.3.3 Resultados
 
@@ -430,7 +432,13 @@ tenía límite de intentos (H-09) y la base de datos y la API se publicaban en t
 El hallazgo no verificable en el código (H-23) es una práctica de operación: el despacho diario se
 hace con una cuenta de Administrador.
 
-La Tabla 310 distribuye por prioridad y por momento de corrección los 47 elementos abiertos del plan
+Después de la verificación se registró un hallazgo más, H-52, de prioridad crítica y relacionado con
+la instalación, no con el código del commit `bdf1187`: la instalación de la farmacia se hizo con la
+versión anterior de la carga inicial, que creaba el usuario `admin` con una contraseña fija publicada
+en el historial del repositorio, y no consta que se haya cambiado. Si sigue vigente, cualquier
+persona en la red local puede entrar al sistema como Administrador.
+
+La Tabla 310 distribuye por prioridad y por momento de corrección los 48 elementos abiertos del plan
 de correcciones, que incluyen los hallazgos no resueltos y las discrepancias que requieren una acción
 o una decisión. La columna "Antes del 24/10" corresponde a los lotes pequeños sin migración que pueden
 integrarse antes de la entrega; "Bloqueado", a lo que no puede hacerse sin acceso al servidor de la
@@ -441,32 +449,35 @@ Hallazgos y discrepancias abiertos por prioridad y momento de corrección
 
 | Prioridad | Antes del 24/10 | Después del 24/10 | Bloqueado | Aceptado | Total |
 |-----------|----------------:|------------------:|----------:|---------:|------:|
-| Crítica | 0 | 1 | 1 | 0 | 2 |
+| Crítica | 1 | 1 | 1 | 0 | 3 |
 | Alta | 1 | 3 | 0 | 0 | 4 |
 | Media | 1 | 16 | 0 | 1 | 18 |
 | Baja | 3 | 8 | 0 | 12 | 23 |
-| **Total** | **5** | **28** | **1** | **13** | **47** |
+| **Total** | **6** | **28** | **1** | **13** | **48** |
 
 Fuente: Elaboración propia con base en `analisis/12_plan_correcciones.md`, Tabla 2. H-15 se cuenta dos
 veces porque su corrección se dividió en dos lotes.
 
 ### 8.5.3 Hallazgos críticos y altos
 
-Los seis hallazgos abiertos de prioridad crítica o alta se presentan en la Tabla 311. Cuatro de ellos
+Los siete hallazgos abiertos de prioridad crítica o alta se presentan en la Tabla 311. Cuatro de ellos
 (H-36, H-03, H-07 y H-17) se relacionan con la configuración con que se ejecuta el sistema en el
-servidor y no con la lógica de negocio: la actualización automática del servidor usa el archivo
+servidor y no con la lógica de negocio: según se deduce de la configuración, sin comprobarlo en el
+equipo, la actualización automática del servidor usa el archivo
 `docker-compose.yml`, cuyo modo por defecto es el de desarrollo, y nadie del equipo tiene acceso al
-servidor para cambiar su configuración (R-10). H-39 se refiere a la credencial inicial del
-administrador, y H-46 afecta a los datos que el usuario ve en los reportes y en la bitácora.
+servidor para cambiar su configuración (R-10). H-52 y H-39 se refieren a la credencial del
+administrador: el primero, a la instalación de la farmacia, y el segundo, a las instalaciones
+nuevas. H-46 afecta a los datos que el usuario ve en los reportes y en la bitácora.
 
 Tabla 311.
 Hallazgos abiertos de prioridad crítica y alta
 
 | ID | Hallazgo | Prioridad | Estado en `bdf1187` | Corrección | Momento |
 |----|----------|-----------|---------------------|------------|---------|
+| H-52 | La instalación de la farmacia conserva, si nadie la cambió, la contraseña fija del administrador que creaba la carga inicial anterior, publicada en el historial del repositorio | Crítica | No verificable en el código | Restablecer la contraseña de `admin` desde la página de gestión de usuarios; no requiere acceso al servidor | Inmediato (operación) |
 | H-36 | La actualización automática del servidor usa `docker-compose.yml` en modo de desarrollo, con secretos por defecto | Crítica | Pendiente | Llevar la configuración de producción a `docker-compose.yml` y probarla en el workflow (R-10) | Después del 24/10 (lote 2) |
-| H-03 | `docker-compose.yml` conserva valores por defecto de la contraseña de la base y de la clave de firma de los tokens, y el backend arranca con ellos | Crítica | Resuelto parcialmente | Definir secretos propios en el servidor; no es posible sin acceso a él (R-10) | Bloqueado |
-| H-46 | En reportes y bitácora, el filtro `desde` se interpreta como medianoche UTC e incluye de 18:00 a 23:59 del día anterior | Alta | Pendiente | Interpretar las fechas simples como medianoche local y agregar el fin de día para `hasta` | Antes del 24/10 (lote 1) |
+| H-03 | `docker-compose.yml` conserva valores por defecto de la contraseña de la base y de la clave de firma de los tokens, y el backend arranca con ellos | Crítica | Resuelto parcialmente | Definir secretos propios en el servidor; no es posible sin acceso a él (R-10). Se asume que no se cambiaron (R-25) | Bloqueado |
+| H-46 | En reportes y bitácora, el filtro `desde` se interpreta como medianoche UTC e incluye de 18:00 a 23:59 del día anterior | Alta | Pendiente | Interpretar las fechas simples como medianoche local y agregar el fin de día para `hasta` | Pendiente al congelamiento; lote 1, no iniciado (R-32) |
 | H-07 | Con `NODE_ENV=development` por defecto, los errores 500 incluyen el mensaje interno y `/api/health` revela el entorno | Alta | Resuelto parcialmente | `NODE_ENV=production` en `docker-compose.yml` y quitar el entorno de `/api/health` | Después del 24/10 (lote 2) |
 | H-17 | En modo de desarrollo, CORS acepta cualquier origen y las cabeceras de seguridad de la interfaz solo existen con nginx | Alta | Resuelto parcialmente | Se resuelve con la configuración de producción de H-36 | Después del 24/10 (lote 2) |
 | H-39 | La contraseña aleatoria del administrador inicial queda legible en el registro del contenedor y nada obliga a cambiarla | Alta | Pendiente | Cambio obligatorio en el primer inicio de sesión solo para el administrador del seed (R-11) | Después del 24/10 (lote 4) |
@@ -475,9 +486,15 @@ Fuente: Elaboración propia con base en `analisis/12_plan_correcciones.md`, Tabl
 `analisis/09_seguimiento_correcciones.md`.
 
 El riesgo de H-36, H-03, H-07 y H-17 depende de las variables que tenga definidas el archivo `.env`
-del servidor, que no consta en el repositorio; si ese archivo fija valores de producción y secretos
-propios, el riesgo se reduce. [COMPLETAR: variables de entorno definidas en el servidor de la
-farmacia, sin anotar los valores de los secretos].
+del servidor, que no consta en el repositorio. Ese archivo se creó en la instalación a partir de
+`.env.example` y nadie del equipo ha accedido al servidor después, por lo que se asume que los
+secretos no se cambiaron (R-25). En consecuencia, `JWT_SECRET` se trata como un riesgo abierto: el
+valor de ejemplo es público en el repositorio y permite firmar, desde cualquier equipo de la red
+local, un token con rol de Administrador. `DB_PASSWORD` se trata como un riesgo aceptado, porque
+PostgreSQL solo escucha en `127.0.0.1`. Como trabajo posterior, el equipo propone que el script de
+arranque genere un `JWT_SECRET` aleatorio y lo guarde en un volumen cuando detecte el valor de
+ejemplo, dentro del lote 2. El archivo de Compose y el modo con que se ejecuta el servidor se deducen
+de la configuración y no se comprobaron (R-27).
 
 ### 8.5.4 Defectos conocidos que quedan para después de la entrega
 
@@ -488,7 +505,9 @@ La regla se relaciona con el mecanismo de actualización: lo que entra a `main` 
 servidor de la municipalidad de forma automática en un máximo de 30 minutos, tras sacar un respaldo
 (`docs/DESPLIEGUE.md`), y nadie del equipo tiene acceso a ese servidor (R-10). Además, como la documentación se
 congela el 21 de octubre (R-24), los lotes 1 y 3 que se integren después de esa fecha también se
-registran como trabajo posterior. En la Tabla 312 se presentan los elementos cuya corrección queda
+registran como trabajo posterior. Es el caso del lote 1 (H-46 y H-44): al 20 de octubre no se había
+iniciado (R-32, R-35) y no está en `main` en el momento del congelamiento, por lo que ambos hallazgos
+quedan pendientes en esta entrega. En la Tabla 312 se presentan los elementos cuya corrección queda
 para después de la entrega.
 
 Tabla 312.
@@ -496,7 +515,8 @@ Correcciones programadas para después de la entrega
 
 | Lote | Elementos | Contenido | Requiere migración |
 |------|-----------|-----------|--------------------|
-| 2 Configuración de Compose | H-36, H-07, H-17, H-40, H-50, H-51/D-34, D-30, D-31, D-32, D-33, D-35 | Configuración de producción en `docker-compose.yml`, variables que no llegan al contenedor y corrección de la documentación de despliegue | No |
+| 1 Fechas de reportes | H-46, H-44 | Filtros de fecha de reportes y bitácora en hora local, y validación de `estado` en la exportación de inventario; puede integrarse antes del 24/10, pero después del congelamiento | No |
+| 2 Configuración de Compose | H-36, H-07, H-17, H-40, H-50, H-51/D-34, D-30, D-31, D-32, D-33, D-35 | Configuración de producción en `docker-compose.yml`, variables que no llegan al contenedor y corrección de la documentación de despliegue; se propone además generar un `JWT_SECRET` aleatorio en el arranque y publicar nginx en los puertos 80 y 5173 | No |
 | 4 Usuarios y contraseñas | H-15 (usuarios), H-16, H-39, H-41, H-10, H-47 | Validación de usuarios, política de contraseñas de 8 caracteres (R-12), cambio obligatorio de la contraseña inicial (R-11), registro del cierre de sesión e intentos restantes en el inicio de sesión | Sí |
 | 5 Trazabilidad de la dispensación | H-45, H-35, H-38, H-29 | Filtros de fecha del historial, auditoría de las fotografías y de los enlaces de captura, desactivación de beneficiarios (R-13, R-14) | No |
 | 6 Bajas y umbrales | H-43, H-27/D-27, H-22/D-24, D-18, H-48 | Paginación, motivo obligatorio de la baja guardado en el lote (R-15), pantalla de umbrales del semáforo, auditoría de códigos en la importación | Sí |
@@ -510,7 +530,8 @@ Los lotes 2, 5 y 7 no requieren migración, pero también quedan para después d
 R-23 los incluye entre los que se integran después de la entrega. El lote 5 depende además de las
 funciones de fecha que introduce el lote 1.
 
-Por otra parte, H-03 queda bloqueado, porque requiere cambiar los secretos en el servidor, y trece
+Por otra parte, H-03 queda bloqueado, porque requiere cambiar los secretos en el servidor; H-52 no
+requiere cambios de código y se atiende restableciendo la contraseña desde el propio sistema; y trece
 elementos de prioridad media o baja se aceptan sin corrección, con su justificación en el plan de
 correcciones. Entre ellos están las diferencias con la especificación que el equipo decidió conservar:
 la búsqueda de beneficiarios por el inicio del DPI (D-19, R-20), el color rojo para un lote a 30

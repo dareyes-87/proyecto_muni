@@ -200,8 +200,9 @@ Fuente: Elaboración propia con base en `.github/workflows/despliegue-seguro.yml
 
 El comentario de cabecera del workflow indica que, para que bloquee integraciones, debe configurarse
 en GitHub una regla de protección de la rama `main` que exija estos trabajos. Esa configuración no
-se puede verificar desde el repositorio. [COMPLETAR: confirmar si la regla de protección de `main`
-exige los cuatro trabajos del workflow].
+se puede verificar desde el repositorio y no se confirmó. Desde el 11 de octubre de 2026, los cambios
+se integraron a `main` mediante *pull requests* (del 2 al 9) con el workflow aprobado; esa es la
+práctica acordada por el equipo, no un bloqueo técnico.
 
 ## 6.4 Iteraciones del proyecto
 

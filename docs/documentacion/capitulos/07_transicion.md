@@ -34,8 +34,8 @@ Requisitos técnicos del servidor
 
 | Aspecto | Requisito deducido del sistema | Equipo instalado en la farmacia |
 |---------|--------------------------------|---------------------------------|
-| Sistema operativo | Cualquier sistema capaz de ejecutar contenedores Linux con Docker. Las imágenes base son `node:20-alpine`, `postgres:16-alpine` y `nginx:alpine`. El `Dockerfile` del backend indica que el servidor de la municipalidad es Windows y normaliza los finales de línea del script de arranque por ese motivo | Windows, según el `Dockerfile` del backend; la versión no se verificó |
-| Docker | Docker con el complemento Compose en su versión que admite el comando `docker compose` | [COMPLETAR: plataforma Docker y versiones de Docker y Docker Compose (`docker compose version`)] |
+| Sistema operativo | Cualquier sistema capaz de ejecutar contenedores Linux con Docker. Las imágenes base son `node:20-alpine`, `postgres:16-alpine` y `nginx:alpine`. El `Dockerfile` del backend indica que el servidor de la municipalidad es Windows y normaliza los finales de línea del script de arranque por ese motivo | Windows, según el `Dockerfile` del backend; según el equipo, casi con seguridad Windows 10 (no comprobado) |
+| Docker | Docker con el complemento Compose en su versión que admite el comando `docker compose` | Casi con seguridad Docker Desktop, según el equipo (no comprobado). [COMPLETAR: versiones de Docker y Docker Compose (`docker compose version`)] |
 | Git | Necesario para clonar el repositorio y para la actualización automática, que ejecuta `git pull origin main` | No verificado |
 | Memoria | El repositorio no establece un valor mínimo. Deben ejecutarse en simultáneo cuatro contenedores: PostgreSQL, la API de Node.js, nginx y el servicio de respaldos | No verificado |
 | Disco | El repositorio no establece un valor mínimo. El disco aloja el volumen de la base de datos (`pgdata`), hasta 28 respaldos periódicos y 10 respaldos previos con la configuración por defecto, las fotografías de `backend/uploads/` y las imágenes de Docker | No verificado |
@@ -69,7 +69,15 @@ requiere una consideración aparte: los términos de Docker establecen que las e
 pueden usar Docker Desktop sin una suscripción pagada (Docker Inc., s.f.-c). Docker Engine en Linux no
 tiene ese requisito. Dado que el servidor de la farmacia es un equipo con Windows, según el comentario
 del `Dockerfile` del backend, la plataforma que se use determina si la municipalidad debe adquirir una
-suscripción. [COMPLETAR: plataforma Docker que usa el servidor de la farmacia].
+suscripción. Según el equipo, el servidor ejecuta casi con seguridad Docker Desktop sobre Windows 10,
+porque es el medio habitual para ejecutar contenedores Linux en Windows y nadie reporta haber
+instalado Docker Engine dentro de WSL2; no se comprobó en el equipo.
+
+En consecuencia, el licenciamiento queda como un riesgo legal abierto, con dos salidas: adquirir la
+suscripción de Docker Desktop o migrar a Docker Engine, que es gratuito, en un equipo con Linux o
+dentro de WSL2. A ello se suma que Windows 10 no tiene soporte de Microsoft desde el 14 de octubre de
+2025 (Microsoft, s.f.), por lo que el sistema operativo del servidor ya no recibe actualizaciones de
+seguridad. Una migración a Linux atendería ambos riesgos a la vez.
 
 ## 7.2 Procedimiento de instalación
 
@@ -150,9 +158,11 @@ script de arranque del backend ya ejecuta esa carga en cada inicio (sección 7.4
 no es necesario en una instalación nueva.
 
 El procedimiento anterior es el que los archivos del repositorio recomiendan; no describe la
-instalación existente. [COMPLETAR: archivo de composición, valor de `FRONTEND_TARGET` y forma de
-acceso (dirección IP y puerto) de la instalación de la farmacia, fecha de instalación y personas que
-la realizaron].
+instalación existente. Según la configuración, la instalación de la farmacia usa `docker-compose.yml`
+(sección 7.5); el dato se deduce del mecanismo de actualización y no se comprobó en el servidor. El
+modo de ejecución (`FRONTEND_TARGET` y `NODE_ENV`) y el puerto de acceso no están confirmados; los
+valores por defecto de ese archivo son los del modo de desarrollo. [COMPLETAR: fecha de instalación y
+personas que la realizaron].
 
 ## 7.3 Configuración
 
@@ -256,9 +266,16 @@ docker compose -f docker-compose.prod.yml logs api | grep -A4 "CREDENCIAL INICIA
 ```
 
 Se recomienda cambiar la contraseña inicial en el primer acceso. El sistema no obliga a hacerlo ni
-ofrece a cada usuario un cambio de su propia contraseña (pregunta abierta P-21); el cambio se realiza
-desde la página de gestión de usuarios con la función de restablecer contraseña, reservada al rol
-`ADMIN`, que exige un mínimo de 6 caracteres.
+ofrece a cada usuario un cambio de su propia contraseña; el equipo decidió que solo el ADMIN
+restablezca contraseñas (R-11). El cambio se realiza desde la página de gestión de usuarios con la
+función de restablecer contraseña, reservada al rol `ADMIN`, que exige un mínimo de 6 caracteres.
+
+Lo anterior corresponde al seed actual. La instalación de la farmacia se hizo antes del 7 de octubre
+de 2026 (commit `254d0f8`), cuando el seed creaba el usuario `admin` con una contraseña fija, la
+cual figura en el historial público del repositorio; como el seed no modifica a un administrador que
+ya existe, esa contraseña sigue vigente si nadie la cambió (hallazgo H-52, de prioridad crítica). La
+acción inmediata, que no requiere acceso al servidor, es que la persona que opera la farmacia
+restablezca la contraseña de `admin` desde la página de gestión de usuarios.
 
 ### 7.4.3 Verificación posterior
 
@@ -292,15 +309,32 @@ del servidor no fija las variables correspondientes, la instalación corre con `
 de Vite, `NODE_ENV=development` y los secretos por defecto del archivo, lo que mantiene abiertos los
 hallazgos H-03 (secretos por defecto), H-07 (detalle de errores internos en las respuestas) y H-17
 (CORS que acepta cualquier origen). El endurecimiento de `docker-compose.prod.yml` no se aplica
-mientras el mecanismo no use ese archivo. [COMPLETAR: contenido de `auto-update.cmd` y archivo de
-Compose que usa el servidor de la farmacia].
+mientras el mecanismo no use ese archivo. El uso de `docker-compose.yml` en el servidor se deduce de
+esta configuración y no se comprobó; el modo y el puerto de acceso tampoco están confirmados.
+[COMPLETAR: contenido de `auto-update.cmd`].
+
+Se asume que los secretos del servidor no se cambiaron, porque el `.env` se creó a partir de
+`.env.example` y nadie del equipo ha accedido después al equipo (R-25). En esas condiciones,
+`JWT_SECRET` es un riesgo abierto: el valor de ejemplo es público en el repositorio y permite firmar
+desde cualquier equipo de la red local un token con rol `ADMIN`. `DB_PASSWORD` se considera un riesgo
+aceptado, porque PostgreSQL solo escucha en `127.0.0.1`. La situación se puede comprobar sin acceso
+técnico: con secretos de ejemplo en producción, el arranque escribe un aviso sobre `JWT_SECRET` en
+`backups/ESTADO_ARRANQUE.txt`.
+
+Como trabajo posterior a la entrega, el equipo propone dos cambios para la configuración de
+producción en `docker-compose.yml` (lote 2 del plan de correcciones): que el script de arranque
+genere un `JWT_SECRET` aleatorio y lo guarde en un volumen cuando detecte el valor de ejemplo, lo que
+cierra las sesiones abiertas una sola vez sin impedir el arranque, y que nginx se publique en los
+puertos 80 y 5173, para que el personal conserve el acceso con cualquiera de las dos direcciones
+mientras el puerto actual no esté confirmado.
 
 Las precauciones que el repositorio establece frente a estos riesgos son las siguientes:
 
 1. Pruebas antes de integrar: los cambios se llevan a `main` mediante *pull request* y el workflow
    "Despliegue seguro" reproduce la actualización del servidor con datos de prueba antes de la
    integración (sección 6.3.3). Para que el workflow bloquee una integración fallida, debe configurarse
-   en GitHub la protección de la rama `main` descrita en `docs/DESPLIEGUE.md`.
+   en GitHub la protección de la rama `main` descrita en `docs/DESPLIEGUE.md`. Esa protección no se
+   confirmó, por lo que el workflow es el procedimiento acordado por el equipo y no un bloqueo técnico.
 2. Respaldo previo automático: cada arranque del backend, y por tanto cada actualización, genera un
    respaldo verificado antes de tocar el esquema (sección 7.4.1).
 3. Migraciones revisadas: un cambio de esquema solo llega al servidor como migración versionada. El
@@ -396,8 +430,11 @@ software o un borrado de datos, pero no frente a la falla o pérdida del equipo.
 recomienda copiar la carpeta `backups/` y la carpeta `backend/uploads/` a otro equipo o a un disco
 externo de forma periódica y guardar esas copias en un lugar de acceso restringido. Por decisión del
 equipo, el servidor no cuenta con un disco adicional para respaldos (`docs/HERRAMIENTAS_IA.md`).
-[COMPLETAR: si en la farmacia se copian los respaldos fuera del servidor, con qué frecuencia, a qué
-medio y quién lo hace].
+
+En la farmacia no existe actualmente ninguna copia fuera del servidor (R-30): una falla del disco
+perdería a la vez la base de datos, sus respaldos y las fotografías. Queda como tarea pendiente una
+copia semanal de las carpetas `backups/` y `backend/uploads/` a una memoria USB cifrada, a cargo del
+administrador municipal.
 
 ## 7.7 Mantenimiento y monitoreo
 
@@ -445,7 +482,7 @@ Tareas periódicas de mantenimiento
 | Marcado de lotes vencidos y limpieza de tokens de captura vencidos | Diaria a las 00:05 y al arrancar la API | Automática (tarea programada de la API) | Los lotes vencidos aparecen con estado `VENCIDO` en Inventario |
 | Actualización desde `main` | Cada 30 minutos | Automática (`auto-update.cmd`) | `ESTADO_ARRANQUE.txt` sin "ERROR", "ATENCION" ni "SIN RESPALDO" |
 | Revisión del estado del arranque y de los respaldos | No definida | No definido | Lectura de `ESTADO_ARRANQUE.txt`, `ULTIMO_RESPALDO.txt` e `historial_respaldos.log` |
-| Copia de `backups/` y `backend/uploads/` fuera del servidor | [COMPLETAR: frecuencia] | [COMPLETAR] | Fecha del último respaldo presente en el medio externo |
+| Copia de `backups/` y `backend/uploads/` fuera del servidor (pendiente: no se realiza) | Semanal | Administrador municipal | Fecha del último respaldo presente en la memoria USB cifrada |
 | Revisión del espacio libre en disco | No definida | No definido | Espacio libre suficiente para los respaldos, las fotografías y el crecimiento de la base |
 | Revisión de las fotografías de dispensación acumuladas | No definida | No definido | Tamaño de `backend/uploads/dispensaciones/`; los archivos no se borran al corregir una dispensación |
 
@@ -468,3 +505,6 @@ este documento.
 
 Docker Inc. (s.f.-c). *Docker Plans FAQs*. Recuperado el 20 de octubre de 2026 de
 https://www.docker.com/pricing/faq/
+
+Microsoft. (s.f.). *Finalización del soporte de Windows 10, Windows 8.1 y Windows 7*. Recuperado el
+21 de octubre de 2026 de https://www.microsoft.com/es-es/windows/end-of-support

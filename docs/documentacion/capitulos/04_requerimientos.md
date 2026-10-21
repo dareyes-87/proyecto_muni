@@ -327,7 +327,7 @@ Requerimientos no funcionales de mantenibilidad
 | ID | Requerimiento | Criterio verificable | Verificación |
 |----|---------------|----------------------|--------------|
 | RNF-33 | El backend cuenta con pruebas automatizadas | 10 archivos y 53 casos de prueba con el ejecutor de Node; 53 aprobados el 20 de octubre de 2026. El frontend no tiene pruebas automatizadas | `npm test` en el contenedor `api` |
-| RNF-34 | Cada cambio se comprueba antes de integrarse a la rama principal | Workflow "Despliegue seguro" en GitHub Actions con los trabajos `esquema`, `compilacion`, `despliegue` e `instalacion`, ejecutado en cada *pull request* hacia `main` y en cada *push*. [COMPLETAR: confirmar si la protección de `main` exige estos trabajos] | Historial de ejecuciones en GitHub Actions |
+| RNF-34 | Cada cambio se comprueba antes de integrarse a la rama principal | Workflow "Despliegue seguro" en GitHub Actions con los trabajos `esquema`, `compilacion`, `despliegue` e `instalacion`, ejecutado en cada *pull request* hacia `main` y en cada *push*. Es el procedimiento acordado por el equipo para integrar cambios, no un bloqueo técnico: no se confirmó que la protección de la rama `main` en GitHub exija estos trabajos | Historial de ejecuciones en GitHub Actions |
 | RNF-35 | El código se compila sin errores de tipos | Chequeo de tipos de TypeScript del backend y construcción del frontend (`tsc -b` y `vite build`) | Trabajo `compilacion` del workflow |
 | RNF-36 | El código está organizado por módulos | Un archivo de rutas por módulo en `backend/src/routes/`, lógica de negocio en `services/`, control de acceso y auditoría en `middleware/`, una página por vista y componentes reutilizables en `frontend/src/components/ui/` | Revisión de la estructura del repositorio (capítulo 6) |
 | RNF-37 | Los errores se responden con un formato único | Respuesta `{ "error": "mensaje" }`; los errores de validación responden 400; el detalle interno de un error 500 solo se incluye en modo de desarrollo | Inspección de `middleware/errorHandler.ts` y `utils/httpError.ts` |
@@ -1435,6 +1435,10 @@ Caso de uso #16: Registrar evidencia fotográfica de la dispensación
 |                      |   es una imagen válida" (400).                                               |
 |                      | - Paso 6: si ya existía una fotografía del mismo tipo y falta la otra, la    |
 |                      |   nueva reemplaza a la anterior, que se elimina.                             |
+|                      | - Después del paso 8: una vez completa la evidencia, una fotografía          |
+|                      |   equivocada no se puede reemplazar ni corregir. Es una regla intencional:   |
+|                      |   la evidencia completa no se modifica, para conservar su valor como prueba  |
+|                      |   ante una auditoría.                                                        |
 |                      | - Paso 3: si el usuario entró al sistema por `localhost` y no está           |
 |                      |   configurada la dirección de red local, el código QR no se puede abrir      |
 |                      |   desde el teléfono.                                                         |
