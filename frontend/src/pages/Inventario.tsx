@@ -135,6 +135,7 @@ export default function Inventario() {
       {/* Filtros */}
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
         <SearchInput
+          autoFocus
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Buscar por nombre genérico o comercial..."

@@ -250,6 +250,7 @@ export default function Entradas() {
                       className="w-full rounded-lg border border-blue-200 bg-blue-50 py-2 pl-10 pr-3 text-sm font-mono outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500"
                       placeholder="Escanear código de barras del medicamento..."
                       autoComplete="off"
+                      autoFocus={i === lotes.length - 1}
                     />
                   </div>
                   {isAdmin && (

@@ -261,7 +261,7 @@ export default function Beneficiarios() {
       />
 
       <div className="mb-4">
-        <SearchInput placeholder="Buscar por nombre o DPI..." value={query} onChange={(e) => setQuery(e.target.value)} />
+        <SearchInput autoFocus placeholder="Buscar por nombre o DPI..." value={query} onChange={(e) => setQuery(e.target.value)} />
       </div>
 
       <DataTable
