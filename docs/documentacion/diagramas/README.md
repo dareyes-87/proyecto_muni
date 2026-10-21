@@ -105,6 +105,36 @@ Fuente: Elaboración propia.
 Rutas de código abreviadas: `routes/`, `services/`, `middleware/` = `backend/src/...`; `pages/`,
 `components/`, `context/` = `frontend/src/...`.
 
+## Versión 2 (documento final)
+
+Los diagramas anteriores miden de 2,500 a 3,500 px de ancho y, a 15 cm en el Word, su texto no se
+lee. Para el documento final se usan 6 diagramas simplificados con prefijo `v2_` (fuentes en
+`fuentes/v2_<nombre>.puml`, imágenes en `imagenes/v2_<nombre>.png`). Los diagramas anteriores se
+conservan como detalle de referencia.
+
+Reglas aplicadas: unos 15 elementos como máximo, fuente Arial de 15 puntos, blanco y negro, sin
+sombras, 150 dpi y tamaño máximo de 15 cm de ancho por 20 cm de alto. Se verificó armando un `.docx`
+temporal con cada imagen a 15 cm de ancho (o a 20 cm de alto cuando el alto lo limita),
+convirtiéndolo a PDF con `farmag-docx-lo:1` y calculando el tamaño de letra con las dimensiones en
+píxeles y el tamaño dibujado en el PDF: ningún texto queda por debajo de 8 pt.
+
+Tabla 3.
+Diagramas de la versión 2
+
+| Archivo | Tipo | Qué muestra | Píxeles | Tamaño en el documento | Letra mínima |
+|---|---|---|---|---|---|
+| `v2_casos_uso_general.puml` | Casos de uso | Los 4 actores relacionados con 5 paquetes; cada paquete lista los nombres cortos de sus casos (CU-01 a CU-19). | 776 × 1336 | 11.6 × 20.0 cm | 9.9 pt |
+| `v2_actividad_dispensacion.puml` | Actividad | Flujo de alto nivel de la dispensación: 12 acciones y 3 decisiones, sin detalles técnicos. | 1207 × 1639 | 14.7 × 20.0 cm | 8.1 pt |
+| `v2_secuencia_dispensacion.puml` | Secuencia | Usuario, interfaz web, API y base de datos en 12 mensajes, con la selección del lote que vence primero y el descuento del stock. | 1120 × 1041 | 15.0 × 13.9 cm | 8.9 pt |
+| `v2_estados_lote.puml` | Estados | DISPONIBLE, AGOTADO, VENCIDO y DADO_DE_BAJA con el evento de cada transición. | 771 × 903 | 15.0 × 17.6 cm | 12.9 pt |
+| `v2_entidad_relacion.puml` | Entidad-relación | Las 14 tablas con su clave primaria y las relaciones con cardinalidad (pata de gallo). | 1230 × 644 | 15.0 × 7.9 cm | 8.1 pt |
+| `v2_despliegue.puml` | Despliegue | Servidor con Docker y sus contenedores web, api, db y backup; equipos cliente y celular en la red local. | 645 × 1082 | 11.9 × 20.0 cm | 12.3 pt |
+
+Fuente: Elaboración propia.
+
+Ninguno tuvo que dividirse. En el paquete "Seguridad" del diagrama de casos de uso, CU-02 es
+exclusivo del Administrador; el detalle de permisos por caso está en `04_casos_uso_general.puml`.
+
 ## Diferencias entre el análisis (194f8fb) y el código dibujado (bdf1187)
 
 `06_reglas_negocio.md`, `07_flujos_modulos.md` y `08_casos_uso_candidatos.md` se extrajeron del commit

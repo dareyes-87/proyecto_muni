@@ -1,0 +1,72 @@
+@startuml v2_entidad_relacion
+' Versión 2 (documento final): 14 tablas con su clave primaria y relaciones.
+' Fuente: 05_er_modelo_datos.puml; código: backend/prisma/schema.prisma,
+' backend/prisma/migrations/0_init/migration.sql. Notación pata de gallo.
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 15
+skinparam dpi 150
+hide circle
+hide empty members
+
+entity "usuarios" as usuarios {
+  id <<PK>>
+}
+entity "categorias" as categorias {
+  id <<PK>>
+}
+entity "medicamentos" as medicamentos {
+  id <<PK>>
+}
+entity "codigos_barras" as codigos_barras {
+  id <<PK>>
+}
+entity "ubicaciones" as ubicaciones {
+  id <<PK>>
+}
+entity "entradas" as entradas {
+  id <<PK>>
+}
+entity "lotes" as lotes {
+  id <<PK>>
+}
+entity "beneficiarios" as beneficiarios {
+  id <<PK>>
+}
+entity "dispensaciones" as dispensaciones {
+  id <<PK>>
+}
+entity "detalle_dispensaciones" as detalle {
+  id <<PK>>
+}
+entity "fotos_dispensacion" as fotos {
+  id <<PK>>
+}
+entity "tokens_captura" as tokens {
+  id <<PK>>
+}
+entity "log_auditoria" as log {
+  id <<PK>>
+}
+entity "configuracion_sistema" as config {
+  id <<PK>>
+}
+
+categorias ||--o{ medicamentos
+medicamentos ||--o{ codigos_barras
+medicamentos ||--o{ lotes
+ubicaciones |o--o{ lotes
+usuarios ||--o{ entradas
+entradas ||--o{ lotes
+lotes ||--o{ detalle
+medicamentos ||--o{ detalle
+beneficiarios ||--o{ dispensaciones
+usuarios ||--o{ dispensaciones
+dispensaciones ||--o{ detalle
+dispensaciones ||--o{ fotos
+dispensaciones ||--o| tokens
+usuarios ||--o{ log
+codigos_barras -[hidden]- config
+@enduml

@@ -1,0 +1,29 @@
+@startuml v2_despliegue
+' Versión 2 (documento final): despliegue simplificado.
+' Fuente: 05_despliegue.puml; código: docker-compose.prod.yml, frontend/nginx.conf.
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 15
+skinparam dpi 150
+
+rectangle "Red local de la municipalidad" as LAN {
+  node "Equipos cliente\n(navegador)" as PC
+  node "Celular\n(navegador)" as CEL
+  node "Servidor" as SRV {
+    node "Docker" as DOCKER {
+      node "web\n(nginx)" as WEB
+      node "api\n(Node.js)" as API
+      node "db\n(PostgreSQL 16)" as DB
+      node "backup\n(pg_dump)" as BK
+    }
+  }
+}
+
+PC --> WEB : HTTP :80
+CEL --> WEB : HTTP :80
+WEB --> API : /api
+API --> DB : SQL
+BK --> DB : respaldo
+@enduml

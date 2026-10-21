@@ -1,0 +1,32 @@
+@startuml v2_secuencia_dispensacion
+' Versión 2 (documento final): secuencia simplificada de la dispensación.
+' Fuente: 05_secuencia_dispensar.puml; código: frontend/src/pages/Dispensacion.tsx,
+' backend/src/routes/dispensacion.routes.ts, backend/src/services/dispensacion.service.ts (despachar).
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 15
+skinparam dpi 150
+skinparam sequenceMessageAlign left
+hide footbox
+autonumber
+
+actor "Usuario" as U
+participant "Interfaz\nweb" as WEB
+participant "API" as API
+database "Base de\ndatos" as DB
+
+U -> WEB : Confirmar\ndispensación
+WEB -> API : Enviar beneficiario\ny medicamentos
+API -> DB : Iniciar transacción
+API -> DB : Bloquear lotes disponibles\nordenados por vencimiento
+DB --> API : Lotes (el que vence\nprimero, al inicio)
+API -> API : Verificar stock\nsuficiente
+API -> DB : Descontar stock del lote\nque vence primero
+API -> DB : Guardar dispensación\ny detalle
+API -> DB : Confirmar transacción
+API -> DB : Registrar en bitácora
+API --> WEB : Dispensación y\nstock actualizado
+WEB --> U : Mostrar confirmación\ny código QR
+@enduml

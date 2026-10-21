@@ -1,0 +1,26 @@
+@startuml v2_estados_lote
+' Versión 2 (documento final): estados de un lote.
+' Fuente: 05_estados_lote.puml; código: backend/prisma/schema.prisma (enum EstadoLote),
+' backend/src/routes/inventario.routes.ts, backend/src/services/dispensacion.service.ts,
+' backend/src/services/vencimiento.service.ts.
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 15
+skinparam dpi 150
+
+state "DISPONIBLE" as DISP
+state "AGOTADO" as AGO
+state "VENCIDO" as VEN
+state "DADO_DE_BAJA" as BAJA
+
+[*] --> DISP : registrar\nentrada
+DISP --> DISP : dispensación\n(queda stock)
+DISP --> AGO : dispensación\n(stock en 0)
+DISP --> VEN : proceso diario\n(fecha de vencimiento\nalcanzada)
+DISP --> BAJA : baja por el\nadministrador
+AGO --> BAJA : baja por el\nadministrador
+VEN --> BAJA : baja por el\nadministrador
+BAJA --> [*]
+@enduml

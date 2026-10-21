@@ -1,0 +1,38 @@
+@startuml v2_actividad_dispensacion
+' Versión 2 (documento final): flujo de alto nivel de la dispensación.
+' Fuente: 05_actividad_dispensar.puml y 05_actividad_captura_evidencia.puml;
+' código: frontend/src/pages/Dispensacion.tsx, backend/src/services/dispensacion.service.ts.
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 15
+skinparam dpi 150
+
+|Encargado|
+start
+:Buscar beneficiario por nombre o DPI;
+if (¿Está registrado?) then (sí)
+  :Seleccionar beneficiario;
+else (no)
+  :Registrar beneficiario;
+endif
+repeat
+  :Escanear o buscar medicamento;
+  :Indicar cantidad;
+repeat while (¿Agregar otro?) is (sí) not (no)
+:Confirmar dispensación;
+|Sistema|
+:Verificar stock disponible;
+if (¿Stock suficiente?) then (no)
+  :Avisar stock insuficiente;
+  stop
+else (sí)
+endif
+:Descontar del lote que vence primero;
+:Registrar dispensación y bitácora;
+:Mostrar código QR;
+|Encargado|
+:Tomar fotos de receta y entrega (opcional);
+stop
+@enduml

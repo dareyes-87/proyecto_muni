@@ -1,0 +1,33 @@
+@startuml v2_casos_uso_general
+' Versión 2 (documento final): modelo general simplificado.
+' Fuente: 04_casos_uso_general.puml (CU-01 a CU-19, numeración de diagramas/README.md, Tabla 1).
+' Los actores se relacionan con paquetes (símbolo de carpeta) que listan los nombres cortos de
+' sus casos de uso; el detalle por caso está en los diagramas 04_casos_uso_*.
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 15
+skinparam dpi 150
+left to right direction
+
+actor "Administrador" as ADM
+actor "Encargado de\nBeneficencia" as ENC
+actor "Sistema" as SIS
+actor "Persona con\ncelular" as CEL
+ENC <|- ADM
+
+folder "<b>Seguridad</b>\n\nCU-01 Sesión\nCU-02 Usuarios" as PSEG
+folder "<b>Catálogos</b>\n\nCU-03 Medicamentos\nCU-04 Códigos de barras\nCU-05 Categorías\nCU-06 Ubicaciones" as PCAT
+folder "<b>Inventario</b>\n\nCU-07 Registrar entrada\nCU-08 Importar Excel\nCU-09 Consultar inventario\nCU-10 Dar de baja lote\nCU-11 Lotes vencidos\nCU-12 Panel de alertas" as PINV
+folder "<b>Dispensación</b>\n\nCU-13 Beneficiarios\nCU-14 Historial\nCU-15 Dispensar\nCU-16 Evidencia fotográfica" as PDIS
+folder "<b>Reportes y auditoría</b>\n\nCU-17 Consultar reportes\nCU-18 Exportar reportes\nCU-19 Bitácora" as PREP
+
+ENC --> PSEG
+ENC --> PCAT
+ENC --> PINV
+ENC --> PDIS
+ADM --> PREP
+SIS --> PINV
+CEL --> PDIS
+@enduml
