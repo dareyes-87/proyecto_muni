@@ -578,7 +578,7 @@ Verificación de los requerimientos no funcionales
 | RNF-13 Sin doble descuento de stock | Prueba manual del 19 de julio de 2026: dos dispensaciones simultáneas de 15 unidades con 20 en stock | Cumple en esa prueba: una se registró y la otra recibió 409. No se repitió sobre `bdf1187`; lo hará el caso CP-67 |
 | RNF-14 Sin dispensación de lotes vencidos | `despacho_vencimiento.test.ts`, `inventario.service.test.ts` y `vencimiento_arranque.test.ts` | Cumple: aprobadas con `TZ=America/Guatemala` y, las de integración, con `TZ=UTC` |
 | RNF-19 Recuperación tras un reinicio | `vencimiento_arranque.test.ts` | Cumple: aprobada |
-| RNF-26 Captura desde el teléfono | Navegador con vista de 375 × 812 px, 6 de agosto de 2026 | Cumple en la simulación. [COMPLETAR: resultado de la prueba con un teléfono real en la farmacia] |
+| RNF-26 Captura desde el teléfono | Navegador con vista de 375 × 812 px, 6 de agosto de 2026 | Cumple en la simulación. No se probó con un teléfono real en la farmacia; en las pruebas funcionales la captura también se simula con un navegador en tamaño de teléfono |
 | RNF-28 Listados paginados | `validacion.test.ts` (`clampPaginacion`) | Cumple parcialmente: la función está probada, pero dos rutas de inventario no la usan (H-43) |
 | RNF-29 Consultas de inventario acotadas | Caso de listados con stock de `rutas_integracion.test.ts`; migración de índices aplicada, comprobada el 20 de octubre de 2026 | Cumple |
 | RNF-31 Exportación acotada | `validacion.test.ts` (`verificarLimiteExport`) | Cumple: aprobada |

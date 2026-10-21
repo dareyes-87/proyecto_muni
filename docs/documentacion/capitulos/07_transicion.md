@@ -40,7 +40,7 @@ Requisitos técnicos del servidor
 | Memoria | El repositorio no establece un valor mínimo. Deben ejecutarse en simultáneo cuatro contenedores: PostgreSQL, la API de Node.js, nginx y el servicio de respaldos | No verificado |
 | Disco | El repositorio no establece un valor mínimo. El disco aloja el volumen de la base de datos (`pgdata`), hasta 28 respaldos periódicos y 10 respaldos previos con la configuración por defecto, las fotografías de `backend/uploads/` y las imágenes de Docker | No verificado |
 | Procesador | El repositorio no establece un requisito | No verificado |
-| Red | Conexión a la red local de la farmacia con una dirección IP accesible desde los equipos cliente y el celular de captura. En producción, solo el puerto 80 queda publicado hacia la red; la base de datos (5432) y la API (3000) se publican únicamente en `127.0.0.1`. La actualización automática y la consulta de OpenFDA requieren acceso a Internet | [COMPLETAR: dirección de acceso, configuración del cortafuegos y puertos abiertos] |
+| Red | Conexión a la red local de la farmacia con una dirección IP accesible desde los equipos cliente y el celular de captura. En producción, solo el puerto 80 queda publicado hacia la red; la base de datos (5432) y la API (3000) se publican únicamente en `127.0.0.1`. La actualización automática y la consulta de OpenFDA requieren acceso a Internet | No verificado: la dirección de acceso, la configuración del cortafuegos y los puertos abiertos no se comprobaron en el equipo de producción porque el equipo de trabajo no tiene acceso al servidor (R-10) |
 
 Fuente: Elaboración propia con base en `docker-compose.prod.yml`, `backend/Dockerfile`,
 `frontend/Dockerfile`, `docs/DESPLIEGUE.md`, `docs/RESPALDOS.md` y
@@ -161,8 +161,9 @@ El procedimiento anterior es el que los archivos del repositorio recomiendan; no
 instalación existente. Según la configuración, la instalación de la farmacia usa `docker-compose.yml`
 (sección 7.5); el dato se deduce del mecanismo de actualización y no se comprobó en el servidor. El
 modo de ejecución (`FRONTEND_TARGET` y `NODE_ENV`) y el puerto de acceso no están confirmados; los
-valores por defecto de ese archivo son los del modo de desarrollo. [COMPLETAR: fecha de instalación y
-personas que la realizaron].
+valores por defecto de ese archivo son los del modo de desarrollo. No consta la fecha exacta de la
+instalación ni quiénes la realizaron; solo consta que el sistema estaba instalado a más tardar el 25 de
+septiembre de 2026 (R-02).
 
 ## 7.3 Configuración
 
@@ -311,7 +312,8 @@ hallazgos H-03 (secretos por defecto), H-07 (detalle de errores internos en las 
 (CORS que acepta cualquier origen). El endurecimiento de `docker-compose.prod.yml` no se aplica
 mientras el mecanismo no use ese archivo. El uso de `docker-compose.yml` en el servidor se deduce de
 esta configuración y no se comprobó; el modo y el puerto de acceso tampoco están confirmados.
-[COMPLETAR: contenido de `auto-update.cmd`].
+El contenido de `auto-update.cmd` no se revisó: la descripción anterior proviene de
+`docs/DESPLIEGUE.md`, porque el equipo de trabajo no tiene acceso al servidor (R-10).
 
 Se asume que los secretos del servidor no se cambiaron, porque el `.env` se creó a partir de
 `.env.example` y nadie del equipo ha accedido después al equipo (R-25). En esas condiciones,
