@@ -206,8 +206,8 @@ La API REST expone sus funciones bajo el prefijo `/api`, agrupadas en los módul
 peticiones y respuestas usan JSON, salvo la subida de imágenes y de archivos de Excel y las descargas
 de archivos. Todo error responde con un mensaje en español que la interfaz muestra al usuario. Las
 funciones exclusivas del Administrador se protegen en el servidor, y solo cuatro rutas son públicas:
-el inicio de sesión, el estado del servicio y las dos de captura de fotografías. La especificación
-completa de cada función se presenta en el Anexo D.
+el inicio de sesión, el estado del servicio y las dos de captura de fotografías. La API se describe
+a nivel de módulos en esta sección.
 
 Tabla 74.
 Módulos de la API
