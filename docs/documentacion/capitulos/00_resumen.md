@@ -23,7 +23,12 @@ descuenta las existencias en orden de fecha de vencimiento y bloquea los lotes d
 transacción para que dos entregas simultáneas no usen las mismas unidades. Las 53 pruebas
 automatizadas del servidor se aprobaron. La revisión del código registró 34 hallazgos de defectos,
 de los cuales el equipo resolvió 19 y resolvió de forma parcial 10; 4 siguen pendientes y 1 depende
-de la configuración de la instalación. [COMPLETAR: resultado de las pruebas funcionales].
+de la configuración de la instalación. En las pruebas funcionales, ejecutadas el 20 y el 21 de
+octubre de 2026 por medio de la API y de pruebas de interfaz automatizadas, se aprobaron 74 de los 92
+casos de prueba; de los 18 fallidos, 14 correspondían a hallazgos ya registrados y 4 a tres defectos
+nuevos de severidad baja, y se cumplieron los criterios de salida del plan. La captura de fotografías
+desde el teléfono se probó en un navegador con tamaño de teléfono; la prueba con un teléfono real
+queda pendiente.
 
 El control por lote y el registro de cada entrega con su beneficiario y su responsable dan a la
 municipalidad un registro verificable de los medicamentos donados que recibe, entrega y pierde por

@@ -13,8 +13,8 @@
 | Ejecutor | Casos API: ejecución por peticiones HTTP con Claude Code el 2026-10-20, a solicitud del responsable de la documentación. Casos UI y DISPOSITIVO: ejecución automatizada con Playwright (Claude Code) el 2026-10-21, a solicitud del responsable de la documentación |
 | Navegador y versión | No aplica a los casos API. Casos UI: Chromium 130 sin interfaz (Playwright 1.48.2, imagen `mcr.microsoft.com/playwright:v1.48.2-noble`), ventana de 1366 × 768, configuración regional es-GT y zona horaria America/Guatemala. La interfaz se abrió en `http://192.168.65.254:5173`, la dirección de `host.docker.internal` dentro del contenedor: Vite 5.4.21 rechaza el nombre `host.docker.internal` ("Blocked request. This host is not allowed") y no se modificó su configuración |
 | Teléfono y navegador (CP-77) | Sin teléfono físico: simulado con un contexto de Chromium de 390 × 844, táctil, escala 3 y agente de usuario de Chrome 130 para Android; el código QR se decodificó de la imagen de la pantalla y el lector de códigos se simuló escribiendo el código y Enter |
-| `npm test` antes del ciclo | [COMPLETAR: no se ejecutó en esta sesión; la última ejecución registrada es 53/53 (`analisis/11_resultados_pruebas_automatizadas.md`)] |
-| `npm test` después del ciclo | No ejecutado: las pruebas corren contra la misma base `farmag_db`, que tiene los datos QA del ciclo, y la última ejecución registrada se hizo con la base recién creada (`analisis/11_resultados_pruebas_automatizadas.md`, sección 1). Pendiente |
+| `npm test` antes del ciclo | No se ejecutó al inicio del ciclo; la última ejecución registrada antes de él aprobó 53 de 53 (2026-10-20, commit `bdf1187`, `analisis/11_resultados_pruebas_automatizadas.md`) |
+| `npm test` después del ciclo | 53 de 53 aprobadas, 0 fallidas (2026-10-21, 08:14 hora de Guatemala; ver "Regresión final") |
 
 ## Instrucciones
 
@@ -100,8 +100,8 @@ Fuente: Elaboración propia.
 | CP-16 | 2026-10-20 | 500 "Error interno del servidor" en lugar de 409; no se creó el usuario | Fallido | H-15 (esperado) | `evidencia/CP-16.txt` |
 | CP-17 | 2026-10-21 | Stock mínimo propuesto 10; "Medicamento creado"; queda seleccionado en el lote 1; aparece en el catálogo; CREAR en la bitácora | Aprobado |  | `evidencia/CP-17.png`, `evidencia/CP-17.txt` |
 | CP-18 | 2026-10-21 | Diálogo "Posibles duplicados" con el texto esperado y QA Paracetamol; "Revisar de nuevo" vuelve al formulario con los datos; "Crear de todos modos" → "Medicamento creado" | Aprobado |  | `evidencia/CP-18.png`, `evidencia/CP-18.txt` |
-| CP-19 | 2026-10-21 | Paso 1: no se crea nada, pero el formulario lo detiene la validación del navegador ("Please select an item in the list.") y no aparece "Seleccione una categoría". Paso 2: 400 "La categoría especificada no existe". Paso 3: 400 "Datos inválidos" | Fallido | DP-01 | `evidencia/CP-19.png`, `evidencia/CP-19_curl.txt`, `evidencia/CP-19.txt` |
-| CP-20 | 2026-10-21 | "Medicamento actualizado", pero el EDITAR incluye además nombreComercial null → "" (no solo el stock mínimo); "Foto actualizada" con vista previa y archivo .webp; sin cambios: la API responde "No hubo cambios que aplicar" y no registra EDITAR (la pantalla muestra "Medicamento actualizado") | Fallido | DP-03 | `evidencia/CP-20_a.png`, `evidencia/CP-20_b.png`, `evidencia/CP-20.txt` |
+| CP-19 | 2026-10-21 | Paso 1: no se crea nada, pero el formulario lo detiene la validación del navegador ("Please select an item in the list.") y no aparece "Seleccione una categoría". Paso 2: 400 "La categoría especificada no existe". Paso 3: 400 "Datos inválidos" | Fallido | H-53 | `evidencia/CP-19.png`, `evidencia/CP-19_curl.txt`, `evidencia/CP-19.txt` |
+| CP-20 | 2026-10-21 | "Medicamento actualizado", pero el EDITAR incluye además nombreComercial null → "" (no solo el stock mínimo); "Foto actualizada" con vista previa y archivo .webp; sin cambios: la API responde "No hubo cambios que aplicar" y no registra EDITAR (la pantalla muestra "Medicamento actualizado") | Fallido | H-55 | `evidencia/CP-20_a.png`, `evidencia/CP-20_b.png`, `evidencia/CP-20.txt` |
 | CP-21 | 2026-10-21 | Paso 1: el código 00303789205353 ya no tiene datos en OpenFDA (404 de api.fda.gov); con el código vigente 00342291936904 (Sucralfate) el formulario se llena (Sucralfate, Sucralfate) con "Datos sugeridos por OpenFDA — verifique antes de guardar"; paso 2: "Este medicamento ya está registrado: QA Paracetamol"; paso 3: "No se encontraron datos en OpenFDA para este código. Complete el formulario manualmente." | Aprobado |  | `evidencia/CP-21_a0.png`, `evidencia/CP-21_a.png`, `evidencia/CP-21_b.png`, `evidencia/CP-21_c.png`, `evidencia/CP-21.txt` |
 | CP-22 | 2026-10-20 | 400 "Formato de imagen no permitido…", 400 "El archivo supera el tamaño máximo permitido" y 400 "El archivo no es una imagen válida"; la foto anterior no cambió | Aprobado |  | `evidencia/CP-22.txt` |
 | CP-23 | 2026-10-21 | "Medicamento desactivado", sigue en el catálogo como inactivo y EDITAR en la bitácora; no aparece en Registrar entrada, Dispensación ni Existencias; "Medicamento activado" y vuelve a aparecer | Aprobado |  | `evidencia/CP-23_a.png`, `evidencia/CP-23_b.png`, `evidencia/CP-23_c.png`, `evidencia/CP-23.txt` |
@@ -117,12 +117,12 @@ Fuente: Elaboración propia.
 | CP-33 | 2026-10-21 | "Entrada registrada", el formulario se limpia y la entrada aparece en las recientes; QA-E-1 (30) y QA-E-2 (20) DISPONIBLE; stock 50; CREAR en la bitácora | Aprobado |  | `evidencia/CP-33.png`, `evidencia/CP-33_b.png`, `evidencia/CP-33.txt` |
 | CP-34 | 2026-10-21 | "QA Paracetamol seleccionado", queda elegido en el lote y el campo se vacía; "No se encontró medicamento con ese código de barras" (lector simulado con teclado) | Aprobado |  | `evidencia/CP-34.png`, `evidencia/CP-34_b.png`, `evidencia/CP-34.txt` |
 | CP-35 | 2026-10-20 | 400 "Lote 2 (QA-E-4): La fecha de vencimiento ya pasó o es hoy…" con hoy y con ayer; ningún lote de la entrada quedó registrado | Aprobado |  | `evidencia/CP-35.txt` |
-| CP-36 | 2026-10-21 | Paso 1: "Complete medicamento, cantidad, número de lote y vencimiento en cada lote". Paso 2: no se registra, pero lo detiene la validación del navegador (min=1, "Value must be greater than or equal to 1.") y no aparece "La cantidad debe ser mayor a 0"; no se registra nada | Fallido | DP-01 | `evidencia/CP-36.png`, `evidencia/CP-36_b.png`, `evidencia/CP-36.txt` |
+| CP-36 | 2026-10-21 | Paso 1: "Complete medicamento, cantidad, número de lote y vencimiento en cada lote". Paso 2: no se registra, pero lo detiene la validación del navegador (min=1, "Value must be greater than or equal to 1.") y no aparece "La cantidad debe ser mayor a 0"; no se registra nada | Fallido | H-53 | `evidencia/CP-36.png`, `evidencia/CP-36_b.png`, `evidencia/CP-36.txt` |
 | CP-37 | 2026-10-20 | 400 "Uno o más medicamentos no existen o están inactivos" y 400 "Una o más ubicaciones no existen"; no se registró nada | Aprobado |  | `evidencia/CP-37.txt` |
 | CP-38 | 2026-10-21 | "No se encontró medicamento con ese código de barras"; "Medicamento creado" y queda seleccionado; "Entrada registrada"; QA Clotrimazol sin el código 7790000000059 (0 códigos) | Aprobado |  | `evidencia/CP-38.png`, `evidencia/CP-38.txt` |
 | CP-39 | 2026-10-20 | Plantilla correcta (2 hojas, 11 encabezados, 1 fila de ejemplo); 3 filas → 3 lotes, 2 medicamentos, 1 categoría (QA Importada), 1 ubicación (QA-IMP), 1 código vinculado; CREAR en la bitácora por cada uno | Aprobado |  | `evidencia/CP-39.txt` |
 | CP-40 | 2026-10-20 | 3 filas con errores (4, 5 y 6) con los tres mensajes esperados; se importaron solo QA-I-4 y QA-I-5 | Aprobado |  | `evidencia/CP-40.txt` |
-| CP-41 | 2026-10-21 | Paso 1: el botón "Importar" está deshabilitado sin archivo y no se muestra "Seleccione un archivo .xlsx". Paso 2: "Faltan columnas en el Excel: fechaVencimiento. Descargue la plantilla actualizada.", "El archivo no es un Excel (.xlsx) válido", "El archivo no contiene filas de datos"; no se importa nada | Fallido | DP-02 | `evidencia/CP-41_a.png` … `evidencia/CP-41_d.png`, `evidencia/CP-41.txt` |
+| CP-41 | 2026-10-21 | Paso 1: el botón "Importar" está deshabilitado sin archivo y no se muestra "Seleccione un archivo .xlsx". Paso 2: "Faltan columnas en el Excel: fechaVencimiento. Descargue la plantilla actualizada.", "El archivo no es un Excel (.xlsx) válido", "El archivo no contiene filas de datos"; no se importa nada | Fallido | H-54 | `evidencia/CP-41_a.png` … `evidencia/CP-41_d.png`, `evidencia/CP-41.txt` |
 | CP-42 | 2026-10-20 | Fila 2: aviso "Ya existe el lote QA-F-B…" y 1 lote omitido; fila 3: error de QA Ranitidina inactivo; fila 4: lote importado con aviso de código no vinculado | Aprobado |  | `evidencia/CP-42.txt` |
 | CP-43 | 2026-10-20 | La fila se rechazó: "La categoría "QA Categoría Inactiva" existe pero está inactiva; actívela antes de importar" | Fallido | H-48 (esperado) | `evidencia/CP-43.txt` |
 | CP-44 | 2026-10-21 | Lista de 20 en 20 con stock, lotes, próximo vencimiento y semáforo; "QA Para": solo QA Paracetamol, stock 17, 2 lotes, "Por vencer · 60d" (datos tras CP-64); detalle con QA-F-A (0, AGOTADO), QA-F-B (7) y QA-F-C (10) con fecha, días, semáforo, estado y ubicación; QA-B-1 DADO_DE_BAJA y stock de QA Cetirizina 5 | Aprobado |  | `evidencia/CP-44_a.png`, `evidencia/CP-44_b.png`, `evidencia/CP-44_c.png`, `capturas/cap5_existencias_semaforo.png`, `evidencia/CP-44.txt` |
@@ -181,17 +181,22 @@ Fuente: Elaboración propia.
 
 Ninguno en los 52 casos API: sus 13 fallos corresponden a hallazgos ya registrados. En los 40 casos UI y
 DISPOSITIVO se encontraron tres defectos nuevos, todos de severidad Baja según `plan_pruebas.md`,
-sección 7. Quedan registrados aquí; falta pasarlos a `analisis/hallazgos_defectos.md` con el
-siguiente número H-XX libre (esta sesión no escribió en `analisis/`).
+sección 7. Se anotaron primero como DP-01 a DP-03 y se registraron el 2026-10-21 en
+`analisis/hallazgos_defectos.md` como H-53 a H-55, con su corrección en
+`analisis/12_plan_correcciones.md` ("Después del 24/10"). H-53 y H-54 se clasifican como
+**observación de diseño de la prueba**: la validación del navegador (`required`, `min=1`, botón
+deshabilitado) impide el dato inválido antes del mensaje del sistema, y el comportamiento protege
+igual. H-55 es un registro innecesario en la bitácora (null → "").
 
 | ID | Casos | Severidad | Descripción | Evidencia |
 |----|-------|-----------|-------------|-----------|
-| DP-01 | CP-19, CP-36 | Baja | Los avisos propios de la aplicación "Seleccione una categoría" (`MedicamentoFormModal.tsx`, `guardar`) y "La cantidad debe ser mayor a 0" (`Entradas.tsx`, `submit`) nunca se muestran: el selector de categoría tiene `required` y el campo de cantidad tiene `min={1}`, así que el navegador detiene el envío con su propio mensaje ("Selecciona un elemento de la lista", "El valor debe ser superior o igual a 1") antes de que corra la validación de la aplicación. No se registra nada, pero el mensaje no es el documentado y el código de esos avisos no se alcanza | `evidencia/CP-19.png`, `evidencia/CP-36_b.png` |
-| DP-02 | CP-41 | Baja | En "Importar desde Excel" el botón "Importar" está deshabilitado mientras no hay archivo (`disabled={!archivoImport \|\| importando}`), por lo que el aviso "Seleccione un archivo .xlsx" de `subirExcel` no se puede mostrar. La acción queda impedida; la diferencia es con el resultado documentado | `evidencia/CP-41_a.png` |
-| DP-03 | CP-20 | Baja | Al editar un medicamento sin nombre comercial desde la pantalla, el formulario envía `nombreComercial: ""` y el servidor lo compara contra `null`: el primer `EDITAR` registra `nombreComercial` (null → "") además del campo realmente cambiado, y el valor queda guardado como cadena vacía en lugar de `null` | `evidencia/CP-20.txt`, `evidencia/CP-20_b.png` |
+| H-53 | CP-19, CP-36 | Baja | Los avisos propios de la aplicación "Seleccione una categoría" (`MedicamentoFormModal.tsx`, `guardar`) y "La cantidad debe ser mayor a 0" (`Entradas.tsx`, `submit`) nunca se muestran: el selector de categoría tiene `required` y el campo de cantidad tiene `min={1}`, así que el navegador detiene el envío con su propio mensaje ("Selecciona un elemento de la lista", "El valor debe ser superior o igual a 1") antes de que corra la validación de la aplicación. No se registra nada, pero el mensaje no es el documentado y el código de esos avisos no se alcanza | `evidencia/CP-19.png`, `evidencia/CP-36_b.png` |
+| H-54 | CP-41 | Baja | En "Importar desde Excel" el botón "Importar" está deshabilitado mientras no hay archivo (`disabled={!archivoImport \|\| importando}`), por lo que el aviso "Seleccione un archivo .xlsx" de `subirExcel` no se puede mostrar. La acción queda impedida; la diferencia es con el resultado documentado | `evidencia/CP-41_a.png` |
+| H-55 | CP-20 | Baja | Al editar un medicamento sin nombre comercial desde la pantalla, el formulario envía `nombreComercial: ""` y el servidor lo compara contra `null`: el primer `EDITAR` registra `nombreComercial` (null → "") además del campo realmente cambiado, y el valor queda guardado como cadena vacía en lugar de `null` | `evidencia/CP-20.txt`, `evidencia/CP-20_b.png` |
 
-Para DP-01 y DP-02 hay dos salidas: ajustar la interfaz para que muestre el mensaje documentado o
-corregir el resultado esperado de los casos; la decisión corresponde al responsable de pruebas.
+Para H-53 y H-54 hay dos salidas: ajustar la interfaz para que muestre el mensaje documentado o
+corregir el resultado esperado de los casos; la decisión corresponde al responsable de pruebas y queda
+planificada en `analisis/12_plan_correcciones.md`.
 
 ## Observaciones de la ejecución
 
@@ -252,6 +257,26 @@ corregir el resultado esperado de los casos; la decisión corresponde al respons
   `cap5_existencias_semaforo.png` a 1366 × 1400 para que entren el panel completo y las 16 filas
   de la búsqueda "QA"; las otras dos de escritorio, a 1366 × 768.
 
+## Regresión final
+
+Ejecutada el 2026-10-21 a las 08:14 (hora de Guatemala), al terminar los 92 casos, con el comando de
+`plan_pruebas.md`, sección 3.2, dentro del contenedor `farmag_api` (commit `bdf1187`,
+`TZ=America/Guatemala`):
+
+```
+docker compose exec -T api sh -c 'cd /app && npm test'
+```
+
+- **Resultado:** 53 pruebas, 53 aprobadas, 0 fallidas, 0 canceladas, 0 omitidas (≈9,4 s).
+- **Datos QA del ciclo:** antes de ejecutar se revisaron las limpiezas de `backend/tests/`: cada prueba
+  borra solo los registros que crea (medicamentos `QA_RUTAS_<sufijo>`, `QA_TEST_CRON_…`,
+  `QA_TEST_VENC_…`, `QA_STOCK_<sufijo>`, ubicaciones `QA-UBI-<sufijo>`, sus lotes, entradas,
+  beneficiarios, dispensaciones, tokens y registros de auditoría, por id), y `seed.test.ts` usa una base
+  temporal propia. No borran los datos QA de las pruebas funcionales, por lo que no se hizo respaldo
+  previo. Tampoco había lotes `DISPONIBLE` con vencimiento hoy o anterior que `marcarLotesVencidos`
+  pudiera cambiar. Comprobación antes y después: 5029 lotes `QA-%`, 18 medicamentos y 5178 registros
+  de auditoría, sin cambios; 0 medicamentos `QA_%` remanentes de las pruebas.
+
 ## Resumen del ciclo
 
 Ciclo 1 completo: los 92 casos se ejecutaron, 52 por la API el 2026-10-20 y 40 en la interfaz el
@@ -297,28 +322,24 @@ Fuente: Elaboración propia a partir de la tabla "Registro".
 
 - Fallidos por hallazgo ya registrado (14): CP-07 (H-47), CP-08 (H-10), CP-16 (H-15), CP-26 (H-31), CP-29 (H-42), CP-32 (H-42), CP-43 (H-48), CP-49 (H-43), CP-71 (H-45), CP-78 (H-38), CP-79 (H-35), CP-82 (H-46), CP-88 (H-44), CP-91 (H-46). Son los 14
   casos que `casos_prueba.md` ya preveía fallidos; ninguno falló de forma inesperada.
-- Fallidos por defecto nuevo (4): CP-19 (DP-01), CP-20 (DP-03), CP-36 (DP-01), CP-41 (DP-02). Ver "Defectos nuevos
+- Fallidos por defecto nuevo (4): CP-19 (H-53), CP-20 (H-55), CP-36 (H-53), CP-41 (H-54). Ver "Defectos nuevos
   de la ejecución".
 - Bloqueados: ninguno. CP-77 se ejecutó simulado (ver "Observaciones").
 
 **Criterios de salida (`plan_pruebas.md`, sección 6)**
 
+El requisito de firmas del criterio 6 se eliminó el 2026-10-21: no aplica a este proyecto, cuyo
+registro es un documento de trabajo del repositorio.
+
 | # | Criterio | ¿Se cumple? | Detalle |
 |---|----------|-------------|---------|
-| 1 | 100 % de los casos Alta y al menos 90 % de los Media ejecutados | Sí | Alta 38 de 38 (100 %); Media 40 de 40 (100 %) |
-| 2 | Ningún defecto Crítico ni Alto abierto que no corresponda a un hallazgo registrado con su corrección planificada | Sí | Los dos fallos de prioridad Alta (CP-82 y CP-91) son H-46, con corrección planificada en el lote 1 de `analisis/12_plan_correcciones.md`; los tres defectos nuevos son de severidad Baja |
-| 3 | Todo caso Fallido con un defecto asociado (H-XX existente o uno nuevo en `analisis/hallazgos_defectos.md`) | Parcial | Los 18 fallidos tienen defecto asociado, pero DP-01, DP-02 y DP-03 solo están en este registro; falta darlos de alta en `analisis/hallazgos_defectos.md` |
+| 1 | 100 % de los casos Alta y al menos 90 % de los Media ejecutados | Sí | Alta 38 de 38 (100 %); Media 40 de 40 (100 %); Baja 14 de 14 |
+| 2 | Ningún defecto Crítico ni Alto abierto que no corresponda a un hallazgo registrado con su corrección planificada | Sí | Los dos fallos de prioridad Alta (CP-82 y CP-91) son H-46, con corrección planificada en el lote 1 de `analisis/12_plan_correcciones.md`; los tres defectos nuevos (H-53 a H-55) son de severidad Baja |
+| 3 | Todo caso Fallido con un defecto asociado (H-XX existente o uno nuevo en `analisis/hallazgos_defectos.md`) | Sí | Los 18 fallidos tienen hallazgo: 14 ya registrados y 4 con los nuevos H-53, H-54 y H-55, dados de alta en `analisis/hallazgos_defectos.md` y planificados en `analisis/12_plan_correcciones.md` |
 | 4 | Casos Bloqueados con la causa anotada | Sí | No hay casos bloqueados |
-| 5 | `npm test` aprueba las 53 pruebas al terminar el ciclo | No (pendiente) | No se ejecutó después del ciclo (ver "Datos del ciclo") |
-| 6 | Registro completo y firmado por el ejecutor y el responsable | No (pendiente) | El registro está completo; faltan las firmas |
+| 5 | `npm test` aprueba las 53 pruebas al terminar el ciclo | Sí | 53 de 53 el 2026-10-21 (ver "Regresión final") |
+| 6 | Registro completo | Sí | Los 92 casos tienen fecha, resultado, estado y evidencia |
 
-**Conclusión:** a la fecha **no se cumplen** los criterios de salida, por los criterios 3, 5 y 6, que
-son pendientes de trámite: registrar DP-01 a DP-03 en `analisis/hallazgos_defectos.md`, ejecutar
-`npm test` (de preferencia sobre una base recreada, para no mezclarlo con los datos QA) y firmar. Los
-criterios de cobertura y de severidad (1 y 2) sí se cumplen. Además queda pendiente la prueba de
-CP-77 con un teléfono real.
-
-| Rol | Nombre | Fecha |
-|-----|--------|-------|
-| Ejecutor | [COMPLETAR] | [COMPLETAR] |
-| Responsable de pruebas | Audias Guevara | [COMPLETAR] |
+**Conclusión:** se cumplen los seis criterios de salida del ciclo 1. Quedan fuera de los criterios,
+como pendientes: la prueba de CP-77 con un teléfono real (se ejecutó simulado) y la corrección de los
+hallazgos según `analisis/12_plan_correcciones.md`, cuyos casos se volverán a ejecutar al corregirse.

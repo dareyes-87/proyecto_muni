@@ -1050,21 +1050,64 @@ escribe la dirección de una pantalla exclusiva es redirigido al panel, y una di
 también lleva al panel. Las direcciones antiguas de los catálogos (`/medicamentos`, `/categorias` y
 `/ubicaciones`) redirigen a la pestaña correspondiente de `/catalogos`. Desde el panel, las acciones
 rápidas y los paneles de alertas llevan a Dispensación, Registrar entrada, Existencias o Catálogos.
+La Figura 28 muestra el panel con datos de prueba: el banner de estado, las acciones rápidas, los
+indicadores y los paneles de alertas.
+
+Figura 28.
+Panel principal
+
+{{imagen: cap5_panel.png}}
+
+Fuente: Elaboración propia.
 
 Las pantallas de trabajo diario están diseñadas para el uso con lector de códigos de barras. En
 Registrar entrada, cada lote tiene un campo de lectura que selecciona el medicamento; en
 Dispensación, el campo de lectura recibe el foco al elegir al beneficiario y lo recupera después de
 cada lectura. La dispensación se organiza en tres pasos (beneficiario, medicamentos y confirmación),
 termina con un diálogo de confirmación y muestra después la pantalla de evidencia, con las pestañas
-"QR Celular" y "Subir desde PC" y el estado de cada fotografía.
+"QR Celular" y "Subir desde PC" y el estado de cada fotografía. La Figura 29 muestra los pasos de
+medicamentos y confirmación de una dispensación, y la Figura 30, la pantalla de evidencia con el
+código QR que se genera al registrarla.
+
+Figura 29.
+Pantalla de dispensación
+
+{{imagen: cap5_dispensacion.png}}
+
+Fuente: Elaboración propia.
+
+Figura 30.
+Pantalla de evidencia con código QR
+
+{{imagen: cap5_evidencia_qr.png}}
+
+Fuente: Elaboración propia.
 
 La pantalla de captura está diseñada para un teléfono: tiene un ancho máximo de 420 píxeles, botones
 de al menos 60 píxeles de alto y abre directamente la cámara trasera. Muestra el nombre del
-beneficiario, un botón por cada fotografía pendiente y, al terminar, el mensaje "Todo listo".
+beneficiario, un botón por cada fotografía pendiente y, al terminar, el mensaje "Todo listo". La
+Figura 31 muestra esta pantalla en una vista simulada en tamaño de teléfono, tomada en las pruebas
+funcionales (caso CP-77); no corresponde a un teléfono real.
+
+Figura 31.
+Pantalla de captura (vista simulada en tamaño de teléfono)
+
+{{imagen: cap5_captura_celular.png | ancho=7cm}}
+
+Fuente: Elaboración propia.
 
 En la tabla de existencias, el semáforo de vencimiento se presenta con color y con texto ("Sin
 riesgo", "Por vencer", "Urgente" o "Vencido"), y en la lista de la dispensación, con color y con los
 días que faltan para el vencimiento, de modo que la información no depende solo del color. Las fechas se muestran en formato dd/mm/aaaa y las horas en formato de 24 horas.
+En la Figura 32 se muestra la tabla de existencias filtrada con los medicamentos de prueba, con el
+semáforo de cada medicamento.
+
+Figura 32.
+Tabla de existencias con semáforo de vencimiento
+
+{{imagen: cap5_existencias_semaforo.png}}
+
+Fuente: Elaboración propia.
 
 ## REFERENCIAS DEL CAPÍTULO
 

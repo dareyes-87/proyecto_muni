@@ -1,7 +1,7 @@
-<!-- Numeración de tablas: este capítulo usa provisionalmente las Tablas 300 a 313; el script de
+<!-- Numeración de tablas: este capítulo usa provisionalmente las Tablas 300 a 315; el script de
 ensamblado las renumera para conservar la numeración corrida del documento. No incluye figuras
-nuevas. Los resultados de la ejecución de las pruebas funcionales (sección 8.4) se completarán con
-pruebas/registro_ejecucion.md. -->
+nuevas. Los resultados de la ejecución de las pruebas funcionales (sección 8.4) provienen de
+pruebas/registro_ejecucion.md (ciclo 1, 20 y 21 de octubre de 2026). -->
 
 # CAPÍTULO VIII
 
@@ -64,7 +64,7 @@ Niveles de prueba aplicados y responsables
 | Pruebas unitarias | 6 archivos, 42 casos: vencimiento y semáforo, límites de inicio de sesión, validación de fechas y de paginación, arranque sin secretos | Jorge Vargas (5 archivos) y Daniel Reyes (`env.test.ts`) | 2026-10-07 y 2026-10-12 | `backend/tests/` (historial de Git) |
 | Pruebas de integración | 4 archivos, 11 casos: despacho sin lotes vencidos, marcado de vencidos al arrancar, rutas de inventario y catálogos, seed | Jorge Vargas (`despacho_vencimiento.test.ts`) y Daniel Reyes (3 archivos) | 2026-10-07 y 2026-10-16 | `backend/tests/` (historial de Git) |
 | Integración continua | Workflow "Despliegue seguro": esquema, compilación, despliegue sin pérdida de datos e instalación desde cero | Daniel Reyes | Desde 2026-10-11 | `.github/workflows/despliegue-seguro.yml` |
-| Pruebas funcionales de caja negra | 92 casos derivados de los 19 casos de uso | Plan y casos: Audias Guevara. Ejecución: [COMPLETAR: integrante o integrantes que ejecutan los casos] | [COMPLETAR: fechas de ejecución de las pruebas funcionales] | `pruebas/plan_pruebas.md`, `pruebas/casos_prueba.md` |
+| Pruebas funcionales de caja negra | 92 casos derivados de los 19 casos de uso | Plan y casos: Audias Guevara. Ejecución: Claude Code bajo supervisión de Audias Guevara, con peticiones a la API y pruebas de interfaz automatizadas con Playwright | 2026-10-20 y 2026-10-21 | `pruebas/plan_pruebas.md`, `pruebas/casos_prueba.md` |
 | Revisión de código | Análisis del código contra la especificación y verificación de cada corrección; revisión de calidad y auditoría técnica del equipo | Análisis para la documentación: Audias Guevara (2026-09-25 y 2026-10-20). Informes `CODE_REVIEW.md` y `AUDITORIA_COMPLETA.md`: incorporados al repositorio por Jorge Vargas | 2026-09-25 a 2026-10-20 | `analisis/hallazgos_defectos.md`, `analisis/09_seguimiento_correcciones.md`, `docs/seguridad/` |
 | Pruebas de penetración | Auditoría ofensiva contra la API local y matriz de 62 pruebas de seguridad | Incorporadas al repositorio por Jorge Vargas; la autoría del informe se indica en el Anexo B | 2026-10-07 y 2026-10-08 | `docs/seguridad/`, Anexo B |
 
@@ -133,12 +133,12 @@ Entorno de las pruebas funcionales
 
 | Elemento | Valor |
 |----------|-------|
-| Equipo | Windows 11 con Docker Desktop. [COMPLETAR: procesador y memoria del equipo de pruebas] |
+| Equipo | Windows 11 Home con Docker Desktop; procesador Intel Core i5-13420H (13.ª generación) y 16 GB de memoria RAM |
 | Código | Commit `bdf1187`; para verificar una corrección, el commit que la contiene |
 | Servicios | `farmag_db` (PostgreSQL 16), `farmag_api` (Node.js 20, zona horaria `America/Guatemala`) y `farmag_web` (Vite, modo de desarrollo) |
-| Acceso | Interfaz en `http://localhost:5173`; API en `http://localhost:3000/api`; captura desde el teléfono por la dirección IP del equipo |
-| Navegador | [COMPLETAR: navegador y versión de la computadora, y modelo de teléfono y navegador para la captura] |
-| Herramientas | `curl`, `psql` o Prisma Studio para preparar y consultar datos, y un lector de códigos de barras USB si está disponible |
+| Acceso | Interfaz en el puerto 5173 y API en `http://localhost:3000/api`. En la ejecución automatizada, el navegador corrió en un contenedor y abrió la interfaz por la dirección del equipo anfitrión |
+| Navegador | Chromium 130 de Playwright 1.48.2, sin interfaz gráfica, con ventana de 1366 × 768, configuración regional es-GT y zona horaria America/Guatemala. Teléfono: no se usó un teléfono físico; la captura se simuló con un contexto de Chromium de 390 × 844 píxeles, táctil y con agente de usuario de Android |
+| Herramientas | Peticiones HTTP a la API, `psql` para preparar y consultar datos, y Playwright para los casos de interfaz. Sin lector de códigos de barras: el código se escribió y se confirmó con Enter |
 | Base de datos | Base de desarrollo recreada antes del ciclo, con los datos de prueba de `pruebas/datos_prueba.md` |
 
 Fuente: Elaboración propia con base en `pruebas/plan_pruebas.md`, sección 4.
@@ -166,7 +166,7 @@ El ciclo se da por concluido cuando se cumplen seis criterios de salida:
 3. Todo caso fallido tiene un defecto asociado, existente o nuevo.
 4. Los casos bloqueados tienen su causa anotada.
 5. `npm test` aprueba las 53 pruebas al terminar el ciclo.
-6. El registro de ejecución está completo y firmado por el ejecutor y el responsable.
+6. El registro de ejecución está completo.
 
 ### 8.2.5 Severidad de los defectos
 
@@ -223,8 +223,11 @@ Casos de prueba por caso de uso y prioridad
 Fuente: Elaboración propia con base en `pruebas/casos_prueba.md`.
 
 La especificación completa de los casos, los datos de prueba y el formato del registro de ejecución
-se conservan en la carpeta `docs/documentacion/pruebas/` del repositorio. [COMPLETAR: cronograma de
-preparación, ejecución, corrección y reejecución de las pruebas funcionales].
+se conservan en la carpeta `docs/documentacion/pruebas/` del repositorio. El plan, los casos y los
+datos se prepararon el 20 de octubre de 2026; ese mismo día se cargaron los datos y se ejecutaron los
+casos por la API, y el 21 de octubre, los casos de interfaz. La corrección de los hallazgos sigue el
+plan de correcciones (sección 8.5), y los casos afectados se volverán a ejecutar con el commit que
+contenga cada corrección; esa reejecución no forma parte de esta entrega.
 
 ## 8.3 Pruebas automatizadas
 
@@ -310,8 +313,20 @@ corresponde al estado anterior a la incorporación de cuatro archivos de prueba 
 
 Los resultados de la ejecución de los casos de prueba se registran en
 `pruebas/registro_ejecucion.md` con el estado de cada caso (aprobado, fallido o bloqueado), el
-resultado obtenido, el defecto asociado y la evidencia. [COMPLETAR: número de ciclo, commit probado,
-fechas de ejecución y ejecutor].
+resultado obtenido, el defecto asociado y la evidencia. Se ejecutó un ciclo, el ciclo 1, sobre el
+commit `bdf1187`. Los 92 casos se clasificaron según dónde se observa su resultado esperado: 52 se
+ejecutaron el 20 de octubre de 2026 mediante peticiones HTTP a la API, y los 39 de interfaz y el de
+dispositivo, el 21 de octubre de 2026, de forma automatizada con Playwright en un navegador Chromium.
+Ambas ejecuciones las realizó Claude Code bajo la supervisión de Audias Guevara, responsable de las
+pruebas, y cada caso dejó su evidencia (capturas de pantalla, respuestas de la API y consultas a la
+base de datos) en `pruebas/evidencia/`.
+
+El caso CP-77, que exige un teléfono real, se ejecutó de forma simulada: el código QR se decodificó de
+la imagen de la pantalla y la página de captura se abrió en un navegador con el tamaño, la pantalla
+táctil y el agente de usuario de un teléfono. Se comprobó que la página se ajusta al ancho del
+teléfono, que el campo de archivo solicita la cámara trasera (`capture="environment"`) y que la
+fotografía se sube, pero no que la cámara trasera se abra en un dispositivo real. La prueba con un
+teléfono real queda pendiente.
 
 En la Tabla 307 se resumen los resultados por caso de uso.
 
@@ -320,58 +335,112 @@ Resultados de las pruebas funcionales por caso de uso
 
 | Caso de uso | Casos | Resultado (aprobados / fallidos / bloqueados / no ejecutados) |
 |-------------|------:|----------------------------------------------------------------|
-| CU-01 Iniciar y cerrar sesión | 8 | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| CU-02 Gestionar usuarios | 8 | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| CU-03 Gestionar medicamentos | 7 | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| CU-04 Gestionar códigos de barras | 3 | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| CU-05 Gestionar categorías | 3 | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| CU-06 Gestionar ubicaciones | 3 | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| CU-07 Registrar entrada de medicamentos | 6 | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| CU-08 Importar inventario desde Excel | 5 | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| CU-09 Consultar inventario | 6 | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| CU-10 Dar de baja lote | 2 | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| CU-11 Actualizar lotes vencidos | 2 | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| CU-12 Consultar panel de alertas | 2 | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| CU-13 Gestionar beneficiarios | 4 | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| CU-14 Consultar historial de beneficiario | 3 | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| CU-15 Dispensar medicamentos | 9 | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| CU-16 Registrar evidencia fotográfica | 8 | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| CU-17 Consultar reportes | 5 | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| CU-18 Exportar reportes | 4 | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| CU-19 Consultar bitácora de auditoría | 4 | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| **Total** | **92** | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
+| CU-01 Iniciar y cerrar sesión | 8 | 6 / 2 / 0 / 0 |
+| CU-02 Gestionar usuarios | 8 | 7 / 1 / 0 / 0 |
+| CU-03 Gestionar medicamentos | 7 | 5 / 2 / 0 / 0 |
+| CU-04 Gestionar códigos de barras | 3 | 2 / 1 / 0 / 0 |
+| CU-05 Gestionar categorías | 3 | 2 / 1 / 0 / 0 |
+| CU-06 Gestionar ubicaciones | 3 | 2 / 1 / 0 / 0 |
+| CU-07 Registrar entrada de medicamentos | 6 | 5 / 1 / 0 / 0 |
+| CU-08 Importar inventario desde Excel | 5 | 3 / 2 / 0 / 0 |
+| CU-09 Consultar inventario | 6 | 5 / 1 / 0 / 0 |
+| CU-10 Dar de baja lote | 2 | 2 / 0 / 0 / 0 |
+| CU-11 Actualizar lotes vencidos | 2 | 2 / 0 / 0 / 0 |
+| CU-12 Consultar panel de alertas | 2 | 2 / 0 / 0 / 0 |
+| CU-13 Gestionar beneficiarios | 4 | 4 / 0 / 0 / 0 |
+| CU-14 Consultar historial de beneficiario | 3 | 3 / 0 / 0 / 0 |
+| CU-15 Dispensar medicamentos | 9 | 8 / 1 / 0 / 0 |
+| CU-16 Registrar evidencia fotográfica | 8 | 6 / 2 / 0 / 0 |
+| CU-17 Consultar reportes | 5 | 4 / 1 / 0 / 0 |
+| CU-18 Exportar reportes | 4 | 3 / 1 / 0 / 0 |
+| CU-19 Consultar bitácora de auditoría | 4 | 3 / 1 / 0 / 0 |
+| **Total** | **92** | **74 / 18 / 0 / 0** |
 
 Fuente: Elaboración propia con base en `pruebas/registro_ejecucion.md`.
 
+De los 92 casos, 74 se aprobaron y 18 fallaron; no hubo casos bloqueados ni sin ejecutar. Catorce de
+los fallos son los casos que el plan preveía fallidos por un hallazgo ya registrado, y ninguno de ellos
+falló de forma inesperada; los otros cuatro corresponden a tres defectos nuevos de severidad baja. Los
+casos de uso CU-10 a CU-14 se aprobaron por completo. En la Tabla 314 se presentan los mismos
+resultados por prioridad.
+
+Tabla 314.
+Resultados de las pruebas funcionales por prioridad
+
+| Prioridad | Casos | Aprobados | Fallidos por hallazgo ya registrado | Fallidos por defecto nuevo | Bloqueados |
+|-----------|------:|----------:|------------------------------------:|---------------------------:|-----------:|
+| Alta | 38 | 36 | 2 | 0 | 0 |
+| Media | 40 | 33 | 3 | 4 | 0 |
+| Baja | 14 | 5 | 9 | 0 | 0 |
+| **Total** | **92** | **74** | **14** | **4** | **0** |
+
+Fuente: Elaboración propia con base en `pruebas/registro_ejecucion.md`.
+
+Los dos casos de prioridad alta que fallaron, CP-82 y CP-91, corresponden al hallazgo H-46, cuya
+corrección está planificada en el lote 1. Se aprobaron todos los casos que verifican las reglas
+críticas de vencimiento y orden FIFO, verificación de stock y concurrencia, permisos por rol y límite
+de intentos de inicio de sesión; entre ellos, CP-67 repitió sobre el commit `bdf1187` la prueba de dos
+dispensaciones simultáneas: una se registró, la otra se rechazó con 409 y ninguna produjo un error 500.
+
 En la Tabla 308 se presentan los casos fallidos con su defecto. Las primeras catorce filas
-corresponden a los casos que se espera que fallen por un hallazgo ya registrado; los defectos nuevos
-que aparezcan en la ejecución se agregan al final con el siguiente número de hallazgo libre.
+corresponden a los casos que se esperaba que fallaran por un hallazgo ya registrado; las cuatro
+últimas, a los defectos nuevos de la ejecución, registrados como H-53, H-54 y H-55.
 
 Tabla 308.
 Defectos asociados a los casos de prueba fallidos
 
 | Caso | Defecto | Severidad | Resultado observado |
 |------|---------|-----------|---------------------|
-| CP-07 | H-47: el inicio de sesión no muestra los intentos restantes | Baja | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| CP-08 | H-10: el cierre de sesión no registra `LOGOUT` | Media | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| CP-16 | H-15: un correo duplicado responde 500 | Media | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| CP-26 | H-31: mensaje "otro medicamento" para el mismo medicamento | Baja | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| CP-29 | H-42: una categoría con espacios responde 500 | Baja | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| CP-32 | H-42: una ubicación con espacios responde 500 | Baja | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| CP-43 | H-48: la importación rechaza un medicamento activo por su categoría inactiva | Baja | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| CP-49 | H-43: una paginación no numérica responde 500 o `null` | Baja | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| CP-71 | H-45: filtros de fecha del historial de dispensaciones | Media | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| CP-78 | H-38: `generar-token` audita `CREAR` al reutilizar el token | Baja | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| CP-79 | H-35: la subida de fotos se audita sin IP y sin registrar el reemplazo | Media | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| CP-82 | H-46: el filtro `desde` de los reportes incluye 6 horas del día anterior | Alta | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| CP-88 | H-44: la exportación de inventario no valida `estado` | Baja | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| CP-91 | H-46: el filtro `desde` de la bitácora incluye 6 horas del día anterior | Alta | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
-| [COMPLETAR: resultados de la ejecución de pruebas funcionales] | | | |
+| CP-07 | H-47: el inicio de sesión no muestra los intentos restantes | Baja | Intentos 1 y 2: solo "Credenciales inválidas", sin los intentos restantes |
+| CP-08 | H-10: el cierre de sesión no registra `LOGOUT` | Media | No existe endpoint de cierre de sesión (404); la bitácora no tiene registros `LOGOUT` |
+| CP-16 | H-15: un correo duplicado responde 500 | Media | 500 "Error interno del servidor" en lugar de 409; no se creó el usuario |
+| CP-26 | H-31: mensaje "otro medicamento" para el mismo medicamento | Baja | 409 con el mensaje "Este código de barras ya está registrado en otro medicamento" |
+| CP-29 | H-42: una categoría con espacios responde 500 | Baja | 500 "Error interno del servidor" |
+| CP-32 | H-42: una ubicación con espacios responde 500 | Baja | 500 "Error interno del servidor" |
+| CP-43 | H-48: la importación rechaza un medicamento activo por su categoría inactiva | Baja | La fila se rechazó por la categoría inactiva |
+| CP-49 | H-43: una paginación no numérica responde 500 o `null` | Baja | 500 en `/inventario/entradas`; 200 con lista vacía y `pageSize` y `totalPages` nulos en `/inventario` |
+| CP-71 | H-45: filtros de fecha del historial de dispensaciones | Media | Con desde = hasta = hoy, una dispensación de las 10:00 de hoy no aparece y una de las 19:00 de ayer sí |
+| CP-78 | H-38: `generar-token` audita `CREAR` al reutilizar el token | Baja | Mismo token en las dos llamadas, pero dos registros `CREAR` de `TokenCaptura` |
+| CP-79 | H-35: la subida de fotos se audita sin IP y sin registrar el reemplazo | Media | Dos `CREAR` a nombre del usuario que dispensó y sin dirección IP; el reemplazo no se registra como edición |
+| CP-82 | H-46: el filtro `desde` de los reportes incluye 6 horas del día anterior | Alta | Con desde = hoy aparecen la dispensación y la entrada de las 19:00 de ayer |
+| CP-88 | H-44: la exportación de inventario no valida `estado` | Baja | 500 "Error interno del servidor" en lugar de 400 |
+| CP-91 | H-46: el filtro `desde` de la bitácora incluye 6 horas del día anterior | Alta | Con desde = hoy aparece el registro de las 19:00 de ayer |
+| CP-19 | H-53: la validación del navegador impide el envío antes del aviso de la aplicación (observación de diseño de la prueba) | Baja | Sin categoría no se crea nada, pero el mensaje es el del navegador y no "Seleccione una categoría" |
+| CP-20 | H-55: editar un medicamento sin nombre comercial registra un cambio de `null` a cadena vacía | Baja | El registro `EDITAR` incluye `nombreComercial` (null → "") además del stock mínimo |
+| CP-36 | H-53: la validación del navegador impide el envío antes del aviso de la aplicación (observación de diseño de la prueba) | Baja | Con cantidad 0 no se registra nada, pero el mensaje es el del navegador y no "La cantidad debe ser mayor a 0" |
+| CP-41 | H-54: el botón "Importar" está deshabilitado sin archivo (observación de diseño de la prueba) | Baja | No se puede importar sin archivo, pero el aviso "Seleccione un archivo .xlsx" no aparece |
 
 Fuente: Elaboración propia con base en `pruebas/casos_prueba.md` y `pruebas/registro_ejecucion.md`.
 
-[COMPLETAR: resultados de la ejecución de pruebas funcionales; evaluación de los criterios de salida
-de la sección 8.2.4].
+H-53 y H-54 se clasificaron como observaciones de diseño de la prueba: la validación propia del
+navegador (campo obligatorio, valor mínimo de 1 y botón deshabilitado) impide el dato inválido antes de
+que se muestre el mensaje del sistema, de modo que el sistema protege igual y solo difiere el texto que
+ve la persona. H-55 deja en la bitácora un cambio que la persona no hizo. Los tres se planificaron para
+después de la entrega (sección 8.5).
+
+Al terminar los 92 casos, el 21 de octubre de 2026, se repitieron las 53 pruebas automatizadas como
+regresión final, en el mismo contenedor y con los datos de prueba cargados, y se aprobaron las 53, sin
+fallos. Las pruebas automatizadas solo eliminan los registros que crean, por lo que los datos de las
+pruebas funcionales quedaron intactos. Con estos resultados se evaluaron los criterios de salida de la
+sección 8.2.4, como se muestra en la Tabla 315.
+
+Tabla 315.
+Evaluación de los criterios de salida del ciclo 1
+
+| Criterio | ¿Se cumple? | Detalle |
+|----------|-------------|---------|
+| 1. Casos de prioridad Alta y Media ejecutados | Sí | Alta: 38 de 38 (100 %); Media: 40 de 40 (100 %) |
+| 2. Sin defectos críticos ni altos fuera de un hallazgo planificado | Sí | Los dos fallos de prioridad alta corresponden a H-46, planificado en el lote 1; los defectos nuevos son de severidad baja |
+| 3. Todo caso fallido con defecto asociado | Sí | 14 fallidos con hallazgos ya registrados y 4 con los nuevos H-53, H-54 y H-55 |
+| 4. Casos bloqueados con su causa | Sí | No hubo casos bloqueados |
+| 5. `npm test` aprueba las 53 pruebas al terminar | Sí | 53 de 53 el 21 de octubre de 2026 |
+| 6. Registro de ejecución completo | Sí | Los 92 casos tienen fecha, resultado, estado y evidencia |
+
+Fuente: Elaboración propia con base en `pruebas/registro_ejecucion.md`.
+
+Se cumplen los seis criterios de salida, por lo que el ciclo 1 se da por concluido. Quedan como
+pendientes, fuera de los criterios, la prueba de la captura con un teléfono real (CP-77) y la
+reejecución de los dieciocho casos fallidos cuando se integren las correcciones correspondientes.
 
 ## 8.5 Gestión de defectos
 
@@ -387,8 +456,9 @@ resume en el capítulo 6 (sección 6.6.2):
    hallazgos, con una numeración distinta (`H-001`, `H-002`…).
 2. Registro. Cada defecto se registra con un identificador `H-XX`, su tipo, su descripción, su
    impacto y la fuente en el código (`analisis/hallazgos_defectos.md`). Las diferencias con la
-   especificación se registran aparte como discrepancias `D-XX`. Al 20 de octubre de 2026 hay 51
-   hallazgos (H-01 a H-51) y 35 discrepancias (D-01 a D-35).
+   especificación se registran aparte como discrepancias `D-XX`. Al 20 de octubre de 2026 había 51
+   hallazgos (H-01 a H-51) y 35 discrepancias (D-01 a D-35); después se agregaron H-52, por la
+   instalación, y H-53 a H-55, por las pruebas funcionales del 21 de octubre.
 3. Priorización. Cada hallazgo o discrepancia abierto recibe una prioridad (crítica, alta, media o
    baja, con los criterios de la Tabla 303), un responsable según el módulo, un esfuerzo estimado, la
    prueba que verificaría la corrección y un lote de corrección (`analisis/12_plan_correcciones.md`).
@@ -432,13 +502,14 @@ tenía límite de intentos (H-09) y la base de datos y la API se publicaban en t
 El hallazgo no verificable en el código (H-23) es una práctica de operación: el despacho diario se
 hace con una cuenta de Administrador.
 
-Después de la verificación se registró un hallazgo más, H-52, de prioridad crítica y relacionado con
-la instalación, no con el código del commit `bdf1187`: la instalación de la farmacia se hizo con la
+Después de la verificación se registraron cuatro hallazgos más. El primero, H-52, es de prioridad
+crítica y se relaciona con la instalación, no con el código del commit `bdf1187`: la instalación de la farmacia se hizo con la
 versión anterior de la carga inicial, que creaba el usuario `admin` con una contraseña fija publicada
 en el historial del repositorio, y no consta que se haya cambiado. Si sigue vigente, cualquier
-persona en la red local puede entrar al sistema como Administrador.
+persona en la red local puede entrar al sistema como Administrador. Los otros tres, H-53 a H-55, son de
+prioridad baja y surgieron de la ejecución de las pruebas funcionales (sección 8.4).
 
-La Tabla 310 distribuye por prioridad y por momento de corrección los 48 elementos abiertos del plan
+La Tabla 310 distribuye por prioridad y por momento de corrección los 51 elementos abiertos del plan
 de correcciones, que incluyen los hallazgos no resueltos y las discrepancias que requieren una acción
 o una decisión. La columna "Antes del 24/10" corresponde a los lotes pequeños sin migración que pueden
 integrarse antes de la entrega; "Bloqueado", a lo que no puede hacerse sin acceso al servidor de la
@@ -452,8 +523,8 @@ Hallazgos y discrepancias abiertos por prioridad y momento de corrección
 | Crítica | 1 | 1 | 1 | 0 | 3 |
 | Alta | 1 | 3 | 0 | 0 | 4 |
 | Media | 1 | 16 | 0 | 1 | 18 |
-| Baja | 3 | 8 | 0 | 12 | 23 |
-| **Total** | **6** | **28** | **1** | **13** | **48** |
+| Baja | 3 | 11 | 0 | 12 | 26 |
+| **Total** | **6** | **31** | **1** | **13** | **51** |
 
 Fuente: Elaboración propia con base en `analisis/12_plan_correcciones.md`, Tabla 2. H-15 se cuenta dos
 veces porque su corrección se dividió en dos lotes.
@@ -522,6 +593,7 @@ Correcciones programadas para después de la entrega
 | 6 Bajas y umbrales | H-43, H-27/D-27, H-22/D-24, D-18, H-48 | Paginación, motivo obligatorio de la baja guardado en el lote (R-15), pantalla de umbrales del semáforo, auditoría de códigos en la importación | Sí |
 | 7 Reportes para el Encargado | H-20/D-17 | Acceso del Encargado de Beneficencia a la pantalla de reportes, sin exportación (R-19) | No |
 | Operación | H-23 | Cuenta de Encargado de Beneficencia para el despacho diario, después del lote 7 | No |
+| Sin lote asignado | H-53, H-54, H-55 | Mensajes de validación de la interfaz frente a los resultados esperados de CP-19, CP-36 y CP-41, y nombre comercial vacío guardado como `null` al editar un medicamento | No |
 
 Fuente: Elaboración propia con base en `analisis/12_plan_correcciones.md`, Tablas 1 y 4.
 
@@ -567,6 +639,13 @@ Verificación de los requerimientos no funcionales
 
 | RNF | Cómo se verificó | Resultado |
 |-----|------------------|-----------|
+| RNF-03 Acceso restringido por rol | Caso CP-15, 21 de octubre de 2026: menú del Encargado de Beneficencia y siete peticiones directas a rutas de Administrador | Cumple: la interfaz oculta las opciones y las siete peticiones responden 403 |
+| RNF-05 Desactivación inmediata | Caso CP-06, 21 de octubre de 2026 | Cumple: la siguiente petición de la cuenta desactivada recibe 401 y la sesión vuelve al inicio |
+| RNF-22 Interfaz y mensajes en español | Casos funcionales de interfaz, 21 de octubre de 2026 | Cumple: los avisos de éxito y de error están en español y describen la causa. Los mensajes de validación propios del navegador (H-53, H-54) dependen del idioma del navegador |
+| RNF-24 Confirmación de operaciones irreversibles | Casos CP-18, CP-50 y CP-63, 21 de octubre de 2026 | Cumple: advertencia de duplicados, confirmación de la baja de lote y resumen antes de dispensar |
+| RNF-25 Límite de los datos ingresados | Casos CP-57 y CP-68, 21 de octubre de 2026 | Cumple: el DPI solo admite 13 dígitos y la cantidad a dispensar se ajusta al stock disponible |
+| RNF-27 Formato único de fechas | Casos CP-60, CP-80 y CP-85, 21 de octubre de 2026 | Cumple: dd/mm/aaaa y dd/mm/aaaa HH:mm en pantallas, PDF y Excel |
+| RNF-43 Formatos de intercambio | Casos CP-39 y CP-85, 20 y 21 de octubre de 2026 | Cumple: importación de `.xlsx` y exportación a PDF y `.xlsx` |
 | RNF-02 Sesión obligatoria | Petición sin token a la ruta de fotografías de evidencia, 20 de octubre de 2026 | Cumple: respuesta 401 |
 | RNF-04 Resistencia a la prueba masiva de contraseñas | `ipRateLimit.test.ts` (5 casos) y `loginRateLimit.test.ts` (6 casos), 20 de octubre de 2026 | Cumple: 11 de 11 aprobadas |
 | RNF-06 Fotografías solo con sesión | Peticiones del 20 de octubre de 2026 a la ruta estática anterior y al endpoint autenticado sin token | Cumple: 404 y 401 |
@@ -575,27 +654,26 @@ Verificación de los requerimientos no funcionales
 | RNF-09 Base de datos y API no expuestas a la red | `docker compose ps`, 20 de octubre de 2026 | Cumple: puertos 5432 y 3000 publicados solo en `127.0.0.1` |
 | RNF-10 Clave de firma obligatoria | `env.test.ts` (5 casos), 20 de octubre de 2026 | Cumple el criterio: sin `JWT_SECRET` no arranca. Los secretos por defecto de `docker-compose.yml` siguen abiertos (H-03) |
 | RNF-12 Validación de datos de entrada | `validacion.test.ts`, `fecha.test.ts` y casos de tipo incorrecto de `rutas_integracion.test.ts`; peticiones del 20 de octubre de 2026 con JSON mal formado, cuerpo grande e imagen no permitida | Cumple parcialmente: pruebas aprobadas y respuestas 400 y 413 correctas; quedan endpoints sin validación completa (H-15, H-42, H-43, H-44) |
-| RNF-13 Sin doble descuento de stock | Prueba manual del 19 de julio de 2026: dos dispensaciones simultáneas de 15 unidades con 20 en stock | Cumple en esa prueba: una se registró y la otra recibió 409. No se repitió sobre `bdf1187`; lo hará el caso CP-67 |
+| RNF-13 Sin doble descuento de stock | Prueba manual del 19 de julio de 2026 y caso CP-67 sobre `bdf1187` (20 de octubre de 2026): dos dispensaciones simultáneas que, juntas, superan el stock | Cumple: en ambas pruebas una se registró y la otra recibió 409, sin error 500 ni doble descuento |
 | RNF-14 Sin dispensación de lotes vencidos | `despacho_vencimiento.test.ts`, `inventario.service.test.ts` y `vencimiento_arranque.test.ts` | Cumple: aprobadas con `TZ=America/Guatemala` y, las de integración, con `TZ=UTC` |
 | RNF-19 Recuperación tras un reinicio | `vencimiento_arranque.test.ts` | Cumple: aprobada |
-| RNF-26 Captura desde el teléfono | Navegador con vista de 375 × 812 px, 6 de agosto de 2026 | Cumple en la simulación. No se probó con un teléfono real en la farmacia; en las pruebas funcionales la captura también se simula con un navegador en tamaño de teléfono |
+| RNF-26 Captura desde el teléfono | Navegador con vista de 375 × 812 px, 6 de agosto de 2026, y caso CP-77 simulado con una vista de 390 × 844 px, 21 de octubre de 2026 | Cumple en la simulación. No se probó con un teléfono real; la apertura de la cámara trasera queda pendiente |
 | RNF-28 Listados paginados | `validacion.test.ts` (`clampPaginacion`) | Cumple parcialmente: la función está probada, pero dos rutas de inventario no la usan (H-43) |
 | RNF-29 Consultas de inventario acotadas | Caso de listados con stock de `rutas_integracion.test.ts`; migración de índices aplicada, comprobada el 20 de octubre de 2026 | Cumple |
 | RNF-31 Exportación acotada | `validacion.test.ts` (`verificarLimiteExport`) | Cumple: aprobada |
 | RNF-33 Pruebas automatizadas del backend | `npm test`, 20 de octubre de 2026 | Cumple: 53 de 53 aprobadas. El frontend no tiene pruebas automatizadas |
 | RNF-40 Fechas independientes de la zona horaria | Pruebas de integración con `TZ=America/Guatemala` y con `TZ=UTC`, 20 de octubre de 2026 | Cumple parcialmente: el despacho y el vencimiento no dependen de la zona horaria, pero los filtros de fecha de reportes, bitácora e historial sí (H-45, H-46) |
-| RNF-44 Consulta a OpenFDA | Consulta con el código de barras de un producto conocido, 4 de agosto de 2026 | Cumple para los formatos de NDC 4-4-2, 5-3-2 y 5-4-1 |
+| RNF-44 Consulta a OpenFDA | Consulta con el código de barras de un producto conocido, 4 de agosto de 2026, y caso CP-21, 21 de octubre de 2026 | Cumple para los formatos de NDC 4-4-2, 5-3-2 y 5-4-1. En CP-21, el código usado en agosto ya no tenía datos en OpenFDA y la función se verificó con otro código vigente |
 | RNF-01, RNF-11, RNF-15, RNF-20, RNF-30, RNF-36, RNF-37, RNF-41, RNF-42, RNF-45 | Inspección del código y de la configuración (capítulo 4) | Conformes en la inspección; sin prueba en ejecución |
-| RNF-03, RNF-05, RNF-22, RNF-24, RNF-25, RNF-27, RNF-43 | Casos de prueba funcionales (sección 8.2) | [COMPLETAR: resultados de la ejecución de pruebas funcionales] |
 | RNF-16, RNF-17, RNF-18, RNF-34, RNF-35, RNF-38 | Trabajos del workflow "Despliegue seguro" | Sin evidencia de una ejecución sobre `main` incluida en este documento |
 | RNF-21, RNF-23, RNF-39 | Comprobación en la instalación de la farmacia | No verificado en la instalación de la farmacia |
 | RNF-32 Varios usuarios simultáneos | Prueba de carga | No medido: no se realizó una prueba de carga |
 
 Fuente: Elaboración propia con base en el capítulo 4 (sección 4.3),
-`analisis/09_seguimiento_correcciones.md` (sección 5) y
-`analisis/11_resultados_pruebas_automatizadas.md`.
+`analisis/09_seguimiento_correcciones.md` (sección 5),
+`analisis/11_resultados_pruebas_automatizadas.md` y `pruebas/registro_ejecucion.md`.
 
-De los requerimientos con evidencia ejecutada, catorce se cumplen y cuatro se cumplen de forma
+De los requerimientos con evidencia ejecutada, veintiuno se cumplen y cuatro se cumplen de forma
 parcial (RNF-12, RNF-28, RNF-40 y, en lo que depende de la prueba con un teléfono real, RNF-26); las
 limitaciones de estos últimos corresponden a hallazgos ya registrados y programados en el plan de
 correcciones. Las verificaciones en ejecución se hicieron sobre el equipo de desarrollo, por lo que

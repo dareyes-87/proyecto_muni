@@ -64,7 +64,7 @@ Fólico y QA Sales de Rehidratación (CP-39), QA Nistatina (CP-42).
 
 Códigos de barras sin registrar, para los casos negativos: `7790000000042` (se agrega y elimina en
 CP-24), `7790000000059` (CP-38), `7790000000066` (lo vincula la importación de CP-39) y
-`7790000000099` (nunca se registra). Código real para OpenFDA: `00303789205353` (CP-21).
+`7790000000099` (nunca se registra). Código real para OpenFDA: `00342291936904` (Sucralfate, NDC 42291-936-90; CP-21). El código anterior, `00303789205353`, dejó de tener datos en OpenFDA (comprobado el 2026-10-21).
 
 ## 3. Lotes
 

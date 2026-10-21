@@ -128,3 +128,18 @@ en el servidor no se verificó, porque nadie del equipo accede a él (R-10).
 | ID | Tipo | Descripción | Impacto | Fuente | Referencia |
 |----|------|-------------|---------|--------|------------|
 | H-52 | Seguridad (instalación) | La instalación de la farmacia (≈25/09/2026) se hizo con el seed anterior a `254d0f8` (07/10/2026), que creaba el usuario `admin` con la contraseña fija `admin2026`. Esa contraseña figura en el historial del repositorio, que es público, y el seed actual no modifica la contraseña de un administrador que ya existe. No consta que se haya cambiado. | Prioridad **Crítica**: si no se cambió, cualquier persona en la red local puede iniciar sesión como ADMIN (control total del sistema, datos de beneficiarios incluidos). Acción inmediata que no requiere acceso al servidor: quien opera la farmacia, con su sesión de ADMIN, restablece la contraseña de `admin` desde Usuarios → restablecer contraseña. | `git show 254d0f8^:backend/prisma/seed.ts`, líneas 17 y 27; backend/prisma/seed.ts (rama del administrador existente); hoja "Prioritario" #9 de `FarmaG_Pendientes_respondido.xlsx` | R-33, H-39, H-23 |
+
+## Pruebas funcionales de interfaz, ciclo 1 (2026-10-21)
+
+Detectados al ejecutar los casos UI de `pruebas/casos_prueba.md` con Playwright el 2026-10-21
+(`pruebas/registro_ejecucion.md`, donde se anotaron como DP-01 a DP-03). Severidad Baja según
+`pruebas/plan_pruebas.md`, sección 7. H-53 y H-54 se clasifican como **observación de diseño de la
+prueba**: la validación del navegador (`required`, `min={1}`, botón deshabilitado) impide el dato
+inválido antes de que corra la validación de la aplicación; el sistema protege igual y solo cambia el
+mensaje que se muestra.
+
+| ID | Tipo | Descripción | Impacto | Fuente | Referencia |
+|----|------|-------------|---------|--------|------------|
+| H-53 | Observación de diseño de la prueba (baja) | Los avisos "Seleccione una categoría" (formulario de medicamento) y "La cantidad debe ser mayor a 0" (Registrar entrada) nunca se muestran: el selector de categoría tiene `required` y el campo de cantidad `min={1}`, así que el navegador detiene el envío con su propio mensaje antes de que corra la validación de la aplicación. | Ninguno sobre los datos: no se registra nada en ambos casos. El mensaje que ve la persona es el del navegador y no el documentado; el código de esos avisos no se alcanza desde la pantalla. | frontend/src/components/MedicamentoFormModal.tsx, líneas 131 y 261–262; frontend/src/pages/Entradas.tsx, líneas 125 y 291; `pruebas/evidencia/CP-19.png`, `pruebas/evidencia/CP-36_b.png` | CP-19, CP-36 |
+| H-54 | Observación de diseño de la prueba (baja) | En "Importar desde Excel" el botón "Importar" está deshabilitado mientras no hay archivo (`disabled={!archivoImport \|\| importando}`), por lo que el aviso "Seleccione un archivo .xlsx" de `subirExcel` no se puede mostrar. | Ninguno sobre los datos: la importación sin archivo queda impedida. Solo difiere del resultado documentado. | frontend/src/pages/Entradas.tsx, líneas 180 y 381; `pruebas/evidencia/CP-41_a.png` | CP-41 |
+| H-55 | Trazabilidad (baja) | Al editar desde la pantalla un medicamento sin nombre comercial, el formulario envía `nombreComercial: ""` y `PUT /catalogos/medicamentos/:id` lo compara contra `null`: el `EDITAR` registra `nombreComercial` (null → "") además del campo realmente cambiado, y el valor queda guardado como cadena vacía en lugar de `null`. | La bitácora muestra un cambio que la persona no hizo, y el campo queda con dos representaciones de "vacío" (`null` y `""`). | frontend/src/components/MedicamentoFormModal.tsx, líneas 61 y 241; backend/src/routes/catalogos.routes.ts, líneas 342–347; `pruebas/evidencia/CP-20.txt`, `pruebas/evidencia/CP-20_b.png` | CP-20; RN-69 |

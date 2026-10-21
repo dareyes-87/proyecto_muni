@@ -127,11 +127,11 @@ columna "Defecto" del registro de ejecución.
 
 | Elemento | Valor |
 |----------|-------|
-| Equipo | Equipo de desarrollo con Windows 11 y Docker Desktop. [COMPLETAR: procesador y memoria del equipo] |
+| Equipo | Equipo de desarrollo con Windows 11 Home y Docker Desktop: procesador Intel Core i5-13420H (13.ª generación), 16 GB de memoria RAM |
 | Código | Commit `bdf1187` (el código de `backend/` y `frontend/` no cambia en la rama `docs/documentacion`). Para verificar una corrección, el commit que la contenga |
 | Servicios | `docker compose up --build`: `farmag_db` (PostgreSQL 16), `farmag_api` (Node.js 20, `TZ=America/Guatemala`), `farmag_web` (Vite, `FRONTEND_TARGET=development`) |
 | Acceso | `http://localhost:5173` para la interfaz y `http://localhost:3000/api` para las peticiones directas. Para la captura por QR desde un teléfono, `http://<IP del equipo>:5173` (ver CP-77) |
-| Navegador | [COMPLETAR: navegador y versión usados en la ejecución, p. ej. Google Chrome] en la computadora; [COMPLETAR: modelo de teléfono y navegador] para la captura |
+| Navegador | Chromium 130 de Playwright 1.48.2, sin interfaz, en la computadora (ejecución del 2026-10-21). Para la captura no se usó un teléfono físico: se simuló con un contexto de Chromium de 390 × 844 (CP-77); la prueba con un teléfono real queda pendiente |
 | Herramientas | `curl` para peticiones directas, `psql` o Prisma Studio para preparar y consultar datos, un lector de códigos de barras USB si está disponible (si no, se escribe el código y se pulsa Enter) |
 | Base de datos | Base de desarrollo recreada con `docker compose down -v` y `docker compose up --build` antes del ciclo, con los datos de `datos_prueba.md`. No se usa la base de la municipalidad |
 | Internet | Necesario solo para CP-21 (OpenFDA) |
@@ -163,7 +163,7 @@ reinicio posterior, para no bloquear a los demás casos.
    `analisis/hallazgos_defectos.md`).
 4. Los casos Bloqueados tienen la causa anotada en el registro.
 5. `npm test` aprueba las 53 pruebas al terminar el ciclo.
-6. El registro de ejecución está completo y firmado por el ejecutor y el responsable.
+6. El registro de ejecución está completo (todos los casos con resultado, estado y evidencia).
 
 ## 7. Severidad de los defectos
 
@@ -184,7 +184,7 @@ La prioridad de un caso de prueba (Alta, Media, Baja) sigue la prioridad del req
 | Rol | Responsable | Funciones |
 |-----|-------------|-----------|
 | Responsable de pruebas | Audias Guevara | Prepara el plan, los casos y los datos; revisa el registro; decide si se cumplen los criterios de salida |
-| Ejecutor | [COMPLETAR: integrante o integrantes que ejecutan los casos] | Carga los datos, ejecuta los casos, llena el registro y adjunta la evidencia |
+| Ejecutor | Claude Code, bajo supervisión de Audias Guevara: casos API por peticiones HTTP (2026-10-20) y casos de interfaz automatizados con Playwright (2026-10-21) | Carga los datos, ejecuta los casos, llena el registro y adjunta la evidencia |
 | Desarrolladores | Daniel Reyes (Inventario, Admin, Reportes), Jorge Vargas (Dispensación), Audias Guevara (Catálogos) | Analizan y corrigen los defectos de su módulo según `analisis/12_plan_correcciones.md` |
 | Usuario de validación | [COMPLETAR: persona de la Farmacia Municipal que valida los flujos, si participa] | Ejecuta los casos de dispensación y entradas con su forma real de trabajo |
 
