@@ -1,0 +1,5 @@
+CP-59 — 2026-10-21 — qa_encargado, Beneficiarios > editar a Beneficiario Prueba Tres, dirección "Barrio de prueba".
+Aviso: "Beneficiario actualizado". Detalle: Volver al listado Beneficiario Prueba Tres Dirección: Barrio de prueba Editar Historial de dispensaciones (0) No hay dispensaciones registradas
+Botones de la fila: ["Ver detalle","Editar"]; botones del detalle: ["Volver al listado","Editar"] (no hay desactivar ni eliminar).
+(El EDITAR con datos anteriores y nuevos se comprueba con qa_admin2 en la sección 2.9.)
+Captura: CP-59.png.

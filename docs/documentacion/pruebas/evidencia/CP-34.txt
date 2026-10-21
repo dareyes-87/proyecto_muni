@@ -1,0 +1,4 @@
+CP-34 — 2026-10-21 — qa_encargado, campo de lectura del lote 1 (lector simulado: se escribe el código y se pulsa Enter, como hace el lector en modo teclado).
+Paso 1, 7790000000011: "QA Paracetamol seleccionado"; selector del lote: "QA Paracetamol (500 mg)"; etiqueta: "QA Paracetamol (500 mg)"; campo de lectura después: "".
+Paso 2, 7790000000099: ["No se encontró medicamento con ese código de barras"].
+Capturas: CP-34.png, CP-34_b.png.

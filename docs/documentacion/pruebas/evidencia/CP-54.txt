@@ -1,0 +1,10 @@
+CP-54 — 2026-10-21 — inicio de sesión de qa_encargado por la pantalla.
+Aviso: "12 asuntos requieren tu atención hoy. 7 con stock bajo. 4 por vencer. 1 vencidos sin baja."
+Resumen: RESUMEN Medicamentos 17 Stock bajo 7 Por vencer 4 Dispensaciones hoy 0
+Stock bajo (7 mostrados): QA Salbutamol · Inhalador 0/10 | QA Diclofenaco API · Ampolla 0/10 | Paracetamol · Tableta 0/10 | QA Diclofenaco · Tableta 0/15 | QA Amoxicilina · Cápsula 1/5 | QA Cetirizina · Tableta 5/10 | QA Omeprazol · Cápsula 9/10
+Próximos a vencer (4 mostrados): QA Loratadina · lote QA-S-30 Urgente · 30d | QA Loratadina · lote QA-S-31 Por vencer · 31d | QA Paracetamol · lote QA-F-B Por vencer · 60d | QA Loratadina · lote QA-S-90 Por vencer · 90d
+Vencidos sin baja (1): QA Amoxicilina · lote QA-V-HOY 21/10/2026
+Entradas recientes (6): 1 lote ingresado Administrador Prueba 21/10/2026 00:26 | 1 lote ingresado Administrador Prueba 20/10/2026 17:41 | 1 lote ingresado Administrador Prueba 20/10/2026 17:41 | 1 lote ingresado Administrador Prueba 20/10/2026 17:41 | 1 lote ingresado Administrador Prueba 20/10/2026 17:41 | 1 lote ingresado Administrador Prueba 20/10/2026 17:41
+"Dispensaciones hoy" = 0 en el indicador del resumen. Comprobación con SQL: dispensaciones con created_at desde la medianoche del 2026-10-21 en Guatemala = 0 (la del 20-10 a las 23:30 de CP-81 ya es de ayer, porque la ejecución pasó al 21-10).
+"Dispensar medicamento" → /dispensacion; "Registrar entrada" → /entradas.
+Capturas: CP-54.png y capturas/cap5_panel.png (ventana de 1366 × 1500 para que se vea el panel completo).

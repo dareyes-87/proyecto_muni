@@ -1,0 +1,23 @@
+CP-85 — 2026-10-21 — qa_admin2, Reportes: un filtro por pestaña, "Exportar PDF" y "Exportar Excel".
+  Dispensaciones (beneficiario = Beneficiario Prueba Uno; 10 filas en pantalla)
+    PDF: "Reporte exportado", 76067 bytes, 1 pág., logo=true, nombre de la farmacia=true, "Generado: 21/10/2026 00:38", "Página 1 de 1", filtros: "Filtros aplicados: beneficiarioId=7b77f0e4-125a-4900-9bc2-acaace3ea1bb  Fecha   Beneficiario   DPI   Medicamento   Present.   C"
+    Excel: "Reporte exportado", 7331 bytes, hoja "Reporte de Dispensaciones", autoFilter="A1:H1", 12 filas en la hoja, encabezado ["Fecha","Beneficiario","DPI","Medicamento","Presentación","Cantidad","Código de barras","Usuario"]
+  Consumo por medicamento (categoría = Analgésico; 1 filas en pantalla)
+    PDF: "Reporte exportado", 75468 bytes, 1 pág., logo=true, nombre de la farmacia=true, "Generado: 21/10/2026 00:38", "Página 1 de 1", filtros: "Filtros aplicados: categoriaId=66821301-ddb7-4b32-aeb9-1bb12f59ad8e  Medicamento   Presentación   Categoría   Cant. total dispe"
+    Excel: "Reporte exportado", 6835 bytes, hoja "Reporte de Consumo por Medicame", autoFilter="A1:E1", 2 filas en la hoja, encabezado ["Medicamento","Presentación","Categoría","Cantidad total dispensada","Número de dispensaciones"]
+  Inventario actual (categoría = Analgésico; 3 filas en pantalla)
+    PDF: "Reporte exportado", 75625 bytes, 1 pág., logo=true, nombre de la farmacia=true, "Generado: 21/10/2026 00:38", "Página 1 de 1", filtros: "Filtros aplicados: categoriaId=66821301-ddb7-4b32-aeb9-1bb12f59ad8e  Medicamento   Lote   Cód. barras   Cant.   Vence   Semáfor"
+    Excel: "Reporte exportado", 7099 bytes, hoja "Reporte de Inventario Actual", autoFilter="A1:I1", 4 filas en la hoja, encabezado ["Medicamento","Presentación","Categoría","N.º de lote","Código de barras","Cantidad actual","Fecha de vencimiento","Semáforo","Ubicación"]
+  Por vencer (umbral = 30 días; 1 filas en pantalla)
+    PDF: "Reporte exportado", 75456 bytes, 1 pág., logo=true, nombre de la farmacia=true, "Generado: 21/10/2026 00:38", "Página 1 de 1", filtros: "Filtros aplicados: dias=30  Medicamento   Lote   Cód. barras   Cant.   Vence   Días   Semáforo   Ubicación  QA Loratadina   QA-"
+    Excel: "Reporte exportado", 7001 bytes, hoja "Reporte de Medicamentos por Ven", autoFilter="A1:J1", 2 filas en la hoja, encabezado ["Medicamento","Presentación","Categoría","N.º de lote","Código de barras","Cantidad actual","Fecha de vencimiento","Días para vencer","Semáforo","Ubicación"]
+  Entradas (desde = 2026-10-21; 1 filas en pantalla)
+    PDF: "Reporte exportado", 75410 bytes, 1 pág., logo=true, nombre de la farmacia=true, "Generado: 21/10/2026 00:38", "Página 1 de 1", filtros: "Filtros aplicados: desde=2026-10-21  Fecha   Usuario   N.º lotes   Unidades   Costo total  21/10/2026 00:26   Administrador Pru"
+    Excel: "Reporte exportado", 6808 bytes, hoja "Reporte de Entradas Registradas", autoFilter="A1:E1", 2 filas en la hoja, encabezado ["Fecha","Usuario","N.º de lotes","Unidades totales","Costo total"]
+  Dados de baja (hasta = 2027-11-25; 3 filas en pantalla)
+    PDF: "Reporte exportado", 75597 bytes, 1 pág., logo=true, nombre de la farmacia=true, "Generado: 21/10/2026 00:38", "Página 1 de 1", filtros: "Filtros aplicados: hasta=2027-11-25T23:59:59.999  Medicamento   Lote   Estado   Vencimiento   Cant. perdida   Costo est.  QA Ce"
+    Excel: "Reporte exportado", 7091 bytes, hoja "Reporte de Medicamentos Dados d", autoFilter="A1:H1", 4 filas en la hoja, encabezado ["Medicamento","Presentación","Categoría","N.º de lote","Estado","Fecha de vencimiento","Cantidad perdida","Costo estimado"]
+Bitácora: 12 registros CREAR de entidad reporte nuevos; ejemplo: {"tipo":"baja","filtros":{"hasta":"2027-11-25T23:59:59.999"},"formato":"xlsx"}
+Los 12 archivos se revisaron con pdf.js (texto, número de páginas e imagen del logo) y exceljs (hoja, encabezados y filtro automático); no se agregan al repositorio.
+Capturas: CP-85_pdf.png (primera página de CP-85_dispensaciones.pdf), CP-85_xlsx.png (contenido de CP-85_dispensaciones.xlsx).
+Nota: hubo un primer intento en el que se exportaron las cuatro primeras pestañas (8 archivos) y la exportación de Entradas con desde = 2026-10-20 respondió 400 "El reporte tiene 5011 registros y el máximo exportable es 5000…" (límite de CP-86, por la carga de QA Carga). Se repitió todo el caso con Entradas filtrado desde hoy; esos 8 CREAR previos también quedaron en la bitácora.

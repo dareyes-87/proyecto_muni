@@ -1,0 +1,5 @@
+CP-46 — 2026-10-21 — qa_encargado, Existencias.
+QA Omeprazol: QA Omeprazol 20 mg · Cápsula Gastrointestinal 9 / mín 10 1 Sin riesgo · 300d 17/08/2027 Detalle (stock en rojo: true). QA Metformina: QA Metformina 850 mg · Tableta Antidiabético 10 / mín 10 1 Sin riesgo · 300d 17/08/2027 Detalle (stock en rojo: false).
+Sin filtro: 17 medicamentos en la lista; caben en una página, sin paginación, así que el regreso a la página 1 al marcar el filtro no se puede observar.
+"Solo stock bajo": Paracetamol 500 mg · Tableta Analgésico 0 / mín 10 0 Sin stock — Detalle | QA Amoxicilina 500 mg · Cápsula Antibiótico 1 / mín 5 1 Sin riesgo · 100d 29/01/2027 Detalle | QA Cetirizina 10 mg · Tableta Antihistamínico 5 / mín 10 1 Sin riesgo · 180d 19/04/2027 Detalle | QA Diclofenaco API 75 mg/3 ml · Ampolla Antiinflamatorio 0 / mín 10 0 Sin stock — Detalle | QA Omeprazol 20 mg · Cápsula Gastrointestinal 9 / mín 10 1 Sin riesgo · 300d 17/08/2027 Detalle | QA Salbutamol 100 mcg · Inhalador Respiratorio 0 / mín 10 0 Sin stock — Detalle
+Captura: CP-46.png (lista filtrada).

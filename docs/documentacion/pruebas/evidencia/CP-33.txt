@@ -1,0 +1,7 @@
+CP-33 — 2026-10-21 — qa_encargado, Registrar entrada.
+Lote 1: QA Diclofenaco, QA-E-1, 30 u, vence 2027-02-18, ubicación A, costo 0.50. Lote 2: QA-E-2, 20 u, vence 2026-10-22 (mañana), sin ubicación ni costo.
+Aviso: "Entrada registrada". Después: 1 lote en el formulario y número de lote vacío (se limpió). Primera entrada reciente antes: "21/10/2026 00:26 1 Administrador Prueba"; después: "21/10/2026 00:42 2 Encargado Prueba".
+Detalle de QA Diclofenaco en Existencias: 50 mg · Tableta Categoría: Analgésico Stock disponible: 50 (mín 15)
+Lotes: QA-E-2 20 Urgente · 1d 22/10/2026 DISPONIBLE — | QA-E-1 30 Sin riesgo · 120d 18/02/2027 DISPONIBLE A
+(El CREAR de la bitácora se comprueba con qa_admin2 en la sección 2.9.)
+Capturas: CP-33.png (entrada registrada), CP-33_b.png (detalle).

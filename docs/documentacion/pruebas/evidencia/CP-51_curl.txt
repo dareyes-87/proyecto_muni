@@ -1,0 +1,5 @@
+Peticiones con el token de qa_admin2 (desde la sesión del navegador; el token no se registra).
+PUT /api/inventario/lotes/4099fc66-a70f-472f-ac0a-bdbf72dedf17/baja   (QA-B-1, ya dado de baja)
+HTTP 409 {"error":"El lote ya fue dado de baja"}
+PUT /api/inventario/lotes/00000000-0000-0000-0000-000000000000/baja
+HTTP 404 {"error":"Lote no encontrado"}

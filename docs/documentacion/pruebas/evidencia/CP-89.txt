@@ -1,0 +1,6 @@
+CP-89 — 2026-10-21 — qa_admin2, Auditoría.
+Paso 1: 20 filas en la página 1 (Página 1 de 257); orden del más reciente al más antiguo: true (2026-10-21T06:35:40.135Z … 2026-10-21T06:29:39.830Z).
+Paso 2: usuario Encargado Prueba + acción DISPENSAR → 12 filas, todas de qa_encargado y DISPENSAR: true.
+Paso 3: el selector de entidad de la pantalla tiene valores fijos en minúsculas; la entidad en mayúsculas se probó en la consulta que usa la pantalla: GET /api/auditoria?entidad=DISPENSACION → 12 registros, los mismos que con "dispensacion": true.
+Paso 4: EDITAR de usuario expandido (restablecimiento de contraseña de qa_nuevo): {"password":"***restablecida***"}. ¿Algún registro de entidad usuario con contraseña o hash? false.
+Capturas: CP-89_a.png (página 1), CP-89_b.png (filtro qa_encargado + DISPENSAR), CP-89_c.png (EDITAR expandido).

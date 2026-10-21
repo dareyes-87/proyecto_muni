@@ -1,0 +1,6 @@
+CP-50 — 2026-10-21 — qa_admin2, Existencias > Detalle de QA Cetirizina.
+Paso 1, diálogo: Dar de baja lote ¿Seguro que deseas dar de baja el lote QA-B-1? Esta acción quedará registrada en auditoría y no se puede deshacer. Motivo (opcional) Cancelar Dar de baja
+Paso 2: motivo "Empaque dañado" → "Lote dado de baja". Stock disponible antes 15, después 5 (queda QA-B-2 con 5 unidades; el resultado esperado de casos_prueba.md ya se corrigió a 5). Fila de QA-B-1: QA-B-1 10 Vencido 20/03/2027 DADO_DE_BAJA BOD ; botón "Dar de baja" en QA-B-1: no.
+Paso 3: registro BAJA nuevo: [{"fecha":"2026-10-21T06:32:19.910Z","usuario":"qa_admin2","antes":{"estado":"DISPONIBLE","cantidadActual":10},"nuevos":{"estado":"DADO_DE_BAJA","motivo":"Empaque dañado"}}]
+QA-B-1 en el reporte de Dados de baja (GET /api/reportes/medicamentos-baja): true.
+Capturas: CP-50_a.png (diálogo con el motivo), CP-50_b.png (detalle después), CP-50_c.png (reporte Dados de baja).

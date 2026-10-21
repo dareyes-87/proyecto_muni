@@ -1,0 +1,8 @@
+CP-15 — 2026-10-21 — qa_encargado.
+Paso 1, menú: Dashboard Dispensación Beneficiarios Inventario Catálogos
+Paso 2: /usuarios → /; /auditoria → /; /reportes → /.
+Paso 3, botones de Catálogos: {"medicamentos":["Medicamentos","Categorías","Ubicaciones","0","0","0","0","0","0","0","1","1","0","0","0","0","1","0","0","0","1"],"categorias":["Medicamentos","Categorías","Ubicaciones"],"ubicaciones":["Medicamentos","Categorías","Ubicaciones"]}. Modal de códigos de QA Paracetamol: "Códigos de barras — QA Paracetamol 7790000000011" (campos de texto: 0, botones de eliminar: 0).
+Paso 4, Registrar entrada: "Importar desde Excel" 0, "Nuevo medicamento" 0.
+Paso 5, detalle de QA Cetirizina: botones "Dar de baja" 0.
+Paso 6: GET /usuarios → 403; POST /catalogos/categorias → 403; PUT /inventario/lotes/4099fc66-a70f-472f-ac0a-bdbf72dedf17/baja → 403; POST /inventario/importar-excel → 403; GET /reportes/exportar/inventario/pdf → 403; GET /auditoria → 403; PUT /inventario/configuracion → 403 (ver CP-15_curl.txt); ningún dato cambió (la categoría "QA No Permitida" no existe y la configuración sigue igual).
+Capturas: CP-15_a.png (menú tras intentar /reportes), CP-15_b.png (detalle sin baja), CP-15_c.png (códigos sin agregar ni eliminar).

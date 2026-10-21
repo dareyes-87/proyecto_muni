@@ -96,7 +96,7 @@ Fuente: Elaboración propia.
 | CP-12 | 2026-10-21 | "Usuario actualizado" y EDITAR con datos anteriores y nuevos; al recargar, qa_nuevo ve Usuarios, Reportes y Auditoría; "Contraseña actualizada" e inicio de sesión correcto con la nueva; la bitácora no muestra la contraseña | Aprobado |  | `evidencia/CP-12_a.png`, `evidencia/CP-12_b.png`, `evidencia/CP-12.txt` |
 | CP-13 | 2026-10-20 | Ambos 400 con los mensajes esperados; la cuenta sigue activa y con rol Administrador | Aprobado |  | `evidencia/CP-13.txt` |
 | CP-14 | 2026-10-20 | Desactivado y visible como inactivo; login 401 "Credenciales inválidas"; reactivado; DESACTIVAR y ACTIVAR en la bitácora | Aprobado |  | `evidencia/CP-14.txt` |
-| CP-15 | | | | | |
+| CP-15 | 2026-10-21 | Menú sin Usuarios, Reportes ni Auditoría; las tres rutas redirigen al panel; sin botones de crear, editar, códigos, importar ni dar de baja; las siete peticiones → 403 "No tiene permisos para esta acción" | Aprobado |  | `evidencia/CP-15_a.png`, `evidencia/CP-15_b.png`, `evidencia/CP-15_c.png`, `evidencia/CP-15_curl.txt`, `evidencia/CP-15.txt` |
 | CP-16 | 2026-10-20 | 500 "Error interno del servidor" en lugar de 409; no se creó el usuario | Fallido | H-15 (esperado) | `evidencia/CP-16.txt` |
 | CP-17 | 2026-10-21 | Stock mínimo propuesto 10; "Medicamento creado"; queda seleccionado en el lote 1; aparece en el catálogo; CREAR en la bitácora | Aprobado |  | `evidencia/CP-17.png`, `evidencia/CP-17.txt` |
 | CP-18 | 2026-10-21 | Diálogo "Posibles duplicados" con el texto esperado y QA Paracetamol; "Revisar de nuevo" vuelve al formulario con los datos; "Crear de todos modos" → "Medicamento creado" | Aprobado |  | `evidencia/CP-18.png`, `evidencia/CP-18.txt` |
@@ -114,10 +114,10 @@ Fuente: Elaboración propia.
 | CP-30 | 2026-10-21 | "Ubicación creada", "Ubicación actualizada"; QA-02 en el selector de Registrar entrada; la fila solo tiene el botón Editar | Aprobado |  | `evidencia/CP-30.png`, `evidencia/CP-30.txt` |
 | CP-31 | 2026-10-20 | 409 y 400/400 con los mensajes esperados; no se creó ni cambió ninguna ubicación | Aprobado |  | `evidencia/CP-31.txt` |
 | CP-32 | 2026-10-20 | 500 "Error interno del servidor" | Fallido | H-42 (esperado) | `evidencia/CP-32.txt` |
-| CP-33 | | | | | |
-| CP-34 | | | | | |
+| CP-33 | 2026-10-21 | "Entrada registrada", el formulario se limpia y la entrada aparece en las recientes; QA-E-1 (30) y QA-E-2 (20) DISPONIBLE; stock 50; CREAR en la bitácora | Aprobado |  | `evidencia/CP-33.png`, `evidencia/CP-33_b.png`, `evidencia/CP-33.txt` |
+| CP-34 | 2026-10-21 | "QA Paracetamol seleccionado", queda elegido en el lote y el campo se vacía; "No se encontró medicamento con ese código de barras" (lector simulado con teclado) | Aprobado |  | `evidencia/CP-34.png`, `evidencia/CP-34_b.png`, `evidencia/CP-34.txt` |
 | CP-35 | 2026-10-20 | 400 "Lote 2 (QA-E-4): La fecha de vencimiento ya pasó o es hoy…" con hoy y con ayer; ningún lote de la entrada quedó registrado | Aprobado |  | `evidencia/CP-35.txt` |
-| CP-36 | | | | | |
+| CP-36 | 2026-10-21 | Paso 1: "Complete medicamento, cantidad, número de lote y vencimiento en cada lote". Paso 2: no se registra, pero lo detiene la validación del navegador (min=1, "Value must be greater than or equal to 1.") y no aparece "La cantidad debe ser mayor a 0"; no se registra nada | Fallido | DP-01 | `evidencia/CP-36.png`, `evidencia/CP-36_b.png`, `evidencia/CP-36.txt` |
 | CP-37 | 2026-10-20 | 400 "Uno o más medicamentos no existen o están inactivos" y 400 "Una o más ubicaciones no existen"; no se registró nada | Aprobado |  | `evidencia/CP-37.txt` |
 | CP-38 | 2026-10-21 | "No se encontró medicamento con ese código de barras"; "Medicamento creado" y queda seleccionado; "Entrada registrada"; QA Clotrimazol sin el código 7790000000059 (0 códigos) | Aprobado |  | `evidencia/CP-38.png`, `evidencia/CP-38.txt` |
 | CP-39 | 2026-10-20 | Plantilla correcta (2 hojas, 11 encabezados, 1 fila de ejemplo); 3 filas → 3 lotes, 2 medicamentos, 1 categoría (QA Importada), 1 ubicación (QA-IMP), 1 código vinculado; CREAR en la bitácora por cada uno | Aprobado |  | `evidencia/CP-39.txt` |
@@ -125,22 +125,22 @@ Fuente: Elaboración propia.
 | CP-41 | 2026-10-21 | Paso 1: el botón "Importar" está deshabilitado sin archivo y no se muestra "Seleccione un archivo .xlsx". Paso 2: "Faltan columnas en el Excel: fechaVencimiento. Descargue la plantilla actualizada.", "El archivo no es un Excel (.xlsx) válido", "El archivo no contiene filas de datos"; no se importa nada | Fallido | DP-02 | `evidencia/CP-41_a.png` … `evidencia/CP-41_d.png`, `evidencia/CP-41.txt` |
 | CP-42 | 2026-10-20 | Fila 2: aviso "Ya existe el lote QA-F-B…" y 1 lote omitido; fila 3: error de QA Ranitidina inactivo; fila 4: lote importado con aviso de código no vinculado | Aprobado |  | `evidencia/CP-42.txt` |
 | CP-43 | 2026-10-20 | La fila se rechazó: "La categoría "QA Categoría Inactiva" existe pero está inactiva; actívela antes de importar" | Fallido | H-48 (esperado) | `evidencia/CP-43.txt` |
-| CP-44 | | | | | |
+| CP-44 | 2026-10-21 | Lista de 20 en 20 con stock, lotes, próximo vencimiento y semáforo; "QA Para": solo QA Paracetamol, stock 17, 2 lotes, "Por vencer · 60d" (datos tras CP-64); detalle con QA-F-A (0, AGOTADO), QA-F-B (7) y QA-F-C (10) con fecha, días, semáforo, estado y ubicación; QA-B-1 DADO_DE_BAJA y stock de QA Cetirizina 5 | Aprobado |  | `evidencia/CP-44_a.png`, `evidencia/CP-44_b.png`, `evidencia/CP-44_c.png`, `capturas/cap5_existencias_semaforo.png`, `evidencia/CP-44.txt` |
 | CP-45 | 2026-10-20 | 30 d → ROJO (Urgente), 31 y 90 d → AMARILLO (Por vencer), 91 d → VERDE (Sin riesgo); la fila toma ROJO | Aprobado |  | `evidencia/CP-45.txt` |
-| CP-46 | | | | | |
+| CP-46 | 2026-10-21 | QA Omeprazol (9/10) marcado con stock bajo y QA Metformina (10/10) no; con "Solo stock bajo" aparece QA Omeprazol y no QA Metformina. Los 17 medicamentos caben en una página: el regreso a la página 1 no se pudo observar | Aprobado |  | `evidencia/CP-46.png`, `evidencia/CP-46.txt` |
 | CP-47 | 2026-10-20 | Stock 0, semáforo nulo ("Sin stock") y detalle sin lotes | Aprobado |  | `evidencia/CP-47.txt` |
 | CP-48 | 2026-10-20 | 200 y QA-S-31 en ROJO con rojo = 45; 400 por rojo ≥ amarillo; 400 "Datos inválidos" por -1; restablecido a 30/90 | Aprobado |  | `evidencia/CP-48.txt` |
 | CP-49 | 2026-10-20 | Paso 1: 500 "Error interno del servidor"; paso 2: 200 con lista vacía, page 1 y pageSize y totalPages nulos (el caso preveía también page nulo) | Fallido | H-43 (esperado) | `evidencia/CP-49.txt` |
-| CP-50 | | | | | |
-| CP-51 | | | | | |
+| CP-50 | 2026-10-21 | Diálogo con el texto esperado y "Motivo (opcional)"; "Lote dado de baja"; QA-B-1 en DADO_DE_BAJA sin botón; stock de QA Cetirizina 15 → 5 (queda QA-B-2); BAJA con estado y cantidad anteriores y el motivo; QA-B-1 en Dados de baja | Aprobado |  | `evidencia/CP-50_a.png`, `evidencia/CP-50_b.png`, `evidencia/CP-50_c.png`, `evidencia/CP-50.txt` |
+| CP-51 | 2026-10-21 | Cancelar no cambia QA-B-2 ni crea BAJA; 409 "El lote ya fue dado de baja"; 404 "Lote no encontrado" | Aprobado |  | `evidencia/CP-51.png`, `evidencia/CP-51_curl.txt`, `evidencia/CP-51.txt` |
 | CP-52 | 2026-10-20 | Tras reiniciar: QA-V-HOY → VENCIDO, QA-V-AGO sigue AGOTADO, token vencido eliminado; QA-V-HOY en "vencidos sin baja"; sin registros nuevos en la bitácora | Aprobado |  | `evidencia/CP-52.txt` |
 | CP-53 | 2026-10-20 | Stock 6 y QA-V-HOY en "Vencido"; /stock 6; 201; las 5 u salieron de QA-V-OK (queda 1) y QA-V-HOY conserva 4 | Aprobado |  | `evidencia/CP-53.txt` |
-| CP-54 | | | | | |
+| CP-54 | 2026-10-21 | "12 asuntos requieren tu atención hoy. 7 con stock bajo. 4 por vencer. 1 vencidos sin baja."; Stock bajo con QA Omeprazol y QA Salbutamol; Próximos a vencer con QA-F-B y QA-S-30; Dispensaciones hoy 0 (coincide con la base: ninguna desde la medianoche); hasta 8 por panel y 6 entradas recientes; los botones abren Dispensación y Registrar entrada | Aprobado |  | `evidencia/CP-54.png`, `capturas/cap5_panel.png`, `evidencia/CP-54.txt` |
 | CP-55 | 2026-10-20 | Con la base vacía, /inventario/alertas devuelve las tres listas vacías y /inventario/entradas vacío; el panel muestra "Todo en orden…" y los cuatro textos de panel vacío (Dashboard.tsx:78, 118, 132, 144, 165) | Aprobado |  | `evidencia/CP-55.txt` |
 | CP-56 | 2026-10-20 | 201; DPI parcial → Uno, Dos y Cuatro; "prueba cua" → Cuatro (sin distinguir mayúsculas); "zzz" sin resultados; CREAR en la bitácora | Aprobado |  | `evidencia/CP-56.txt` |
-| CP-57 | | | | | |
+| CP-57 | 2026-10-21 | "El nombre debe tener al menos 3 caracteres"; "El DPI debe tener exactamente 13 dígitos"; el DPI descarta las letras y se corta en 13 dígitos; no se registra nada | Aprobado |  | `evidencia/CP-57.png`, `evidencia/CP-57_b.png`, `evidencia/CP-57.txt` |
 | CP-58 | 2026-10-20 | 409 "Ya existe un beneficiario con DPI 0000000000001" al registrar y al editar; no se guardó nada | Aprobado |  | `evidencia/CP-58.txt` |
-| CP-59 | | | | | |
+| CP-59 | 2026-10-21 | "Beneficiario actualizado"; EDITAR con datos anteriores y nuevos; sin opción para desactivar ni eliminar | Aprobado |  | `evidencia/CP-59.png`, `evidencia/CP-59.txt` |
 | CP-60 | | | | | |
 | CP-61 | | | | | |
 | CP-62 | 2026-10-20 | Sin dispensaciones; 401 sin sesión; 404 "Foto no encontrada"; la ruta /uploads/dispensaciones/… responde 404 | Aprobado |  | `evidencia/CP-62.txt` |
@@ -161,16 +161,16 @@ Fuente: Elaboración propia.
 | CP-77 | | | | | |
 | CP-78 | 2026-10-20 | Mismo token en las dos llamadas, pero 2 registros CREAR de TokenCaptura | Fallido | H-38 (esperado) | `evidencia/CP-78.txt` |
 | CP-79 | 2026-10-20 | Dos CREAR a nombre de qa_encargado y sin dirección IP; no hay EDITAR con la foto reemplazada | Fallido | H-35 (esperado) | `evidencia/CP-79.txt` |
-| CP-80 | | | | | |
+| CP-80 | 2026-10-21 | Seis pestañas sin errores y con fechas dd/mm/aaaa; Dispensaciones filtrado: 1 fila(s) de Beneficiario Prueba Uno con QA Paracetamol; Consumo por Analgésico con QA Paracetamol; Inventario actual solo lotes DISPONIBLE de Analgésico; la página 2 no repite filas | Aprobado |  | `evidencia/CP-80_a.png` … `evidencia/CP-80_d.png`, `evidencia/CP-80.txt` |
 | CP-81 | 2026-10-20 | La dispensación de las 23:30 de hoy aparece con hasta = hoy y no con hasta = ayer | Aprobado |  | `evidencia/CP-81.txt` |
 | CP-82 | 2026-10-20 | Con desde = hoy aparecen la dispensación (Dispensaciones y Consumo) y la entrada de las 19:00 de ayer | Fallido | H-46 (esperado) | `evidencia/CP-82.txt` |
 | CP-83 | 2026-10-20 | 400 "Estado inválido…", 400 "El filtro de fecha desde no es una fecha válida…", 400 "El rango de fechas es inválido…"; rango sin datos → lista vacía | Aprobado |  | `evidencia/CP-83.txt` |
 | CP-84 | 2026-10-20 | Por vencer: 90 días por defecto (QA-S-90 sí, QA-S-91 no) y 30 días (QA-S-30 sí, QA-S-31 no); Dados de baja: QA-B-API (sustituye a QA-B-1) y QA-V-HOY, con 7 u y costo estimado 6.40 | Aprobado |  | `evidencia/CP-84.txt` |
-| CP-85 | | | | | |
+| CP-85 | 2026-10-21 | 12 descargas con "Reporte exportado"; PDF con logo, nombre de la farmacia, filtros, "Generado:" dd/mm/aaaa HH:mm y "Página X de Y"; Excel con encabezado y filtro automático; 12 CREAR de entidad reporte | Aprobado |  | `evidencia/CP-85_pdf.png`, `evidencia/CP-85_xlsx.png`, `evidencia/CP-85.txt` |
 | CP-86 | 2026-10-20 | Sin filtros: 400 "El reporte tiene 5026 registros y el máximo exportable es 5000…"; filtrado por Analgésico: PDF descargado | Aprobado |  | `evidencia/CP-86.txt` |
 | CP-87 | 2026-10-20 | 400 por tipo, 400 por formato; PDF de un rango sin datos con "Sin registros para los filtros aplicados." | Aprobado |  | `evidencia/CP-87.txt` |
 | CP-88 | 2026-10-20 | 500 "Error interno del servidor" en lugar de 400 | Fallido | H-44 (esperado) | `evidencia/CP-88.txt` |
-| CP-89 | | | | | |
+| CP-89 | 2026-10-21 | Del más reciente al más antiguo, 20 por página; solo DISPENSAR de qa_encargado; "DISPENSACION" en mayúsculas da los mismos 12 registros; el EDITAR muestra datos anteriores y nuevos y la contraseña como ***restablecida*** | Aprobado |  | `evidencia/CP-89_a.png`, `evidencia/CP-89_b.png`, `evidencia/CP-89_c.png`, `evidencia/CP-89.txt` |
 | CP-90 | 2026-10-20 | 400 "accion inválida. Use: …"; LOGOUT sin resultados; 400 "El filtro de fecha desde no es una fecha válida (use AAAA-MM-DD)" | Aprobado |  | `evidencia/CP-90.txt` |
 | CP-91 | 2026-10-20 | Con desde = hoy aparece el registro de las 19:00 de ayer | Fallido | H-46 (esperado) | `evidencia/CP-91.txt` |
 | CP-92 | 2026-10-20 | 12 registros DISPENSAR = 12 dispensaciones; DELETE y PUT sobre /api/auditoria/<id> → 404 | Aprobado |  | `evidencia/CP-92.txt` |

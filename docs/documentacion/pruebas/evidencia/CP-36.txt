@@ -1,0 +1,5 @@
+CP-36 — 2026-10-21 — qa_encargado, Registrar entrada.
+Paso 1, lote sin número (QA Diclofenaco, 5 u, vence 2027-01-29): ["Complete medicamento, cantidad, número de lote y vencimiento en cada lote"].
+Paso 2, lote QA-E-CERO con cantidad 0: avisos de la aplicación []; el campo "Cant." tiene min=1 y el navegador detiene el envío: validationMessage = "Value must be greater than or equal to 1." (checkValidity = false; en inglés por el idioma del Chromium de la imagen). El aviso "La cantidad debe ser mayor a 0" (Entradas.tsx, submit) no llega a mostrarse.
+No se registró ninguna entrada nueva: true.
+Capturas: CP-36.png (paso 1), CP-36_b.png (paso 2, con el mensaje del navegador superpuesto).

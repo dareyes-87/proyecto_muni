@@ -1,0 +1,6 @@
+CP-57 — 2026-10-21 — qa_encargado, Beneficiarios > "Nuevo beneficiario".
+Paso 1, nombre "Jo": ["El nombre debe tener al menos 3 caracteres"].
+Paso 2, DPI de 12 dígitos 000000000005: ["El DPI debe tener exactamente 13 dígitos"].
+Paso 3: al teclear "12ab34cd" el campo queda "1234"; al teclear 14 dígitos queda "1234567890123" (13 dígitos).
+No se registró ningún beneficiario: true.
+Capturas: CP-57.png (nombre), CP-57_b.png (DPI).

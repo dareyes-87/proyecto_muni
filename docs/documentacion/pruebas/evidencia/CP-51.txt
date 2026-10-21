@@ -1,0 +1,4 @@
+CP-51 — 2026-10-21 — qa_admin2.
+Paso 1: "Dar de baja" en QA-B-2 → diálogo "Dar de baja lote ¿Seguro que deseas dar de baja el lote QA-B-2? Esta acción quedará registrada en auditoría y no se puede deshacer. Motivo (opcional) Cancelar Dar de baja" → "Cancelar". Fila antes: QA-B-2 5 Sin riesgo · 180d 19/04/2027 DISPONIBLE BOD Dar de baja · después: QA-B-2 5 Sin riesgo · 180d 19/04/2027 DISPONIBLE BOD Dar de baja. Registros BAJA antes y después: 1 y 1.
+Paso 2: 409 {"error":"El lote ya fue dado de baja"}. Paso 3: 404 {"error":"Lote no encontrado"} (ver CP-51_curl.txt).
+Captura: CP-51.png (diálogo antes de cancelar).

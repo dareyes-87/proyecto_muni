@@ -1,0 +1,14 @@
+CP-80 — 2026-10-21 — qa_admin2, Reportes.
+Paso 1, seis pestañas (filas mostradas y primera fila):
+  Dispensaciones: 12 filas · 20/10/2026 23:30 Beneficiario Prueba Uno 0000000000001 QA Ácido Fólico · Tableta × 1 Encargado Prueba
+  Consumo por medicamento: 5 filas · QA Ibuprofeno Tableta Antiinflamatorio 15 1
+  Inventario actual: 20 filas · QA Amoxicilina QA-V-AGO — 0 20/10/2026 Vencido · 1d E
+  Por vencer: 4 filas · QA Loratadina QA-S-30 — 2 20/11/2026 30 Urgente · 30d C
+  Entradas: 20 filas · 21/10/2026 00:26 Administrador Prueba 1 10 Q0.00
+  Dados de baja: 3 filas · QA Cetirizina QA-B-1 DADO_DE_BAJA 20/03/2027 10 Q8.00
+  Errores de página: ninguno; fechas en dd/mm/aaaa (HH:mm): true.
+Paso 2, Dispensaciones por Beneficiario Prueba Uno y QA Paracetamol: 1 fila(s): 20/10/2026 17:33 Beneficiario Prueba Uno 0000000000001 QA Paracetamol · Tableta × 5 QA Paracetamol · Tableta × 3 Encargado Prueba
+Paso 3, Consumo por Analgésico: QA Paracetamol Tableta Analgésico 8 2
+Paso 4, Inventario actual por Analgésico y DISPONIBLE: 2 filas en pantalla ((una página)); por la API, 2 lotes y todos DISPONIBLE: true. Filas: QA Paracetamol QA-F-B 7790000000011 7 20/12/2026 Por vencer · 60d A || QA Paracetamol QA-F-C 7790000000011 10 09/05/2027 Sin riesgo · 200d B
+Paso 5, Inventario actual sin filtros (más de 5000 lotes por QA Carga): Página 1 de 252 → Página 2 de 252; filas por página 20 y 20; filas repetidas entre páginas: 0.
+Capturas: CP-80_a.png (Dispensaciones filtrado), CP-80_b.png (Consumo), CP-80_c.png (Inventario filtrado), CP-80_d.png (página 2).

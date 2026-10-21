@@ -1,0 +1,17 @@
+Peticiones con el token de qa_encargado (desde la sesión del navegador; el token no se registra).
+GET /api/usuarios
+HTTP 403 {"error":"No tiene permisos para esta acción"}
+POST /api/catalogos/categorias
+HTTP 403 {"error":"No tiene permisos para esta acción"}
+PUT /api/inventario/lotes/4099fc66-a70f-472f-ac0a-bdbf72dedf17/baja
+HTTP 403 {"error":"No tiene permisos para esta acción"}
+POST /api/inventario/importar-excel
+HTTP 403 {"error":"No tiene permisos para esta acción"}
+GET /api/reportes/exportar/inventario/pdf
+HTTP 403 {"error":"No tiene permisos para esta acción"}
+GET /api/auditoria
+HTTP 403 {"error":"No tiene permisos para esta acción"}
+PUT /api/inventario/configuracion
+HTTP 403 {"error":"No tiene permisos para esta acción"}
+Control: GET /api/reportes/inventario-actual → HTTP 200 (consulta permitida por diseño, RN-66).
+Configuración después de las peticiones: {"data":{"rojo":30,"amarillo":90}}
