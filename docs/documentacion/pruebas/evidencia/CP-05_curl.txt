@@ -1,0 +1,3 @@
+$ curl -s -w "\n%{http_code}\n" http://192.168.65.254:5173/api/inventario   (sin cabecera Authorization)
+{"error":"Token de autenticación requerido"}
+401

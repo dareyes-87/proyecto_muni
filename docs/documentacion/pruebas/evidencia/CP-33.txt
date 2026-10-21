@@ -5,3 +5,4 @@ Detalle de QA Diclofenaco en Existencias: 50 mg · Tableta Categoría: Analgési
 Lotes: QA-E-2 20 Urgente · 1d 22/10/2026 DISPONIBLE — | QA-E-1 30 Sin riesgo · 120d 18/02/2027 DISPONIBLE A
 (El CREAR de la bitácora se comprueba con qa_admin2 en la sección 2.9.)
 Capturas: CP-33.png (entrada registrada), CP-33_b.png (detalle).
+Bitácora (consultada con qa_admin2): CREAR de entrada de qa_encargado [{"fecha":"2026-10-21T06:42:02.643Z","nuevos":{"lotes":2}}].

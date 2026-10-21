@@ -1,0 +1,9 @@
+CP-68 — 2026-10-21 — qa_encargado, Dispensación.
+Paso 1, sin beneficiario: botón deshabilitado = true; mensaje "Seleccione un beneficiario para continuar".
+Paso 2, Beneficiario Prueba Uno: botón deshabilitado = true; mensaje "Agregue al menos un medicamento".
+Paso 3, QA Enalapril dos veces: ["Este medicamento ya está en la lista"].
+Paso 4, QA Salbutamol: ["QA Salbutamol no tiene stock disponible"].
+Paso 5, lectura de 7790000000099 (lector simulado, código + Enter): ["No se encontró medicamento con ese código de barras"].
+Paso 6, cantidad 999 en QA Enalapril → el campo queda en 50 (stock disponible 50). Filas en la lista: 1.
+Paso 7, "Confirmar dispensación": Confirmar dispensación BENEFICIARIO Beneficiario Prueba Uno DPI: 0000000000001 MEDICAMENTOS (1) QA Enalapril Tableta 10 mg — 50 unid. Cancelar Dispensar → "Cancelar": vuelve al formulario (true); no se registró ninguna dispensación nueva: true.
+Capturas: CP-68_a.png (avisos de los pasos 3 y 4), CP-68_b.png (resumen antes de cancelar).

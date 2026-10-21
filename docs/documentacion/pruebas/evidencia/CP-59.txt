@@ -3,3 +3,4 @@ Aviso: "Beneficiario actualizado". Detalle: Volver al listado Beneficiario Prueb
 Botones de la fila: ["Ver detalle","Editar"]; botones del detalle: ["Volver al listado","Editar"] (no hay desactivar ni eliminar).
 (El EDITAR con datos anteriores y nuevos se comprueba con qa_admin2 en la sección 2.9.)
 Captura: CP-59.png.
+Bitácora (consultada con qa_admin2): EDITAR de beneficiario por qa_encargado el 2026-10-21T06:42:44.546Z; dirección anterior null, nueva "Barrio de prueba" (el registro guarda el objeto completo antes y después).

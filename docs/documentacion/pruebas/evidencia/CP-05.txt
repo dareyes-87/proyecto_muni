@@ -1,0 +1,5 @@
+CP-05 — 2026-10-21 — ventana B (qa_encargado).
+Paso 1: "Cerrar sesión" → pantalla de inicio de sesión; farmag_token = null, farmag_usuario = null.
+Paso 2: /inventario → /login.
+Paso 3: GET /api/inventario sin token → 401 {"error":"Token de autenticación requerido"} (CP-05_curl.txt).
+Capturas: CP-05_a.png (inicio de sesión con el almacenamiento local vacío superpuesto), CP-05_b.png (redirección).

@@ -1,0 +1,7 @@
+CP-63 — 2026-10-21 — qa_encargado, Dispensación.
+Paso 2, Beneficiario Prueba Dos elegido: dispensaciones recientes (2): 20/10/2026 QA Ácido Fólico x1 | 20/10/2026 QA Ibuprofeno x15; cursor en: "Escanear código de barras...".
+Paso 3, lectura de 7790000000035 (lector simulado, código + Enter): fila "QA Enalapril Tableta — 10 mg − + 49 400d" (cantidad 1).
+Paso 4, cantidad 3 y observaciones "Receta de prueba" → resumen: Confirmar dispensación BENEFICIARIO Beneficiario Prueba Dos DPI: 0000000000002 MEDICAMENTOS (1) QA Enalapril Tableta 10 mg — 3 unid. OBSERVACIONES Receta de prueba Cancelar Dispensar
+Paso 5: "Dispensación registrada correctamente" y pantalla de evidencia (dispensación 87fe5df4-df4a-4063-8439-5b4384d1cb2c). Stock de QA Enalapril después: 46 (49 antes, por CP-70). El DISPENSAR de la bitácora se comprueba con qa_admin2 en la sección 2.9.
+Capturas: CP-63_a.png (lista antes de confirmar), CP-63_b.png (resumen), CP-63_c.png (evidencia), capturas/cap5_dispensacion.png, capturas/cap5_evidencia_qr.png.
+Bitácora (consultada con qa_admin2): [{"fecha":"2026-10-21T06:46:25.613Z","usuario":"qa_encargado"}] (DISPENSAR de la dispensación).

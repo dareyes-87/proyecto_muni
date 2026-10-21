@@ -1,0 +1,10 @@
+CP-61 — 2026-10-21 — qa_encargado, detalle de Beneficiario Prueba Dos.
+Dispensaciones (5):
+  21/10/2026 00:48 Sin evidencia Atendido por: Encargado Prueba • QA Enalapril Tableta 10 mg — 1 unid.
+  21/10/2026 00:48 Evidencia completa Atendido por: Encargado Prueba • QA Enalapril Tableta 10 mg — 1 unid. Receta Entrega
+  21/10/2026 00:46 Evidencia completa Atendido por: Encargado Prueba • QA Enalapril Tableta 10 mg — 3 unid. Receta de prueba Receta Entrega
+  20/10/2026 17:34 Parcial Atendido por: Encargado Prueba • QA Ácido Fólico Tableta 5 mg — 1 unid. Receta
+  20/10/2026 17:34 Sin evidencia Atendido por: Encargado Prueba • QA Ibuprofeno Tableta 400 mg — 15 unid.
+Insignias: "Evidencia completa" 2 (CP-72 y la primera de CP-76), "Parcial" 1 (CP-75), "Sin evidencia" 2 (CP-67 y la segunda de CP-76).
+Miniaturas cargadas: 5 de 5. Al pulsar una, la foto se muestra ampliada (1200px de ancho, cargada = true).
+Capturas: CP-61_a.png (historial), CP-61_b.png (foto ampliada).

@@ -1,0 +1,5 @@
+CP-70 — 2026-10-21 — qa_encargado, Dispensación.
+Paso 1, "Prueba Cinco": "No se encontraron resultados" visible = true (captura CP-70_a.png).
+Paso 2, "Nuevo" → Beneficiario Prueba Cinco sin DPI: "Beneficiario registrado"; queda seleccionado: "Beneficiario Prueba Cinco Sin DPI Cambiar"; sección de dispensaciones recientes: no aparece (no tiene).
+Paso 3, 1 u de QA Enalapril: "Dispensación registrada correctamente" (dispensación 95826707-f155-4c96-a88a-1aaa580c1d87); "Omitir fotos". Stock de QA Enalapril después: 49.
+Capturas: CP-70_a.png, CP-70.png.

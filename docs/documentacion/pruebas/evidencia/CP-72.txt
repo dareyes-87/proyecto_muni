@@ -1,0 +1,9 @@
+CP-72 — 2026-10-21 — ventana B (qa_encargado) en la evidencia de CP-63; ventana C: navegador sin sesión en tamaño de teléfono (375 × 812, isMobile).
+Paso 1, dirección del QR: http://192.168.65.254:5173/captura/Tt9K… (token abreviado). Almacenamiento local de la ventana C: [] (sin sesión). Página: "BENEFICIARIO Beneficiario Prueba Dos 21/10/2026 00:46"; botones: ["Tomar foto de RECETA","Tomar foto de ENTREGA"].
+Paso 2: receta.jpg → "Receta subida"; en la ventana B "Foto de receta: recibida" apareció 1.0 s después de pulsar "Subir" (la pantalla consulta cada 3 s).
+Paso 3: entrega.png → "Entrega subida"; página final: "BENEFICIARIO Beneficiario Prueba Dos 21/10/2026 00:46 Receta subida Entrega subida Todo listo Puede cerrar esta página.".
+Paso 4, ventana B: "Evidencia completa" y botón "Siguiente dispensación" visible = true.
+Fotos registradas: [{"tipo":"RECETA"},{"tipo":"EVIDENCIA_ENTREGA"}].
+(Archivos .webp y los dos CREAR de foto se comprueban en la sección 2.9.)
+Capturas: CP-72_a.png (página de captura), CP-72_c.png (ventana B con la receta recibida), CP-72_d.png (Todo listo), CP-72_b.png (evidencia completa).
+Comprobación: carpeta backend/uploads/dispensaciones/<id de CP-63>/ con RECETA.webp y EVIDENCIA_ENTREGA.webp; bitácora (qa_admin2): [{"accion":"CREAR","fecha":"2026-10-21T06:46:29.683Z","usuario":"qa_encargado","nuevos":{"via":"captura-token","tipo":"EVIDENCIA_ENTREGA"}},{"accion":"CREAR","fecha":"2026-10-21T06:46:28.181Z","usuario":"qa_encargado","nuevos":{"via":"captura-token","tipo":"RECETA"}}] (dos CREAR de FotoDispensacion).

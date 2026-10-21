@@ -9,12 +9,12 @@
 |-------|-------|
 | Ciclo | 1 |
 | Commit probado | `bdf1187` (el código de `backend/` y `frontend/` de la rama `docs/documentacion` no difiere de ese commit) |
-| Fecha de carga de datos ("hoy" de los cálculos) | 2026-10-20 (hora de Guatemala) |
-| Ejecutor | Casos API: ejecución por peticiones HTTP con Claude Code el 2026-10-20, a solicitud del responsable de la documentación. Casos UI y DISPOSITIVO: [COMPLETAR] |
-| Navegador y versión | No aplica a los casos API. Casos UI: [COMPLETAR] |
-| Teléfono y navegador (CP-77) | [COMPLETAR] |
+| Fecha de carga de datos ("hoy" de los cálculos) | 2026-10-20 (hora de Guatemala). Los casos UI se ejecutaron el 2026-10-21: antes se sumó un día a la fecha de vencimiento de los 5026 lotes QA (`UPDATE lotes SET fecha_vencimiento = fecha_vencimiento + 1 WHERE numero_lote LIKE 'QA-%'`), con lo que vuelven a quedar como en `datos_prueba.md` (QA-V-HOY vence hoy, QA-V-AGO ayer, QA-S-30 a 30 días, QA-S-90 a 90, QA-B-2 a 180, etc.). No hizo falta correr el proceso de vencimiento: QA-V-HOY ya estaba en `VENCIDO` desde CP-52 y ningún otro lote QA quedó vencido |
+| Ejecutor | Casos API: ejecución por peticiones HTTP con Claude Code el 2026-10-20, a solicitud del responsable de la documentación. Casos UI y DISPOSITIVO: ejecución automatizada con Playwright (Claude Code) el 2026-10-21, a solicitud del responsable de la documentación |
+| Navegador y versión | No aplica a los casos API. Casos UI: Chromium 130 sin interfaz (Playwright 1.48.2, imagen `mcr.microsoft.com/playwright:v1.48.2-noble`), ventana de 1366 × 768, configuración regional es-GT y zona horaria America/Guatemala. La interfaz se abrió en `http://192.168.65.254:5173`, la dirección de `host.docker.internal` dentro del contenedor: Vite 5.4.21 rechaza el nombre `host.docker.internal` ("Blocked request. This host is not allowed") y no se modificó su configuración |
+| Teléfono y navegador (CP-77) | Sin teléfono físico: simulado con un contexto de Chromium de 390 × 844, táctil, escala 3 y agente de usuario de Chrome 130 para Android; el código QR se decodificó de la imagen de la pantalla y el lector de códigos se simuló escribiendo el código y Enter |
 | `npm test` antes del ciclo | [COMPLETAR: no se ejecutó en esta sesión; la última ejecución registrada es 53/53 (`analisis/11_resultados_pruebas_automatizadas.md`)] |
-| `npm test` después del ciclo | [COMPLETAR] |
+| `npm test` después del ciclo | No ejecutado: las pruebas corren contra la misma base `farmag_db`, que tiene los datos QA del ciclo, y la última ejecución registrada se hizo con la base recién creada (`analisis/11_resultados_pruebas_automatizadas.md`, sección 1). Pendiente |
 
 ## Instrucciones
 
@@ -86,7 +86,7 @@ Fuente: Elaboración propia.
 | CP-02 | 2026-10-21 | Pantalla: "Credenciales inválidas" y sigue en /login; petición: 401 con "intentosRestantes":1; bitácora: dos LOGIN de qa_encargado con exito false | Aprobado |  | `evidencia/CP-02_a.png`, `evidencia/CP-02_curl.txt`, `evidencia/CP-02_b.png`, `evidencia/CP-02.txt` |
 | CP-03 | 2026-10-20 | 401, 401, 429 "Demasiados intentos fallidos. Intente de nuevo en 5 minuto(s)." con Retry-After, 429 con la contraseña correcta; tras 5 minutos, 200 | Aprobado |  | `evidencia/CP-03.txt` |
 | CP-04 | 2026-10-20 | 1 a 20: 401; la 21 y la de admin con contraseña correcta: 429 "Demasiadas solicitudes de inicio de sesión desde esta red…" con Retry-After; tras reiniciar, 200 | Aprobado |  | `evidencia/CP-04.txt` |
-| CP-05 | | | | | |
+| CP-05 | 2026-10-21 | Vuelve al inicio de sesión sin farmag_token ni farmag_usuario; /inventario redirige a /login; la API responde 401 "Token de autenticación requerido" | Aprobado |  | `evidencia/CP-05_a.png`, `evidencia/CP-05_b.png`, `evidencia/CP-05_curl.txt`, `evidencia/CP-05.txt` |
 | CP-06 | 2026-10-21 | La petición recibe 401 "La cuenta ya no está activa. Inicie sesión nuevamente." y vuelve al inicio de sesión; nuevo intento: "Credenciales inválidas"; "Usuario activado" | Aprobado |  | `evidencia/CP-06_a.png`, `evidencia/CP-06_b.png`, `evidencia/CP-06.txt` |
 | CP-07 | 2026-10-21 | Intentos 1 y 2: solo "Credenciales inválidas", sin los intentos restantes | Fallido | H-47 (esperado) | `evidencia/CP-07.png`, `evidencia/CP-07.txt` |
 | CP-08 | 2026-10-20 | No hay endpoint de cierre de sesión (404 "Ruta no encontrada"); la bitácora tiene 0 registros LOGOUT | Fallido | H-10 (esperado) | `evidencia/CP-08.txt` |
@@ -141,24 +141,24 @@ Fuente: Elaboración propia.
 | CP-57 | 2026-10-21 | "El nombre debe tener al menos 3 caracteres"; "El DPI debe tener exactamente 13 dígitos"; el DPI descarta las letras y se corta en 13 dígitos; no se registra nada | Aprobado |  | `evidencia/CP-57.png`, `evidencia/CP-57_b.png`, `evidencia/CP-57.txt` |
 | CP-58 | 2026-10-20 | 409 "Ya existe un beneficiario con DPI 0000000000001" al registrar y al editar; no se guardó nada | Aprobado |  | `evidencia/CP-58.txt` |
 | CP-59 | 2026-10-21 | "Beneficiario actualizado"; EDITAR con datos anteriores y nuevos; sin opción para desactivar ni eliminar | Aprobado |  | `evidencia/CP-59.png`, `evidencia/CP-59.txt` |
-| CP-60 | | | | | |
-| CP-61 | | | | | |
+| CP-60 | 2026-10-21 | La dispensación de CP-64 muestra fecha y hora dd/mm/aaaa HH:mm, "Atendido por: Encargado Prueba", "QA Paracetamol" (no el nombre nuevo) y cantidades; qa_encargado ve el mismo historial, incluida una dispensación registrada por qa_admin2 para comprobarlo; nombre restablecido | Aprobado |  | `evidencia/CP-60_a.png`, `evidencia/CP-60_b.png`, `evidencia/CP-60_c.png`, `evidencia/CP-60.txt` |
+| CP-61 | 2026-10-21 | Insignias "Evidencia completa" (2), "Parcial" (1) y "Sin evidencia" (2); 5 miniaturas cargadas; la foto se amplía | Aprobado |  | `evidencia/CP-61_a.png`, `evidencia/CP-61_b.png`, `evidencia/CP-61.txt` |
 | CP-62 | 2026-10-20 | Sin dispensaciones; 401 sin sesión; 404 "Foto no encontrada"; la ruta /uploads/dispensaciones/… responde 404 | Aprobado |  | `evidencia/CP-62.txt` |
-| CP-63 | | | | | |
+| CP-63 | 2026-10-21 | Dispensaciones recientes (2) y cursor en el campo de código; QA Enalapril con cantidad 1, stock 49 (tras CP-70) y semáforo; resumen con beneficiario, medicamento, 3 unid. y observaciones; "Dispensación registrada correctamente" y pantalla de evidencia; stock 46; DISPENSAR en la bitácora | Aprobado |  | `evidencia/CP-63_a.png`, `evidencia/CP-63_b.png`, `evidencia/CP-63_c.png`, `capturas/cap5_dispensacion.png`, `capturas/cap5_evidencia_qr.png`, `evidencia/CP-63.txt` |
 | CP-64 | 2026-10-20 | FIFO: QA-F-A → 0 (AGOTADO), QA-F-B → 7, QA-F-C sin cambio; stock 17; detalles 5 + 3 con snapshots; la API no admite elegir lote | Aprobado |  | `evidencia/CP-64.txt` |
 | CP-65 | 2026-10-20 | 409 "Stock insuficiente para QA Metformina. Solicitado: 11, Disponible: 10"; stock 10 sin cambio; sin dispensación ni DISPENSAR nuevos | Aprobado |  | `evidencia/CP-65.txt` |
 | CP-66 | 2026-10-20 | 409 "Stock insuficiente para QA Metformina. Solicitado: 11, Disponible: 10"; QA Enalapril conserva su stock (50); no se registró nada | Aprobado |  | `evidencia/CP-66.txt` |
 | CP-67 | 2026-10-20 | Una 201 y una 409 "Stock insuficiente para QA Ibuprofeno. Solicitado: 15, Disponible: 5"; ninguna 500; stock final 5; una sola dispensación nueva | Aprobado |  | `evidencia/CP-67.txt` |
-| CP-68 | | | | | |
+| CP-68 | 2026-10-21 | "Seleccione un beneficiario para continuar" con el botón deshabilitado; "Agregue al menos un medicamento"; "Este medicamento ya está en la lista"; "QA Salbutamol no tiene stock disponible"; "No se encontró medicamento con ese código de barras"; la cantidad se ajusta a 50; Cancelar no registra nada | Aprobado |  | `evidencia/CP-68_a.png`, `evidencia/CP-68_b.png`, `evidencia/CP-68.txt` |
 | CP-69 | 2026-10-20 | 400, 400, 404 "Medicamento no encontrado o inactivo: <id>", 404 "Beneficiario no encontrado o inactivo" y 400 por items vacío; nada registrado | Aprobado |  | `evidencia/CP-69.txt` |
-| CP-70 | | | | | |
+| CP-70 | 2026-10-21 | "No se encontraron resultados"; "Beneficiario registrado" y queda seleccionado sin dispensaciones recientes; "Dispensación registrada correctamente"; QA Enalapril queda en 49 | Aprobado |  | `evidencia/CP-70_a.png`, `evidencia/CP-70.png`, `evidencia/CP-70.txt` |
 | CP-71 | 2026-10-20 | Con desde = hasta = hoy, la de las 10:00 de hoy no aparece y la de las 19:00 de ayer aparece | Fallido | H-45 (esperado) | `evidencia/CP-71.txt` |
-| CP-72 | | | | | |
-| CP-73 | | | | | |
+| CP-72 | 2026-10-21 | La página abre sin sesión con el nombre del beneficiario, la fecha y los dos botones; "Receta subida" y la ventana B la marca recibida en 1.0 s; "Entrega subida", "Todo listo" y "Puede cerrar esta página."; "Evidencia completa" y "Siguiente dispensación"; archivos .webp y dos CREAR de foto | Aprobado |  | `evidencia/CP-72_a.png`, `evidencia/CP-72_b.png`, `evidencia/CP-72_c.png`, `evidencia/CP-72_d.png`, `evidencia/CP-72.txt` |
+| CP-73 | 2026-10-21 | Enlace usado, vencido e inventado: "Enlace inválido o expirado" y "Pida a la encargada que genere un código QR nuevo desde la computadora."; /api/captura/<token>/info → 404 "Enlace inválido o expirado" en los tres | Aprobado |  | `evidencia/CP-73_a.png`, `evidencia/CP-73.png`, `evidencia/CP-73_c.png`, `evidencia/CP-73_curl.txt`, `evidencia/CP-73.txt` |
 | CP-74 | 2026-10-20 | 400 por formato, por tamaño y por imagen no válida; la receta sigue pendiente | Aprobado |  | `evidencia/CP-74.txt` |
 | CP-75 | 2026-10-20 | Reemplazo correcto: un registro RECETA y un archivo .webp; generar-token en evidencia completa → 409 "La evidencia de esta dispensación ya está completa…" | Aprobado |  | `evidencia/CP-75.txt` |
-| CP-76 | | | | | |
-| CP-77 | | | | | |
+| CP-76 | 2026-10-21 | "Foto de receta subida" y "Foto de entrega subida"; "Evidencia completa"; en la segunda, "Omitir fotos" detiene la consulta (0 consultas en 7 s) y vuelve al formulario; queda "Sin evidencia" | Aprobado |  | `evidencia/CP-76_a.png`, `evidencia/CP-76_b.png`, `evidencia/CP-76.txt` |
+| CP-77 | 2026-10-21 | Simulado sin teléfono: QR decodificado y abierto en un viewport móvil de 390 × 844; página ajustada al ancho con botones de 60 px; el campo tiene capture="environment"; "Receta subida". No se verificó la apertura real de la cámara trasera | Aprobado |  | `evidencia/CP-77_a.png`, `evidencia/CP-77.png`, `evidencia/CP-77_b.png`, `capturas/cap5_captura_celular.png`, `evidencia/CP-77.txt` |
 | CP-78 | 2026-10-20 | Mismo token en las dos llamadas, pero 2 registros CREAR de TokenCaptura | Fallido | H-38 (esperado) | `evidencia/CP-78.txt` |
 | CP-79 | 2026-10-20 | Dos CREAR a nombre de qa_encargado y sin dirección IP; no hay EDITAR con la foto reemplazada | Fallido | H-35 (esperado) | `evidencia/CP-79.txt` |
 | CP-80 | 2026-10-21 | Seis pestañas sin errores y con fechas dd/mm/aaaa; Dispensaciones filtrado: 1 fila(s) de Beneficiario Prueba Uno con QA Paracetamol; Consumo por Analgésico con QA Paracetamol; Inventario actual solo lotes DISPONIBLE de Analgésico; la página 2 no repite filas | Aprobado |  | `evidencia/CP-80_a.png` … `evidencia/CP-80_d.png`, `evidencia/CP-80.txt` |
@@ -179,7 +179,19 @@ Fuente: Elaboración propia.
 
 ## Defectos nuevos de la ejecución
 
-Ninguno. Los 13 casos API fallidos corresponden a hallazgos ya registrados (columna "Defecto").
+Ninguno en los 52 casos API: sus 13 fallos corresponden a hallazgos ya registrados. En los 40 casos UI y
+DISPOSITIVO se encontraron tres defectos nuevos, todos de severidad Baja según `plan_pruebas.md`,
+sección 7. Quedan registrados aquí; falta pasarlos a `analisis/hallazgos_defectos.md` con el
+siguiente número H-XX libre (esta sesión no escribió en `analisis/`).
+
+| ID | Casos | Severidad | Descripción | Evidencia |
+|----|-------|-----------|-------------|-----------|
+| DP-01 | CP-19, CP-36 | Baja | Los avisos propios de la aplicación "Seleccione una categoría" (`MedicamentoFormModal.tsx`, `guardar`) y "La cantidad debe ser mayor a 0" (`Entradas.tsx`, `submit`) nunca se muestran: el selector de categoría tiene `required` y el campo de cantidad tiene `min={1}`, así que el navegador detiene el envío con su propio mensaje ("Selecciona un elemento de la lista", "El valor debe ser superior o igual a 1") antes de que corra la validación de la aplicación. No se registra nada, pero el mensaje no es el documentado y el código de esos avisos no se alcanza | `evidencia/CP-19.png`, `evidencia/CP-36_b.png` |
+| DP-02 | CP-41 | Baja | En "Importar desde Excel" el botón "Importar" está deshabilitado mientras no hay archivo (`disabled={!archivoImport \|\| importando}`), por lo que el aviso "Seleccione un archivo .xlsx" de `subirExcel` no se puede mostrar. La acción queda impedida; la diferencia es con el resultado documentado | `evidencia/CP-41_a.png` |
+| DP-03 | CP-20 | Baja | Al editar un medicamento sin nombre comercial desde la pantalla, el formulario envía `nombreComercial: ""` y el servidor lo compara contra `null`: el primer `EDITAR` registra `nombreComercial` (null → "") además del campo realmente cambiado, y el valor queda guardado como cadena vacía en lugar de `null` | `evidencia/CP-20.txt`, `evidencia/CP-20_b.png` |
+
+Para DP-01 y DP-02 hay dos salidas: ajustar la interfaz para que muestre el mensaje documentado o
+corregir el resultado esperado de los casos; la decisión corresponde al responsable de pruebas.
 
 ## Observaciones de la ejecución
 
@@ -195,19 +207,116 @@ Ninguno. Los 13 casos API fallidos corresponden a hallazgos ya registrados (colu
   lotes de la base).
 - **Casos UI con datos alterados por la ejecución API:** CP-44 (QA Paracetamol con 17 unidades tras
   CP-64), CP-54, CP-61 y CP-63. La guía manual indica el resultado esperado con el estado actual.
+- **CP-50:** se ejecutó con el resultado esperado ya corregido en `casos_prueba.md` (el stock de
+  QA Cetirizina queda en 5); la observación anterior queda resuelta.
+- **Ejecución de los casos UI (2026-10-21):** Playwright sin interfaz contra la aplicación en Docker,
+  con tres contextos de navegador separados (ventana A = `qa_admin2`, B = `qa_encargado`,
+  C = sin sesión o tamaño de teléfono). Las contraseñas de las cuentas QA se restablecieron por la API
+  con un Administrador antes de empezar y no se escribieron en ningún archivo; las sesiones se
+  reutilizaron para no superar el límite de inicios de sesión, y la API se reinició antes de CP-02,
+  CP-07 y CP-01, como pide la guía. Donde la guía pide F12 o `curl` con el token, las peticiones se
+  hicieron desde la sesión del navegador y el token no se registró.
+- **Mensajes de validación del navegador:** el Chromium de la imagen corre en inglés, así que en
+  CP-19 y CP-36 el mensaje nativo aparece como "Please select an item in the list." y "Value must be
+  greater than or equal to 1."; en un navegador en español es el equivalente traducido.
+- **CP-01:** el inicio de sesión exitoso se registra como `LOGIN` sin datos nuevos; no lleva
+  `exito: true` como dice `casos_prueba.md` (la guía ya no lo pide). Solo los fallidos llevan
+  `{"exito": false, …}`. Se dio por aprobado.
+- **CP-02:** el usuario inexistente no se repitió desde la pantalla; ya se verificó por la API en CP-04.
+  En la bitácora aparecen cuatro `LOGIN` fallidos de `qa_encargado`: dos de CP-02 y dos de CP-07.
+- **CP-06:** se ejecutó dos veces; en la primera el script no alcanzó a leer el cuerpo del 401 antes de
+  la redirección (falla del script, no del sistema).
+- **CP-21:** el código de `datos_prueba.md` (00303789205353) ya no tiene datos en OpenFDA: la consulta
+  directa a `api.fda.gov` del NDC 0378-9205-35 responde 404 "No matches found!". La función se
+  verificó con el código vigente 00342291936904 (Sucralfate, NDC 42291-936-90), armado con la misma
+  regla. Conviene actualizar el código en `datos_prueba.md`.
+- **CP-46:** con 17 medicamentos activos la lista cabe en una página; el regreso a la página 1 al marcar
+  "Solo stock bajo" no se pudo observar.
+- **CP-60:** ninguna dispensación de Beneficiario Prueba Uno era de otro usuario, así que `qa_admin2`
+  registró una (1 u de QA Enalapril) para comprobar que `qa_encargado` ve las de otros usuarios.
+- **CP-77:** simulado, sin teléfono físico (ver "Datos del ciclo"). Se verificó que el código QR lleva a
+  la página de captura, que la página se ajusta al ancho de 390 px con botones de 60 px, que el campo
+  de archivo tiene `capture="environment"` y que la receta se sube. **No se verificó** que la cámara
+  trasera se abra en un teléfono real: la prueba con dispositivo sigue pendiente (RNF-26). La figura
+  `capturas/cap5_captura_celular.png` sale de esta simulación.
+- **CP-85:** en un primer intento la exportación de Entradas con desde = ayer respondió 400 "El reporte
+  tiene 5011 registros y el máximo exportable es 5000…" (límite de CP-86, por la carga de QA Carga);
+  se repitió todo el caso con Entradas filtrado desde hoy. Esos 8 `CREAR` previos de reporte también
+  están en la bitácora. Los 12 archivos se revisaron con pdf.js y exceljs y no se agregan al
+  repositorio. Los filtros del PDF muestran el id del beneficiario o la categoría, no su nombre.
+- **Datos que dejó la ejecución UI:** medicamentos QA Diclofenaco (con foto), Paracetamol (sin lotes)
+  y QA Clotrimazol; categoría QA Antisépticos; ubicación QA-02; lotes QA-E-1, QA-E-2 y QA-CL-1;
+  Beneficiario Prueba Cinco; siete dispensaciones de QA Enalapril (CP-63, CP-70, CP-73, dos de CP-76,
+  CP-77 y CP-60; queda en 41 unidades); contraseña nueva de `qa_nuevo` (CP-12).
+- **Figuras del capítulo V:** `cap5_panel.png` se tomó con la ventana a 1366 × 1500 y
+  `cap5_existencias_semaforo.png` a 1366 × 1400 para que entren el panel completo y las 16 filas
+  de la búsqueda "QA"; las otras dos de escritorio, a 1366 × 768.
 
 ## Resumen del ciclo
 
-| Prioridad | Casos | Ejecutados | Aprobados | Fallidos | Fallidos por hallazgo ya registrado | Bloqueados |
-|-----------|------:|-----------:|----------:|---------:|------------------------------------:|-----------:|
-| Alta | 38 | 20 | 18 | 2 | 2 | 0 |
-| Media | 40 | 20 | 17 | 3 | 3 | 0 |
-| Baja | 14 | 12 | 4 | 8 | 8 | 0 |
-| **Total** | **92** | **52** | **39** | **13** | **13** | **0** |
+Ciclo 1 completo: los 92 casos se ejecutaron, 52 por la API el 2026-10-20 y 40 en la interfaz el
+2026-10-21 (39 UI y CP-77, simulado).
 
-Defectos nuevos registrados en el ciclo: ninguno en los 52 casos API (ver "Defectos nuevos de la ejecución"). Quedan 40 casos UI y DISPOSITIVO por ejecutar con `guia_ejecucion_manual.md`.
+**Por caso de uso**
 
-¿Se cumplen los criterios de salida de `plan_pruebas.md`, sección 6? [COMPLETAR: Sí/No y motivo; pendiente hasta ejecutar los casos UI y DISPOSITIVO y `npm test` después del ciclo]
+| Caso de uso | Casos | API | UI y dispositivo | Aprobados | Fallidos | Fallidos por hallazgo ya registrado | Fallidos por defecto nuevo | Bloqueados |
+|-------------|------:|----:|-----------------:|----------:|---------:|------------------------------------:|---------------------------:|-----------:|
+| CU-01 Iniciar y cerrar sesión | 8 | 3 | 5 | 6 | 2 | 2 | 0 | 0 |
+| CU-02 Gestionar usuarios | 8 | 6 | 2 | 7 | 1 | 1 | 0 | 0 |
+| CU-03 Gestionar medicamentos | 7 | 1 | 6 | 5 | 2 | 0 | 2 | 0 |
+| CU-04 Gestionar códigos de barras | 3 | 2 | 1 | 2 | 1 | 1 | 0 | 0 |
+| CU-05 Gestionar categorías | 3 | 2 | 1 | 2 | 1 | 1 | 0 | 0 |
+| CU-06 Gestionar ubicaciones | 3 | 2 | 1 | 2 | 1 | 1 | 0 | 0 |
+| CU-07 Registrar entrada de medicamentos | 6 | 2 | 4 | 5 | 1 | 0 | 1 | 0 |
+| CU-08 Importar inventario desde Excel | 5 | 4 | 1 | 3 | 2 | 1 | 1 | 0 |
+| CU-09 Consultar inventario | 6 | 4 | 2 | 5 | 1 | 1 | 0 | 0 |
+| CU-10 Dar de baja lote | 2 | 0 | 2 | 2 | 0 | 0 | 0 | 0 |
+| CU-11 Actualizar lotes vencidos | 2 | 2 | 0 | 2 | 0 | 0 | 0 | 0 |
+| CU-12 Consultar panel de alertas | 2 | 1 | 1 | 2 | 0 | 0 | 0 | 0 |
+| CU-13 Gestionar beneficiarios | 4 | 2 | 2 | 4 | 0 | 0 | 0 | 0 |
+| CU-14 Consultar historial de beneficiario | 3 | 1 | 2 | 3 | 0 | 0 | 0 | 0 |
+| CU-15 Dispensar medicamentos | 9 | 6 | 3 | 8 | 1 | 1 | 0 | 0 |
+| CU-16 Registrar evidencia fotográfica | 8 | 4 | 4 | 6 | 2 | 2 | 0 | 0 |
+| CU-17 Consultar reportes | 5 | 4 | 1 | 4 | 1 | 1 | 0 | 0 |
+| CU-18 Exportar reportes | 4 | 3 | 1 | 3 | 1 | 1 | 0 | 0 |
+| CU-19 Consultar bitácora de auditoría | 4 | 3 | 1 | 3 | 1 | 1 | 0 | 0 |
+| **Total** | **92** | **52** | **40** | **74** | **18** | **14** | **4** | **0** |
+
+Fuente: Elaboración propia a partir de la tabla "Registro".
+
+**Por prioridad**
+
+| Prioridad | Casos | API | UI y dispositivo | Aprobados | Fallidos | Fallidos por hallazgo ya registrado | Fallidos por defecto nuevo | Bloqueados |
+|-----------|------:|----:|-----------------:|----------:|---------:|------------------------------------:|---------------------------:|-----------:|
+| Alta | 38 | 20 | 18 | 36 | 2 | 2 | 0 | 0 |
+| Media | 40 | 20 | 20 | 33 | 7 | 3 | 4 | 0 |
+| Baja | 14 | 12 | 2 | 5 | 9 | 9 | 0 | 0 |
+| **Total** | **92** | **52** | **40** | **74** | **18** | **14** | **4** | **0** |
+
+Fuente: Elaboración propia a partir de la tabla "Registro".
+
+- Fallidos por hallazgo ya registrado (14): CP-07 (H-47), CP-08 (H-10), CP-16 (H-15), CP-26 (H-31), CP-29 (H-42), CP-32 (H-42), CP-43 (H-48), CP-49 (H-43), CP-71 (H-45), CP-78 (H-38), CP-79 (H-35), CP-82 (H-46), CP-88 (H-44), CP-91 (H-46). Son los 14
+  casos que `casos_prueba.md` ya preveía fallidos; ninguno falló de forma inesperada.
+- Fallidos por defecto nuevo (4): CP-19 (DP-01), CP-20 (DP-03), CP-36 (DP-01), CP-41 (DP-02). Ver "Defectos nuevos
+  de la ejecución".
+- Bloqueados: ninguno. CP-77 se ejecutó simulado (ver "Observaciones").
+
+**Criterios de salida (`plan_pruebas.md`, sección 6)**
+
+| # | Criterio | ¿Se cumple? | Detalle |
+|---|----------|-------------|---------|
+| 1 | 100 % de los casos Alta y al menos 90 % de los Media ejecutados | Sí | Alta 38 de 38 (100 %); Media 40 de 40 (100 %) |
+| 2 | Ningún defecto Crítico ni Alto abierto que no corresponda a un hallazgo registrado con su corrección planificada | Sí | Los dos fallos de prioridad Alta (CP-82 y CP-91) son H-46, con corrección planificada en el lote 1 de `analisis/12_plan_correcciones.md`; los tres defectos nuevos son de severidad Baja |
+| 3 | Todo caso Fallido con un defecto asociado (H-XX existente o uno nuevo en `analisis/hallazgos_defectos.md`) | Parcial | Los 18 fallidos tienen defecto asociado, pero DP-01, DP-02 y DP-03 solo están en este registro; falta darlos de alta en `analisis/hallazgos_defectos.md` |
+| 4 | Casos Bloqueados con la causa anotada | Sí | No hay casos bloqueados |
+| 5 | `npm test` aprueba las 53 pruebas al terminar el ciclo | No (pendiente) | No se ejecutó después del ciclo (ver "Datos del ciclo") |
+| 6 | Registro completo y firmado por el ejecutor y el responsable | No (pendiente) | El registro está completo; faltan las firmas |
+
+**Conclusión:** a la fecha **no se cumplen** los criterios de salida, por los criterios 3, 5 y 6, que
+son pendientes de trámite: registrar DP-01 a DP-03 en `analisis/hallazgos_defectos.md`, ejecutar
+`npm test` (de preferencia sobre una base recreada, para no mezclarlo con los datos QA) y firmar. Los
+criterios de cobertura y de severidad (1 y 2) sí se cumplen. Además queda pendiente la prueba de
+CP-77 con un teléfono real.
 
 | Rol | Nombre | Fecha |
 |-----|--------|-------|

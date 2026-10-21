@@ -1,0 +1,7 @@
+CP-60 — 2026-10-21 — ventana A (qa_admin2) y ventana B (qa_encargado).
+Paso 1: QA Paracetamol → "QA Paracetamol Renombrado": "Medicamento actualizado".
+Paso 2, detalle de Beneficiario Prueba Uno (qa_admin2), dispensación de CP-64: "20/10/2026 17:33 Sin evidencia Atendido por: Encargado Prueba • QA Paracetamol Tableta 500 mg — 5 unid. • QA Paracetamol Tableta 500 mg — 3 unid.". El nombre renombrado aparece en el historial: false.
+Paso 3, mismo detalle con qa_encargado: 12 dispensaciones (las mismas 12 que ve qa_admin2), atendidas por: ["Encargado Prueba"]. Usuarios que registraron dispensaciones en el sistema (historial general): ["Encargado Prueba"].
+Paso 4: nombre restablecido a "QA Paracetamol": "Medicamento actualizado".
+Capturas: CP-60_a.png (qa_admin2), CP-60_b.png (qa_encargado).
+Complemento del paso 3: como ninguna dispensación de Beneficiario Prueba Uno era de otro usuario, qa_admin2 registró una de 1 u de QA Enalapril (fde7e740-6351-47e5-bec6-d8b84782120d, "Dispensación registrada correctamente", sin fotos). En la ventana B, qa_encargado (sesión iniciada de nuevo, porque CP-05 la había cerrado) ve en el detalle: "21/10/2026 00:50 Sin evidencia Atendido por: Administrador Prueba • QA Enalapril Tableta 10 mg — 1 unid." (captura CP-60_c.png).

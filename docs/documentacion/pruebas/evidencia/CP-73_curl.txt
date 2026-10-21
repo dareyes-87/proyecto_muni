@@ -1,0 +1,7 @@
+Peticiones sin sesión (equivalentes al curl de la guía; tokens abreviados).
+GET /api/captura/Tt9K…/info   (usado)
+HTTP 404 {"error":"Enlace inválido o expirado"}
+GET /api/captura/58Fs…/info   (vencido)
+HTTP 404 {"error":"Enlace inválido o expirado"}
+GET /api/captura/AAAA…/info   (inventado)
+HTTP 404 {"error":"Enlace inválido o expirado"}

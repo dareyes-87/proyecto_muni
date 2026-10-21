@@ -1,0 +1,8 @@
+CP-77 — 2026-10-21 — SIMULADO (sin teléfono físico), a solicitud del responsable.
+Simulación: el lector de código de barras se simuló escribiendo 7790000000035 y Enter en el campo de lectura (así funciona el lector en modo teclado): "QA Enalapril Tableta — 10 mg − + 43 400d". La dispensación (1 u de QA Enalapril a Beneficiario Prueba Uno, fa15b2cb-7c5b-4bf0-b4d4-5f4b80f8eb22) dio "Dispensación registrada correctamente".
+El código QR de la pantalla se decodificó a partir de su imagen (jsQR): http://192.168.65.254:5173/captura/-CcO…; coincide con la dirección mostrada debajo: true.
+El "teléfono" es un contexto de Chromium sin sesión con viewport de 390 × 844, pantalla táctil, escala 3 y agente de usuario de Chrome para Android.
+Paso 1: la página abre ajustada al ancho (ancho del documento 390px, ventana 390px); botón "Tomar foto de RECETA" de 60px de alto.
+Paso 2: el campo de archivo tiene accept="image/*" y capture="environment", que en un teléfono abre directamente la cámara trasera; en la simulación se eligió receta.jpg en el selector de archivos → "Receta subida", y la computadora mostró "Foto de receta: recibida".
+NO verificado: que la cámara trasera se abra en un teléfono real (requiere el dispositivo; RNF-26 sigue pendiente de esa prueba).
+Capturas: CP-77_a.png y capturas/cap5_captura_celular.png (página antes de subir), CP-77.png (receta subida), CP-77_b.png (computadora).

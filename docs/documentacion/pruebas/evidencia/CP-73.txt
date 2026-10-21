@@ -1,0 +1,6 @@
+CP-73 — 2026-10-21 — ventana C sin sesión, tamaño de teléfono.
+Paso 1, enlace de CP-72 ya usado (http://192.168.65.254:5173/captura/Tt9K…), recargado: "Enlace inválido o expirado Pida a la encargada que genere un código QR nuevo desde la computadora." (captura CP-73_a.png).
+Paso 2, otra dispensación (1 u de QA Enalapril a Beneficiario Prueba Uno, 8b59f3f4-25db-4f4a-9183-09e7c2196e13); su enlace se venció con la consulta SQL de la guía (UPDATE tokens_captura SET expira_en = now() UTC - 1 minuto WHERE dispensacion_id = '8b59f3f4-25db-4f4a-9183-09e7c2196e13'); al abrirlo: "Enlace inválido o expirado Pida a la encargada que genere un código QR nuevo desde la computadora." (captura CP-73.png).
+Paso 3, /captura/AAAAAAAAAAA: "Enlace inválido o expirado Pida a la encargada que genere un código QR nuevo desde la computadora." (captura CP-73_c.png).
+Paso 4: usado → 404 {"error":"Enlace inválido o expirado"}; vencido → 404 {"error":"Enlace inválido o expirado"}; inventado → 404 {"error":"Enlace inválido o expirado"} (ver CP-73_curl.txt).
+La dispensación del paso 2 quedó sin fotos (la ventana B se cerró con la evidencia abierta, sin pulsar "Omitir fotos").
