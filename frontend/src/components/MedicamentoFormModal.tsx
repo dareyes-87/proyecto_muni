@@ -5,6 +5,7 @@ import {
   crearMedicamento,
   editarMedicamento,
   buscarPorCodigoBarras,
+  agregarCodigoBarras,
   lookupFda,
   subirImagenMedicamento,
   type MedicamentoInput,
@@ -86,7 +87,11 @@ export default function MedicamentoFormModal({ open, medicamento, categorias, on
       } catch {
         // No existe localmente: seguir a la consulta de OpenFDA.
       }
-      if (existeLocal) return;
+      if (existeLocal) {
+        // Solo aquí se vacía: el código ya pertenece a otro medicamento.
+        if (scanNuevoRef.current) scanNuevoRef.current.value = '';
+        return;
+      }
 
       const fda = await lookupFda(val);
       if (fda.found) {
@@ -107,8 +112,33 @@ export default function MedicamentoFormModal({ open, medicamento, categorias, on
       toast.error('No se pudo consultar OpenFDA');
     } finally {
       setScanLoading(false);
-      if (scanNuevoRef.current) scanNuevoRef.current.value = '';
     }
+  };
+
+  // Asocia al medicamento recién creado el código que haya en el campo de escaneo
+  // (escaneado o escrito a mano). Devuelve false si no se pudo guardar.
+  const vincularCodigo = async (medicamentoId: string): Promise<boolean> => {
+    const codigo = scanNuevoRef.current?.value.trim();
+    if (!codigo) return true;
+    try {
+      await agregarCodigoBarras(medicamentoId, { codigo });
+      return true;
+    } catch (err: any) {
+      const ayuda = 'Agréguelo desde Catálogos → Medicamentos → Códigos de barras.';
+      toast.error(
+        err.response?.status === 409
+          ? `Medicamento creado, pero ese código de barras ya pertenece a otro medicamento. ${ayuda}`
+          : `Medicamento creado, pero el código de barras no se guardó. ${ayuda}`
+      );
+      return false;
+    }
+  };
+
+  const alCrear = async (creado: MedicamentoCatalogo) => {
+    if (await vincularCodigo(creado.id)) toast.success('Medicamento creado');
+    setDuplicados(null);
+    onSaved(creado);
+    onClose();
   };
 
   const subirFoto = async (file: File) => {
@@ -141,10 +171,7 @@ export default function MedicamentoFormModal({ open, medicamento, categorias, on
         if (res.advertencia) {
           setDuplicados({ mensaje: res.mensaje, similares: res.similares });
         } else {
-          toast.success('Medicamento creado');
-          setDuplicados(null);
-          onSaved(res.data);
-          onClose();
+          await alCrear(res.data);
         }
       }
     } catch (err: any) {
@@ -158,12 +185,7 @@ export default function MedicamentoFormModal({ open, medicamento, categorias, on
     setSaving(true);
     try {
       const res = await crearMedicamento({ ...form, forzarCreacion: true });
-      if (!res.advertencia) {
-        toast.success('Medicamento creado');
-        setDuplicados(null);
-        onSaved(res.data);
-        onClose();
-      }
+      if (!res.advertencia) await alCrear(res.data);
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'No se pudo guardar el medicamento');
     } finally {
@@ -211,6 +233,9 @@ export default function MedicamentoFormModal({ open, medicamento, categorias, on
               </label>
               <input
                 ref={scanNuevoRef}
+                // El código ya no se borra tras escanear: seleccionarlo al volver al campo hace que
+                // un nuevo escaneo lo reemplace en vez de pegarse al anterior.
+                onFocus={(e) => e.currentTarget.select()}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
