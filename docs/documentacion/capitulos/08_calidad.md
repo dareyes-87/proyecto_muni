@@ -446,8 +446,7 @@ reejecución de los dieciocho casos fallidos cuando se integren las correcciones
 
 ### 8.5.1 Ciclo de gestión
 
-La gestión de defectos del proyecto siguió un ciclo de cinco etapas, cuyo desarrollo cronológico se
-resume en el capítulo 6 (sección 6.6.2):
+La gestión de defectos del proyecto siguió un ciclo de cinco etapas:
 
 1. Detección. Los defectos se detectaron principalmente por análisis del código: la extracción de
    hechos para la documentación comparó el código con la especificación técnica y, en algunos casos,
