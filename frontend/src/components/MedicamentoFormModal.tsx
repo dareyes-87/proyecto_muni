@@ -49,6 +49,8 @@ export default function MedicamentoFormModal({ open, medicamento, categorias, on
   const [fdaSugerido, setFdaSugerido] = useState(false);
   const [imagenSubiendo, setImagenSubiendo] = useState(false);
   const scanNuevoRef = useRef<HTMLInputElement>(null);
+  // Número del último escaneo: una consulta lenta no debe pisar a un escaneo posterior.
+  const scanSeq = useRef(0);
 
   // Reinicia el formulario cada vez que se abre o cambia el medicamento objetivo.
   useEffect(() => {
@@ -74,6 +76,8 @@ export default function MedicamentoFormModal({ open, medicamento, categorias, on
   const escanearParaNuevo = async (codigo: string) => {
     const val = codigo.trim();
     if (!val) return;
+    const seq = ++scanSeq.current;
+    const vigente = () => seq === scanSeq.current;
     setScanLoading(true);
     setFdaSugerido(false);
     try {
@@ -87,6 +91,7 @@ export default function MedicamentoFormModal({ open, medicamento, categorias, on
       } catch {
         // No existe localmente: seguir a la consulta de OpenFDA.
       }
+      if (!vigente()) return;
       if (existeLocal) {
         // Solo aquí se vacía: el código ya pertenece a otro medicamento.
         if (scanNuevoRef.current) scanNuevoRef.current.value = '';
@@ -94,6 +99,7 @@ export default function MedicamentoFormModal({ open, medicamento, categorias, on
       }
 
       const fda = await lookupFda(val);
+      if (!vigente()) return;
       if (fda.found) {
         setForm((f) => ({
           ...f,
@@ -109,9 +115,9 @@ export default function MedicamentoFormModal({ open, medicamento, categorias, on
         toast('No se encontraron datos en OpenFDA para este código. Complete el formulario manualmente.');
       }
     } catch {
-      toast.error('No se pudo consultar OpenFDA');
+      if (vigente()) toast.error('No se pudo consultar OpenFDA');
     } finally {
-      setScanLoading(false);
+      if (vigente()) setScanLoading(false);
     }
   };
 
@@ -233,16 +239,17 @@ export default function MedicamentoFormModal({ open, medicamento, categorias, on
               </label>
               <input
                 ref={scanNuevoRef}
-                // El código ya no se borra tras escanear: seleccionarlo al volver al campo hace que
-                // un nuevo escaneo lo reemplace en vez de pegarse al anterior.
+                // El código ya no se borra tras escanear. Se selecciona al dar Enter (y al volver al
+                // campo, por foco o por clic) para que el siguiente escaneo lo reemplace, sin importar cuánto tarde OpenFDA.
                 onFocus={(e) => e.currentTarget.select()}
+                onClick={(e) => e.currentTarget.select()}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
+                    e.currentTarget.select();
                     escanearParaNuevo(e.currentTarget.value);
                   }
                 }}
-                disabled={scanLoading}
                 className="w-full rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm font-mono outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
                 placeholder={scanLoading ? 'Consultando...' : 'Escanee o escriba el código y presione Enter'}
                 autoComplete="off"
