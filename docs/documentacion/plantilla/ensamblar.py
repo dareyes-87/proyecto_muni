@@ -6,7 +6,7 @@ Uso: python ensamblar.py <raiz docs/documentacion> <salida.md> [--forzar]
 - Junta las secciones "REFERENCIAS ..." de todos los archivos en una sola
   "REFERENCIAS BIBLIOGRÁFICAS" (orden alfabético, sin duplicados).
 - Renumera "Tabla N." y "Figura N." de forma corrida y actualiza las menciones.
-- Sustituye {{imagen: archivo.png}} por la imagen de diagramas/imagenes/ (máx. 15 cm).
+- Sustituye {{imagen: archivo.png}} por la imagen de diagramas/imagenes/ (máx. 15 × 20 cm).
 - Imprime el resumen. Sale con código 2 si hay errores (salvo --forzar).
 """
 import glob
@@ -17,7 +17,7 @@ import sys
 import unicodedata
 
 ANCHO_MAX_CM = 15.0
-ALTO_MAX_CM = 19.0          # alto útil de la página Carta (22.86 cm) menos título y fuente
+ALTO_MAX_CM = 20.0          # alto útil de la página Carta (22.86 cm) menos título y fuente
 MARCA_INDICE = "@@INDICE_GENERAL@@"
 MARCA_CUERPO = "@@INICIO_CUERPO@@"
 MARCA_REFS = "@@REFERENCIAS@@"
@@ -93,26 +93,13 @@ def separar_referencias(lineas, archivo_completo=False):
     return restantes, entradas
 
 
-def tam_png(ruta):
-    """(ancho_cm, alto_cm) según los píxeles y el pHYs del PNG (96 ppp si no lo trae, como pandoc)."""
+def px_png(ruta):
+    """(ancho_px, alto_px) del PNG, o None si no es PNG."""
     with open(ruta, "rb") as f:
-        datos = f.read()
-    if datos[:8] != b"\x89PNG\r\n\x1a\n":
+        cabecera = f.read(24)
+    if cabecera[:8] != b"\x89PNG\r\n\x1a\n":
         return None
-    ancho, alto = struct.unpack(">II", datos[16:24])
-    ppp_x = ppp_y = 96.0
-    i = 8
-    while i < len(datos):
-        largo, tipo = struct.unpack(">I4s", datos[i:i + 8])
-        if tipo == b"pHYs":
-            px, py, unidad = struct.unpack(">IIB", datos[i + 8:i + 17])
-            if unidad == 1 and px and py:
-                ppp_x, ppp_y = px * 0.0254, py * 0.0254
-            break
-        if tipo == b"IDAT":
-            break
-        i += 12 + largo
-    return ancho / ppp_x * 2.54, alto / ppp_y * 2.54
+    return struct.unpack(">II", cabecera[16:24])
 
 
 def bloque_imagen(raiz, nombre, ancho_pedido, origen):
@@ -122,17 +109,16 @@ def bloque_imagen(raiz, nombre, ancho_pedido, origen):
     if not os.path.isfile(ruta):
         errores.append(f"{origen}: no existe la imagen diagramas/imagenes/{nombre}")
         return [f"**[FALTA IMAGEN: {nombre}]**"]
-    medidas = tam_png(ruta) if nombre.lower().endswith(".png") else None
-    ancho = min(float(ancho_pedido), ANCHO_MAX_CM) if ancho_pedido else None
+    medidas = px_png(ruta) if nombre.lower().endswith(".png") else None
+    ancho = min(float(ancho_pedido), ANCHO_MAX_CM) if ancho_pedido else ANCHO_MAX_CM
     if medidas:
+        # Cabe en ANCHO_MAX_CM × ALTO_MAX_CM manteniendo la proporción de los píxeles.
         w, h = medidas
-        ancho = min(ancho or w, ANCHO_MAX_CM)
-        if h * ancho / w > ALTO_MAX_CM:
-            atributo = f"height={ALTO_MAX_CM:.2f}cm"
-        else:
-            atributo = f"width={ancho:.2f}cm"
+        if ancho * h / w > ALTO_MAX_CM:
+            ancho = ALTO_MAX_CM * w / h
+        atributo = f"width={ancho:.2f}cm height={ancho * h / w:.2f}cm"
     else:
-        atributo = f"width={ancho or ANCHO_MAX_CM:.2f}cm"
+        atributo = f"width={ancho:.2f}cm"
     # Ruta absoluta dentro del contenedor; pandoc monta la misma carpeta en /doc.
     return ['::: {custom-style="Imagen"}', f"![]({ruta}){{{atributo}}}", ":::"]
 

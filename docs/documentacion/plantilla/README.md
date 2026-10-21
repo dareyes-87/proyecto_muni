@@ -62,7 +62,7 @@ Se toman de `capitulos/`. Los que no existen se saltan con un aviso.
     al capítulo; debe apuntar a `diagramas/imagenes/`. El texto alternativo se ignora (el título va
     en la línea "Figura N." y la siguiente).
 
-  Ambas se tratan igual (estilo "Imagen", ancho máximo 15 cm). Ejemplo:
+  Ambas se tratan igual (estilo "Imagen", máximo 15 cm de ancho por 20 cm de alto). Ejemplo:
 
   ```markdown
   Figura 5.
@@ -73,7 +73,8 @@ Se toman de `capitulos/`. Los que no existen se saltan con un aviso.
   Fuente: Elaboración propia.
   ```
 
-  Ancho máximo 15 cm (alto máximo 19 cm). Para un ancho menor: `{{imagen: 05_despliegue | ancho=12cm}}`
+  Cada imagen se ajusta a un máximo de 15 cm de ancho y 20 cm de alto, manteniendo la proporción
+  calculada con sus dimensiones en píxeles. Para un ancho menor: `{{imagen: 05_despliegue | ancho=12cm}}`
   o `![](../diagramas/imagenes/05_despliegue.png){width=12cm}`.
 - Los comentarios HTML `<!-- … -->` se eliminan.
 
