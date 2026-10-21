@@ -203,17 +203,76 @@ function EstadoFoto({ subida, etiqueta }: { subida: boolean; etiqueta: string })
 }
 
 // ============================================
+// CANTIDAD DEL CARRITO
+// ============================================
+// El texto que se está escribiendo vive aparte del número del carrito: así se
+// puede borrar el campo y escribir otro valor sin que reaparezca un "1". El
+// carrito solo recibe valores válidos (el tope de 1..stock lo sigue aplicando
+// actualizarCantidad); al salir del campo se muestra el valor vigente.
+
+function InputCantidad({
+  valor,
+  onCambiar,
+  onEnter,
+}: {
+  valor: number;
+  onCambiar: (cantidad: number) => void;
+  onEnter: () => void;
+}) {
+  const [texto, setTexto] = useState<string | null>(null);
+
+  const manejarCambio = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digitos = e.target.value.replace(/\D/g, '');
+    const cantidad = parseInt(digitos, 10);
+    if (!cantidad) {
+      setTexto(digitos); // vacío o 0: se sigue editando, el carrito conserva el último valor válido
+      return;
+    }
+    setTexto(null);
+    onCambiar(cantidad);
+  };
+
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      value={texto ?? String(valor)}
+      onChange={manejarCambio}
+      onFocus={(e) => e.target.select()}
+      onMouseUp={(e) => e.preventDefault()} // sin esto Chrome quita la selección al soltar el clic
+      onBlur={() => setTexto(null)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          onEnter();
+        }
+      }}
+      className="w-14 text-center border border-gray-300 rounded py-1 text-sm"
+    />
+  );
+}
+
+// ============================================
 // COMPONENTE PRINCIPAL
 // ============================================
 
 export default function Dispensacion() {
   // --- Estado del flujo ---
   const [beneficiario, setBeneficiario] = useState<Beneficiario | null>(null);
+  const beneficiarioIdRef = useRef<string | null>(null); // para descartar respuestas tardías de otro beneficiario
   const [umbrales, setUmbrales] = useState<Umbrales>({ rojo: 30, amarillo: 90 });
   const [historialReciente, setHistorialReciente] = useState<DispensacionReciente[]>([]);
   const [carrito, setCarrito] = useState<ItemCarrito[]>([]);
   const [observaciones, setObservaciones] = useState('');
   const [despachando, setDespachando] = useState(false);
+  // El estado de arriba llega tarde para un segundo Enter o clic en el mismo instante: la guarda real es esta.
+  const despachandoRef = useRef(false);
+  const confirmarRef = useRef<HTMLButtonElement>(null);
+  // Se tecleó algo (p. ej. una lectura de pistola) desde que se abrió el modal: Enter deja de confirmar.
+  const teclaAjenaRef = useRef(false);
+  beneficiarioIdRef.current = beneficiario?.id ?? null;
+  const [avisoTeclado, setAvisoTeclado] = useState(false); // se mostró que Enter se ignoró por esa guarda
+  const [errorDespacho, setErrorDespacho] = useState<string | null>(null);
   const [exitoso, setExitoso] = useState(false);
   const [showConfirmacion, setShowConfirmacion] = useState(false);
 
@@ -383,6 +442,7 @@ export default function Dispensacion() {
   // ============================================
 
   const confirmarDispensacion = async () => {
+    if (despachandoRef.current) return;
     if (!beneficiario) {
       toast.error('Seleccione un beneficiario');
       return;
@@ -392,7 +452,10 @@ export default function Dispensacion() {
       return;
     }
 
+    despachandoRef.current = true;
     setDespachando(true);
+    setErrorDespacho(null);
+    setAvisoTeclado(false);
     try {
       const { data } = await api.post('/dispensacion/despachar', {
         beneficiarioId: beneficiario.id,
@@ -401,11 +464,12 @@ export default function Dispensacion() {
           medicamentoId: i.medicamento.id,
           cantidad: i.cantidad,
         })),
-      });
+      }, { timeout: 60000 }); // sin tope una petición colgada bloquea el modal; 60 s = tope por defecto de nginx
 
       const nuevaId: string = data.dispensacion.id;
       setDispensacionId(nuevaId);
       toast.success('Dispensación registrada correctamente');
+      setShowConfirmacion(false);
       setExitoso(true);
 
       // El QR es un extra: si falla generar el token, la dispensación ya quedó
@@ -417,12 +481,50 @@ export default function Dispensacion() {
         toast.error('No se pudo generar el código QR para las fotos');
       }
     } catch (error: any) {
-      const msg = error.response?.data?.error || 'Error al registrar dispensación';
+      // Sin respuesta (red caída, tiempo agotado, 502+) no se sabe si el servidor llegó a registrarla:
+      // reintentar podría duplicarla. Se avisa, se refresca el historial y Enter deja de reintentar (el clic sí).
+      const sinRespuesta = !error.response || error.response.status >= 502;
+      const msg = sinRespuesta
+        ? 'No se recibió respuesta del servidor. La dispensación pudo haberse registrado: revise "Últimas dispensaciones" del beneficiario antes de reintentar.'
+        : error.response?.data?.error || 'Error al registrar dispensación';
+      if (sinRespuesta) {
+        teclaAjenaRef.current = true;
+        const idConsultado = beneficiario.id;
+        api.get(`/dispensacion/beneficiarios/${idConsultado}`)
+          .then(({ data }) => {
+            if (beneficiarioIdRef.current === idConsultado) setHistorialReciente((data.dispensaciones || []).slice(0, 5));
+          })
+          .catch(() => { /* sin red tampoco se puede refrescar: el aviso ya lo dice */ });
+      }
       toast.error(msg);
+      setErrorDespacho(msg);
     } finally {
+      despachandoRef.current = false;
       setDespachando(false);
     }
   };
+
+  // El foco va al botón al abrir el modal y vuelve a él si un error lo re-habilita
+  // (un botón deshabilitado pierde el foco), para que Enter confirme o reintente.
+  useEffect(() => {
+    if (showConfirmacion && !despachando) confirmarRef.current?.focus();
+  }, [showConfirmacion, despachando]);
+
+  // Teclado con el modal abierto. Escape cancela, salvo mientras la petición está en curso.
+  // Cualquier otra tecla (menos Enter, Tab y los modificadores solos) se anota: una lectura
+  // de pistola son dígitos + Enter, y ese Enter no debe confirmar una dispensación.
+  useEffect(() => {
+    if (!showConfirmacion) return;
+    const alTeclear = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (!e.repeat && !despachando) setShowConfirmacion(false);
+      } else if (!['Enter', 'Tab', ' ', 'Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) {
+        teclaAjenaRef.current = true;
+      }
+    };
+    document.addEventListener('keydown', alTeclear, true); // en captura: antes que cualquier otro manejador
+    return () => document.removeEventListener('keydown', alTeclear, true);
+  }, [showConfirmacion, despachando]);
 
   // Polling del estado de las fotos mientras la pantalla de éxito está visible.
   // Se detiene solo cuando ya están las dos o si la encargada omite las fotos.
@@ -819,13 +921,10 @@ export default function Dispensacion() {
                         >
                           −
                         </button>
-                        <input
-                          type="number"
-                          min={1}
-                          max={item.stock.stockTotal}
-                          value={item.cantidad}
-                          onChange={(e) => actualizarCantidad(item.medicamento.id, parseInt(e.target.value, 10) || 1)}
-                          className="w-14 text-center border border-gray-300 rounded py-1 text-sm"
+                        <InputCantidad
+                          valor={item.cantidad}
+                          onCambiar={(c) => actualizarCantidad(item.medicamento.id, c)}
+                          onEnter={() => barcodeInputRef.current?.focus()}
                         />
                         <button
                           onClick={() => actualizarCantidad(item.medicamento.id, item.cantidad + 1)}
@@ -901,7 +1000,7 @@ export default function Dispensacion() {
 
         <Button
           size="lg"
-          onClick={() => setShowConfirmacion(true)}
+          onClick={() => { setErrorDespacho(null); setAvisoTeclado(false); teclaAjenaRef.current = false; setShowConfirmacion(true); }}
           disabled={!beneficiario || carrito.length === 0 || despachando}
           className="w-full"
         >
@@ -913,7 +1012,11 @@ export default function Dispensacion() {
       {/* ================================================ */}
       {/* MODAL: CONFIRMACIÓN DE DISPENSACIÓN */}
       {/* ================================================ */}
-      <Modal open={showConfirmacion && !!beneficiario} onClose={() => setShowConfirmacion(false)} title="Confirmar dispensación">
+      <Modal
+        open={showConfirmacion && !!beneficiario}
+        onClose={() => { if (!despachando) setShowConfirmacion(false); }}
+        title="Confirmar dispensación"
+      >
         {beneficiario && (
           <>
             <div className="space-y-3 text-sm">
@@ -942,9 +1045,35 @@ export default function Dispensacion() {
               )}
             </div>
 
+            {errorDespacho && (
+              <p role="alert" className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {errorDespacho}
+              </p>
+            )}
+
+            {avisoTeclado && (
+              <p role="status" className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">
+                Para confirmar, haga clic en Dispensar
+              </p>
+            )}
+
             <div className="mt-5 flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => setShowConfirmacion(false)}>Cancelar</Button>
-              <Button onClick={() => { setShowConfirmacion(false); confirmarDispensacion(); }} disabled={despachando}>
+              <Button variant="secondary" onClick={() => setShowConfirmacion(false)} disabled={despachando}>Cancelar</Button>
+              <Button
+                ref={confirmarRef}
+                onClick={confirmarDispensacion}
+                // Sin esto, una tecla mantenida repetiría el Enter, y un Enter tras otras teclas
+                // (pistola) confirmaría sin querer. El clic sigue funcionando siempre.
+                onKeyDown={(e) => {
+                  if (e.repeat) { e.preventDefault(); return; }
+                  // Space también activa un botón: un código con espacio no debe confirmar con la guarda activa.
+                  if ((e.key === 'Enter' || e.key === ' ') && teclaAjenaRef.current) {
+                    e.preventDefault();
+                    if (!despachandoRef.current) setAvisoTeclado(true);
+                  }
+                }}
+                disabled={despachando}
+              >
                 <CheckCircle size={18} />
                 {despachando ? 'Dispensando...' : 'Dispensar'}
               </Button>
