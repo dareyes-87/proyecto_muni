@@ -20,6 +20,7 @@ import {
   type TipoReporte,
 } from '../api/reportes';
 import { listarCategorias, buscarMedicamentos } from '../api/catalogos';
+import { useAutocompleteTeclado } from '../components/ui/useAutocompleteTeclado';
 import Semaforo from '../components/ui/Semaforo';
 import PageHeader from '../components/ui/PageHeader';
 import Button from '../components/ui/Button';
@@ -76,22 +77,40 @@ function BuscadorInline({
   const [q, setQ] = useState('');
   const [resultados, setResultados] = useState<Opcion[]>([]);
   const [abierto, setAbierto] = useState(false);
+  // Texto con el que se pidieron los resultados que se muestran (ver useAutocompleteTeclado).
+  const [resultadosPara, setResultadosPara] = useState('');
 
   useEffect(() => {
     if (q.trim().length < 2) {
       setResultados([]);
       return;
     }
+    // `cancelado`: una respuesta de un texto anterior no debe pisar a la del texto actual.
+    let cancelado = false;
     const t = setTimeout(() => {
       buscar(q)
         .then((r) => {
+          if (cancelado) return;
           setResultados(r);
+          setResultadosPara(q);
           setAbierto(true);
         })
-        .catch(() => setResultados([]));
+        .catch(() => !cancelado && setResultados([]));
     }, 300);
-    return () => clearTimeout(t);
+    return () => {
+      clearTimeout(t);
+      cancelado = true;
+    };
   }, [q, buscar]);
+
+  const elegir = (r: Opcion) => {
+    onSeleccionar(r.id, r.label);
+    setQ('');
+    setAbierto(false);
+  };
+  const teclado = useAutocompleteTeclado({
+    items: resultados, texto: q, textoDeItems: resultadosPara, abierto, setAbierto, onElegir: elegir,
+  });
 
   if (valorId) {
     return (
@@ -117,19 +136,18 @@ function BuscadorInline({
         onBlur={() => setTimeout(() => setAbierto(false), 150)}
         placeholder={placeholder}
         className={inputClass}
+        autoComplete="off"
+        {...teclado.inputProps}
       />
       {abierto && resultados.length > 0 && (
-        <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg">
-          {resultados.map((r) => (
-            <li key={r.id}>
+        <ul {...teclado.listaProps} className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+          {resultados.map((r, i) => (
+            <li key={r.id} role="presentation">
               <button
                 type="button"
-                onMouseDown={() => {
-                  onSeleccionar(r.id, r.label);
-                  setQ('');
-                  setAbierto(false);
-                }}
-                className="block w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
+                {...teclado.opcionProps(i)}
+                onMouseDown={() => elegir(r)}
+                className={`block w-full px-3 py-2 text-left text-sm ${teclado.claseOpcion(i)}`}
               >
                 {r.label}
               </button>
