@@ -4,7 +4,9 @@
 
 En este anexo se incorpora el informe de pruebas de penetración del sistema.
 
-El informe se respalda en los documentos de seguridad del repositorio que se presentan en la
+El informe se complementa con los documentos de seguridad del sistema que se presentan en la
+Tabla 200.
+
 Tabla 200. Los documentos se elaboraron entre el 7 y el 8 de octubre de 2026 sobre el entorno de
 desarrollo, antes de una parte de las correcciones, por lo que algunos datos ya no coinciden con la
 versión documentada del sistema. Los informes no identifican a su autor.

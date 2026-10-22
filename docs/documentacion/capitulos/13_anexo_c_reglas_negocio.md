@@ -2,9 +2,8 @@
 
 # REGLAS DE NEGOCIO
 
-Este anexo presenta las 76 reglas de negocio vigentes del sistema FarmaG. Los identificadores no se
-renumeran: la regla RN-26, eliminada durante la corrección de defectos, conserva su número y no se
-incluye. En la Tabla 201 se presenta cada regla con el módulo al que pertenece.
+Este anexo presenta las reglas de negocio vigentes del sistema FarmaG, que se listan en la Tabla 201
+con el módulo al que pertenece cada una.
 
 Tabla 201.
 Reglas de negocio del sistema

@@ -4,21 +4,19 @@
 
 ## 4.1 Introducción al capítulo
 
-Este capítulo presenta los requerimientos funcionales y no funcionales de FarmaG, las reglas de
-negocio, el modelo de casos de uso con la especificación de cada caso y la matriz de trazabilidad. Los
-requerimientos provienen del análisis de requerimientos inicial del proyecto, cuyos casos de uso se
-citan como CUO-01 a CUO-37; de la entrevista con la municipalidad incluida en ese
-análisis; de las decisiones de alcance tomadas por el equipo y la municipalidad (R-01 a R-09); y de
-las funciones agregadas durante la construcción. Se redactan con base en la norma ISO/IEC/IEEE 29148
-(ISO, 2018) y describen el sistema tal como quedó construido.
+Este capítulo presenta lo que el sistema debe hacer y las condiciones de calidad que debe cumplir. Los
+requerimientos se obtuvieron del análisis inicial del proyecto, de la entrevista con la municipalidad,
+de las decisiones de alcance tomadas con ella y de las funciones que se agregaron durante la
+construcción. Se redactaron con base en la norma ISO/IEC/IEEE 29148 (ISO, 2018) y describen el sistema
+tal como quedó construido.
 
 ## 4.2 Requerimientos funcionales
 
-La Tabla 28 presenta los 58 requerimientos funcionales agrupados en once módulos. La prioridad
-expresa la importancia del requerimiento para la operación de la farmacia: Alta, cuando sin él no se
-puede controlar el inventario ni registrar las entregas; Media, cuando facilita o complementa una
-tarea principal; y Baja, cuando es una ayuda opcional. La columna "CU" remite a los casos de uso de la
-sección 4.6.
+La Tabla 28 presenta los requerimientos funcionales agrupados por módulo. La prioridad indica su
+importancia para la farmacia: Alta, cuando sin él no se puede controlar el inventario ni registrar
+las entregas; Media, cuando facilita una tarea principal; y Baja, cuando es una ayuda opcional. La
+columna "CU" indica el caso de uso de la sección 4.6 en que se cumple cada requerimiento, por lo que
+sirve también como matriz de trazabilidad.
 
 Tabla 28.
 Requerimientos funcionales por módulo
@@ -97,87 +95,74 @@ Requerimientos funcionales por módulo
 
 Fuente: Elaboración propia.
 
-El requerimiento RF-31 existe solo en el servidor: no hay una pantalla que permita cambiar los
-umbrales del semáforo, por lo que no tiene caso de uso asociado. Una dispensación registrada no se
-puede editar, anular ni devolver; la ausencia de devoluciones es una regla de negocio confirmada
-(R-06) y no un requerimiento funcional.
+El requerimiento RF-31 se atiende desde la configuración del sistema; la interfaz todavía no tiene una
+pantalla para modificar los umbrales, por lo que no tiene un caso de uso asociado. Una entrega
+registrada no se puede editar, anular ni devolver, por las reglas de la farmacia.
 
 ## 4.3 Requerimientos no funcionales
 
-Los requerimientos no funcionales se clasifican según las características del modelo de calidad de la
-norma ISO/IEC 25010 (ISO, 2023). Se usan los nombres de usabilidad y portabilidad para las
-características que la versión de 2023 denomina capacidad de interacción y flexibilidad. Se
-identificaron 45 requerimientos no funcionales (RNF-01 a RNF-45); la Tabla 29 presenta los 16 más
-importantes con su identificador original y el medio con que se verifica cada uno. Las pruebas
-automatizadas citadas se ejecutaron el 20 de octubre de 2026, con 53 casos aprobados de 53; su
-detalle se presenta en el capítulo 8.
+Los requerimientos no funcionales describen cualidades del sistema, como su seguridad o su facilidad
+de uso, y se clasifican según las características de la norma ISO/IEC 25010 (ISO, 2023). La Tabla 29
+presenta los principales y la forma en que se comprueba cada uno.
 
 Tabla 29.
 Requerimientos no funcionales principales
 
-| ID | Característica ISO 25010 | Requerimiento | Cómo se verifica |
-|----|--------------------------|---------------|------------------|
-| RNF-01 | Seguridad | Las contraseñas se guardan cifradas con una función de hash y nunca se muestran | Revisión del código y de las respuestas del sistema |
-| RNF-02 | Seguridad | Toda función requiere una sesión válida, salvo las rutas públicas definidas | Petición sin sesión a una función protegida |
-| RNF-03 | Seguridad | El servidor restringe el acceso a las funciones según el rol | Petición de un Encargado de Beneficencia a una función exclusiva |
-| RNF-04 | Seguridad | El inicio de sesión limita los intentos fallidos y las solicitudes por equipo | Pruebas automatizadas de los dos límites, aprobadas |
-| RNF-07 | Seguridad | El enlace de captura no se puede adivinar ni reutilizar | Prueba automatizada del formato del enlace |
-| RNF-11 | Seguridad | Las acciones de los usuarios quedan registradas y no se pueden alterar desde el sistema | Comparación de la bitácora con las operaciones realizadas |
-| RNF-12 | Seguridad | Los datos de entrada se validan antes de procesarse | Pruebas automatizadas de validación, aprobadas |
-| RNF-13 | Fiabilidad | El stock no se descuenta dos veces cuando hay dispensaciones simultáneas | Dos dispensaciones simultáneas sobre el mismo stock |
-| RNF-14 | Fiabilidad | No se dispensan lotes vencidos | Pruebas automatizadas de vencimiento, aprobadas |
-| RNF-16 | Fiabilidad | La base de datos se respalda cada 12 horas | Registro del último respaldo y restauración en el flujo de despliegue |
-| RNF-22 | Usabilidad | La interfaz y los mensajes están en español y explican la causa de cada error | Recorrido de las pantallas |
-| RNF-23 | Usabilidad | Los campos de búsqueda admiten un lector de códigos de barras | Prueba con un lector en las tres pantallas que lo usan |
-| RNF-28 | Eficiencia de desempeño | Los listados se cargan en páginas de 20 registros | Prueba automatizada de paginación |
-| RNF-33 | Mantenibilidad | El backend cuenta con pruebas automatizadas | Ejecución de los 53 casos, todos aprobados |
-| RNF-38 | Portabilidad | El sistema se instala en cualquier equipo con Docker | Instalación desde cero en el flujo de despliegue |
-| RNF-43 | Compatibilidad | El sistema importa archivos de Excel y exporta a PDF y Excel | Apertura de los archivos exportados |
+| ID | Característica | Requerimiento | Cómo se comprueba |
+|----|----------------|---------------|-------------------|
+| RNF-01 | Seguridad | Las contraseñas se guardan cifradas y nunca se muestran | Revisión del sistema |
+| RNF-02 | Seguridad | Toda función requiere haber iniciado sesión, salvo la pantalla de fotografías del teléfono | Intento de uso sin sesión |
+| RNF-03 | Seguridad | Cada usuario solo puede usar las funciones de su rol | Intento de un Encargado de usar una función del Administrador |
+| RNF-04 | Seguridad | El inicio de sesión se bloquea tras varios intentos fallidos | Pruebas automatizadas |
+| RNF-07 | Seguridad | El enlace del código QR no se puede adivinar ni reutilizar | Pruebas automatizadas |
+| RNF-11 | Seguridad | Las acciones de los usuarios quedan en una bitácora que no se puede alterar | Comparación de la bitácora con las operaciones hechas |
+| RNF-12 | Seguridad | Los datos ingresados se validan antes de guardarse | Pruebas automatizadas |
+| RNF-13 | Fiabilidad | Dos entregas al mismo tiempo no descuentan las mismas unidades | Prueba de dos entregas simultáneas |
+| RNF-14 | Fiabilidad | No se entregan lotes vencidos | Pruebas automatizadas |
+| RNF-16 | Fiabilidad | La base de datos se respalda cada 12 horas | Revisión de los respaldos generados |
+| RNF-22 | Usabilidad | La interfaz y los mensajes están en español y explican cada error | Recorrido de las pantallas |
+| RNF-23 | Usabilidad | Las búsquedas aceptan un lector de código de barras | Prueba con lectura de códigos |
+| RNF-28 | Eficiencia | Los listados se muestran por páginas | Prueba de los listados |
+| RNF-33 | Mantenibilidad | El servidor cuenta con pruebas automatizadas | Ejecución de las pruebas |
+| RNF-38 | Portabilidad | El sistema se instala en cualquier equipo con Docker | Instalación desde cero |
+| RNF-43 | Compatibilidad | El sistema importa archivos de Excel y exporta a PDF y Excel | Apertura de los archivos generados |
 
 Fuente: Elaboración propia.
 
-El tiempo de respuesta del sistema no se ha medido, por lo que no se fija una cifra de desempeño. El
-sistema se diseñó para cuatro usuarios simultáneos, pero no se realizó una prueba de carga.
-
 ## 4.4 Reglas de negocio
 
-Las reglas de negocio son las condiciones que el sistema aplica a los datos y a las operaciones. Del
-análisis del código se registraron 77 reglas (RN-01 a RN-77), de las cuales 76 están vigentes y una
-fue eliminada. Las que más afectan el trabajo del usuario establecen que el stock de un medicamento es
-la suma de sus lotes disponibles y no vencidos, que la dispensación descuenta primero del lote que
-vence antes, que un lote vencido no se dispensa, que una dispensación no se edita, anula ni devuelve,
-y que los catálogos y los usuarios se desactivan en lugar de eliminarse. La lista completa, con el
-mensaje que muestra el sistema en cada caso, se presenta en el Anexo C.
+Las reglas de negocio son las condiciones que el sistema aplica a los datos y a las operaciones. Las
+más importantes para el usuario son: las existencias de un medicamento son la suma de sus lotes
+disponibles y no vencidos; cada entrega descuenta primero del lote que vence antes; un lote vencido
+no se entrega; una entrega no se puede editar, anular ni devolver, y los medicamentos, catálogos y
+usuarios se desactivan en lugar de eliminarse. La lista completa se presenta en el Anexo C.
 
 ## 4.5 Modelo de casos de uso
 
 ### 4.5.1 Actores
 
-El modelo de casos de uso tiene cuatro actores, descritos en la Tabla 30. El Administrador especializa
-al Encargado de Beneficencia: hereda todos sus casos de uso y agrega los exclusivos de su rol. En la
-operación actual de la farmacia, una sola persona usa una cuenta de Administrador para todas las
-tareas (R-09).
+El sistema tiene cuatro actores, descritos en la Tabla 30. El Administrador puede hacer todo lo que
+hace el Encargado de Beneficencia y, además, las tareas propias de su rol.
 
 Tabla 30.
 Actores del sistema
 
 | Actor | Descripción | Participación en el sistema |
 |-------|-------------|-----------------------------|
-| Encargado de Beneficencia | Persona que registra las entradas, los beneficiarios y las dispensaciones | Consulta catálogos, inventario y panel; registra entradas manuales, beneficiarios, dispensaciones y evidencia |
-| Administrador | Persona responsable del sistema; hereda los casos de uso del Encargado de Beneficencia | Además gestiona usuarios y catálogos, importa inventario, da de baja lotes, consulta y exporta reportes y consulta la bitácora |
-| Persona con el celular | Quien toma las fotografías de la receta y de la entrega desde un teléfono, mediante el código QR | Sin cuenta ni sesión; su credencial es el enlace de captura vigente |
-| Sistema | Proceso automático programado en el servidor | Marca los lotes vencidos y elimina los enlaces de captura vencidos |
+| Encargado de Beneficencia | Persona que atiende la farmacia | Consulta catálogos, inventario y panel; registra entradas, beneficiarios, entregas y fotografías |
+| Administrador | Persona responsable del sistema | Además gestiona usuarios y catálogos, carga inventario desde Excel, da de baja lotes, consulta y exporta reportes y revisa la bitácora |
+| Persona con el teléfono | Quien toma las fotografías de respaldo mediante el código QR | No necesita cuenta; usa el enlace mientras está vigente |
+| Sistema | Proceso automático del servidor | Marca cada día los lotes vencidos |
 
 Fuente: Elaboración propia.
 
 ### 4.5.2 Diagrama general
 
-La Figura 1 muestra los 19 casos de uso del sistema agrupados en cinco paquetes: Seguridad,
-Catálogos, Inventario, Dispensación, y Reportes y auditoría. El Encargado de Beneficencia participa
-en los cuatro primeros, que hereda el Administrador; los reportes y la bitácora son exclusivos del
-Administrador, igual que la gestión de usuarios dentro del paquete de Seguridad. En los catálogos, el
-Encargado únicamente consulta. La Persona con el celular solo participa en el registro de la
-evidencia fotográfica, y el Sistema solo en la actualización de los lotes vencidos.
+La Figura 1 muestra los 19 casos de uso agrupados en cinco paquetes: Seguridad, Catálogos,
+Inventario, Dispensación, y Reportes y auditoría. El Encargado de Beneficencia participa en los
+cuatro primeros y en los catálogos solo consulta; los reportes, la bitácora y la gestión de usuarios
+corresponden al Administrador. La persona con el teléfono solo interviene en las fotografías de
+respaldo y el Sistema en la actualización diaria de los lotes vencidos.
 
 Figura 1.
 Modelo general de casos de uso
@@ -826,8 +811,7 @@ Caso de uso #17: Consultar reportes
 | **Descripción**      | Permite consultar con filtros seis reportes: Dispensaciones, Consumo por     |
 |                      | medicamento, Inventario actual, Por vencer, Entradas y Dados de baja.        |
 +----------------------+------------------------------------------------------------------------------+
-| **Actores**          | Administrador. El servidor también permite estas consultas al Encargado de   |
-|                      | Beneficencia, pero la pantalla solo se muestra al Administrador.             |
+| **Actores**          | Administrador.                                                               |
 +----------------------+------------------------------------------------------------------------------+
 | **Precondición**     | Sesión iniciada con rol Administrador.                                       |
 +----------------------+------------------------------------------------------------------------------+
@@ -916,49 +900,3 @@ Caso de uso #19: Consultar bitácora de auditoría
 +----------------------+------------------------------------------------------------------------------+
 
 Fuente: Elaboración propia.
-
-## 4.7 Matriz de trazabilidad
-
-La Tabla 70 relaciona cada requerimiento funcional con los casos de uso que lo realizan.
-
-Tabla 70.
-Matriz de trazabilidad de requerimientos funcionales a casos de uso
-
-| RF | CU | RF | CU |
-|----|----|----|----|
-| RF-01 | CU-01 | RF-30 | CU-11 |
-| RF-02 | CU-01 | RF-31 | Ninguno |
-| RF-03 | CU-01, CU-02 | RF-32 | CU-13, CU-15 |
-| RF-04 | CU-01 | RF-33 | CU-13, CU-14, CU-15 |
-| RF-05 | CU-02 | RF-34 | CU-13 |
-| RF-06 | CU-02 | RF-35 | CU-14 |
-| RF-07 | CU-02 | RF-36 | CU-15 |
-| RF-08 | CU-02 | RF-37 | CU-15 |
-| RF-09 | CU-03 | RF-38 | CU-15 |
-| RF-10 | CU-03 | RF-39 | CU-15 |
-| RF-11 | CU-03 | RF-40 | CU-15, CU-14 |
-| RF-12 | CU-03 | RF-41 | CU-15 |
-| RF-13 | CU-03 | RF-42 | CU-16 |
-| RF-14 | CU-04 | RF-43 | CU-16 |
-| RF-15 | CU-04, CU-07, CU-15 | RF-44 | CU-16 |
-| RF-16 | CU-05 | RF-45 | CU-16 |
-| RF-17 | CU-06 | RF-46 | CU-14, CU-16 |
-| RF-18 | CU-07 | RF-47 | CU-17 |
-| RF-19 | CU-07, CU-08 | RF-48 | CU-17 |
-| RF-20 | CU-07, CU-03 | RF-49 | CU-17 |
-| RF-21 | CU-07 | RF-50 | CU-17 |
-| RF-22 | CU-08 | RF-51 | CU-17 |
-| RF-23 | CU-08 | RF-52 | CU-17 |
-| RF-24 | CU-08 | RF-53 | CU-18 |
-| RF-25 | CU-09 | RF-54 | CU-01 a CU-08, CU-10, CU-13, CU-15, CU-16, CU-18 |
-| RF-26 | CU-09 | RF-55 | CU-19 |
-| RF-27 | CU-09, CU-12, CU-15 | RF-56 | CU-12 |
-| RF-28 | CU-09, CU-12 | RF-57 | CU-12 |
-| RF-29 | CU-10 | RF-58 | CU-12 |
-
-Fuente: Elaboración propia.
-
-Todos los casos de uso tienen al menos un requerimiento funcional asociado. El único requerimiento
-sin caso de uso es RF-31, porque la modificación de los umbrales del semáforo existe en el servidor
-pero no en la interfaz. La relación entre los casos de uso del análisis inicial y el alcance final se
-resume en la tabla de exclusiones del capítulo 1 (Tabla 1).

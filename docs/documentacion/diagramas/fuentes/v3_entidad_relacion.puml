@@ -1,0 +1,187 @@
+@startuml v3_entidad_relacion
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam dpi 200
+skinparam defaultFontName Arial
+skinparam defaultFontSize 10
+skinparam linetype ortho
+skinparam nodesep 40
+skinparam ranksep 45
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #1F3864
+  BorderThickness 1.2
+  HeaderBackgroundColor #D9E2F3
+  ArrowColor #1F3864
+  ArrowThickness 1
+  FontStyle bold
+}
+hide circle
+hide methods
+hide stereotypes
+
+entity "usuarios" as usuarios {
+  <b>PK</b>  id : UUID
+  --
+  username : VARCHAR
+  email : VARCHAR
+  password_hash : VARCHAR
+  nombre_completo : VARCHAR
+  rol : ENUM
+  activo : BOOLEAN
+  ultimo_acceso : TIMESTAMP
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
+}
+
+entity "beneficiarios" as beneficiarios {
+  <b>PK</b>  id : UUID
+  --
+  nombre_completo : VARCHAR
+  dpi : VARCHAR
+  telefono : VARCHAR
+  direccion : VARCHAR
+  observaciones : TEXT
+  activo : BOOLEAN
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
+}
+
+entity "dispensaciones" as dispensaciones {
+  <b>PK</b>  id : UUID
+  --
+  <b>FK</b>  beneficiario_id : UUID
+  <b>FK</b>  usuario_id : UUID
+  observaciones : TEXT
+  created_at : TIMESTAMP
+}
+
+entity "detalle_dispensaciones" as detalle {
+  <b>PK</b>  id : UUID
+  --
+  <b>FK</b>  dispensacion_id : UUID
+  <b>FK</b>  lote_id : UUID
+  <b>FK</b>  medicamento_id : UUID
+  cantidad : INTEGER
+  nombre_medicamento_snapshot : VARCHAR
+  presentacion_snapshot : VARCHAR
+  concentracion_snapshot : VARCHAR
+}
+
+entity "fotos_dispensacion" as fotos {
+  <b>PK</b>  id : UUID
+  --
+  <b>FK</b>  dispensacion_id : UUID
+  tipo : ENUM
+  imagen_url : VARCHAR
+  created_at : TIMESTAMP
+}
+
+entity "tokens_captura" as tokens {
+  <b>PK</b>  id : UUID
+  --
+  <b>FK</b>  dispensacion_id : UUID
+  token : VARCHAR
+  usado : BOOLEAN
+  expira_en : TIMESTAMP
+  created_at : TIMESTAMP
+}
+
+entity "log_auditoria" as log {
+  <b>PK</b>  id : UUID
+  --
+  <b>FK</b>  usuario_id : UUID
+  accion : ENUM
+  entidad : VARCHAR
+  entidad_id : VARCHAR
+  datos_anteriores : JSONB
+  datos_nuevos : JSONB
+  ip_address : VARCHAR
+  created_at : TIMESTAMP
+}
+
+entity "entradas" as entradas {
+  <b>PK</b>  id : UUID
+  --
+  <b>FK</b>  usuario_id : UUID
+  observaciones : TEXT
+  created_at : TIMESTAMP
+}
+
+entity "lotes" as lotes {
+  <b>PK</b>  id : UUID
+  --
+  <b>FK</b>  entrada_id : UUID
+  <b>FK</b>  medicamento_id : UUID
+  <b>FK</b>  ubicacion_id : UUID
+  numero_lote : VARCHAR
+  cantidad : INTEGER
+  cantidad_actual : INTEGER
+  fecha_vencimiento : DATE
+  costo_unitario : DECIMAL(10,2)
+  estado : ENUM
+  created_at : TIMESTAMP
+}
+
+entity "ubicaciones" as ubicaciones {
+  <b>PK</b>  id : UUID
+  --
+  codigo : VARCHAR
+  descripcion : VARCHAR
+}
+
+entity "medicamentos" as medicamentos {
+  <b>PK</b>  id : UUID
+  --
+  <b>FK</b>  categoria_id : UUID
+  nombre_generico : VARCHAR
+  nombre_comercial : VARCHAR
+  presentacion : VARCHAR
+  concentracion : VARCHAR
+  unidad_medida : VARCHAR
+  stock_minimo : INTEGER
+  imagen_url : VARCHAR
+  activo : BOOLEAN
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
+}
+
+entity "categorias" as categorias {
+  <b>PK</b>  id : UUID
+  --
+  nombre : VARCHAR
+  descripcion : VARCHAR
+  activo : BOOLEAN
+}
+
+entity "codigos_barras" as codigos {
+  <b>PK</b>  id : UUID
+  --
+  <b>FK</b>  medicamento_id : UUID
+  codigo : VARCHAR
+  descripcion : VARCHAR
+}
+
+entity "configuracion_sistema" as config {
+  <b>PK</b>  id : UUID
+  --
+  clave : VARCHAR
+  valor : VARCHAR
+  descripcion : VARCHAR
+}
+
+beneficiarios ||--o{ dispensaciones
+usuarios ||--o{ dispensaciones
+usuarios ||--o{ log
+usuarios ||--o{ entradas
+dispensaciones ||--|{ detalle
+dispensaciones ||--o{ fotos
+dispensaciones ||--o| tokens
+entradas ||--|{ lotes
+lotes ||--o{ detalle
+medicamentos ||--o{ lotes
+medicamentos ||--o{ detalle
+ubicaciones |o--o{ lotes
+categorias ||--o{ medicamentos
+medicamentos ||--o{ codigos
+@enduml

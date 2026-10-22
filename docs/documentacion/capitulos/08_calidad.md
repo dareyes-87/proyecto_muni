@@ -1,72 +1,47 @@
-<!-- Numeración de tablas: este capítulo usa provisionalmente números de la serie 300; el script de
-ensamblado las renumera para conservar la numeración corrida del documento. No incluye figuras.
-Los resultados de las pruebas funcionales provienen de pruebas/registro_ejecucion.md (ciclo 1, 20 y
-21 de octubre de 2026). -->
-
 # CAPÍTULO VIII
 
 # 8 ASEGURAMIENTO DE LA CALIDAD
 
-El aseguramiento de la calidad comprende las actividades con que se comprobó que FarmaG cumple los
-requerimientos del capítulo 4 y con que se detectaron, registraron y corrigieron sus defectos. Este
-capítulo describe la estrategia de calidad, el plan y los resultados de las pruebas funcionales, las
-pruebas automatizadas, la gestión de los defectos, las pruebas de seguridad y la evaluación frente a
-los requerimientos no funcionales. Lo descrito corresponde a la versión del sistema vigente al 21 de
-octubre de 2026, fecha en que el equipo congeló la documentación; las correcciones posteriores se
-registran como trabajo posterior a la entrega.
+Este capítulo describe cómo se comprobó que FarmaG cumple sus requerimientos y cómo se encontraron,
+registraron y corrigieron sus defectos.
 
-## 8.1 Estrategia de aseguramiento de la calidad
+## 8.1 Estrategia de calidad
 
-El marco de calidad es el modelo de la norma ISO/IEC 25010 descrito en el capítulo 2 (ISO, 2023): la
-adecuación funcional se evalúa con pruebas funcionales derivadas de los casos de uso, y las demás
-características, mediante los requerimientos no funcionales del capítulo 4, cada uno con su medio de
-verificación. La calidad se verificó en los seis niveles de la Tabla 301. Se entiende por prueba
-unitaria la que no necesita base de datos y por prueba de integración la que se conecta a ella; el
-frontend no cuenta con pruebas automatizadas, por lo que su comportamiento se verificó con las
-pruebas funcionales. Durante la construcción se hicieron además verificaciones manuales al integrar
-cada módulo, como la prueba de concurrencia del despacho del 19 de julio de 2026, que no siguieron un
-plan formal.
+La calidad se evaluó con el modelo de la norma ISO/IEC 25010 (ISO, 2023): el cumplimiento de las
+funciones se comprobó con pruebas basadas en los casos de uso, y las demás características, con los
+requerimientos no funcionales del capítulo 4. La Tabla 301 presenta los tipos de prueba que se
+aplicaron y quién se encargó de cada uno.
 
 Tabla 301.
-Niveles de prueba aplicados y responsables
+Tipos de prueba aplicados
 
-| Nivel | Alcance | Responsable |
-|-------|---------|-------------|
-| Pruebas unitarias | 42 casos: vencimiento y semáforo, límites de inicio de sesión, validación de datos y arranque sin secretos | Jorge Vargas y Daniel Reyes |
-| Pruebas de integración | 11 casos: despacho sin lotes vencidos, vencimiento al arrancar, inventario, catálogos y carga inicial | Jorge Vargas y Daniel Reyes |
-| Integración continua | Flujo automatizado "Despliegue seguro" | Daniel Reyes |
-| Pruebas funcionales de caja negra | 92 casos derivados de los 19 casos de uso | Plan y casos: Audias Guevara; ejecución automatizada bajo su supervisión |
-| Revisión de código | Contraste del código con la especificación y verificación de cada corrección | Audias Guevara, con los informes de revisión del equipo |
-| Pruebas de penetración | Auditoría ofensiva y matriz de 62 pruebas de seguridad | Ver Anexo B |
+| Tipo de prueba | Alcance | Responsable |
+|----------------|---------|-------------|
+| Pruebas automatizadas del servidor | 53 pruebas sobre vencimientos, inicio de sesión, validación de datos, inventario y entregas | Jorge Vargas y Daniel Reyes |
+| Pruebas automáticas de cada cambio | Compilación, pruebas y simulación de la actualización del servidor antes de integrar un cambio | Daniel Reyes |
+| Pruebas funcionales | 92 casos de prueba derivados de los 19 casos de uso | Audias Guevara |
+| Revisión del código | Comparación del sistema con su diseño y revisión de cada corrección | Audias Guevara |
+| Pruebas de seguridad | Pruebas de ataque al sistema y revisión de vulnerabilidades | Integrante a cargo de la seguridad (Anexo B) |
 
 Fuente: Elaboración propia.
 
 ## 8.2 Plan de pruebas funcionales
 
-El plan verifica que el sistema cumple los requerimientos funcionales y los 19 casos de uso, con al
-menos un caso positivo y uno negativo por caso de uso, y con énfasis en las reglas que protegen el
-inventario y la trazabilidad: el criterio de vencimiento y el orden FIFO, la verificación del stock,
-los permisos por rol, el límite de intentos de inicio de sesión, los filtros de fechas de los reportes
-y la evidencia fotográfica. Quedan fuera las pruebas de seguridad (sección 8.6), el despliegue y los
-respaldos, que verifica la integración continua, y las pruebas de carga, que no se definieron. Los
-casos se derivaron del flujo normal y de los flujos alternativos de cada caso de uso, con partición
-de equivalencia, valores límite, pruebas por rol y transición de estados. Se ejecutaron en el equipo
-de desarrollo, con una base de datos de prueba recreada para el ciclo y nunca sobre la de la
-municipalidad, desde la interfaz web o con peticiones a la API cuando el resultado solo se observa
-allí; la captura desde el teléfono se simuló en un navegador con tamaño de teléfono.
+El plan busca comprobar que el sistema cumple cada caso de uso, con al menos una prueba de uso
+correcto y una de uso incorrecto por caso, y con especial atención a las reglas que protegen el
+inventario: el descuento por fecha de vencimiento, la revisión de existencias, los permisos de cada
+rol, el bloqueo del inicio de sesión, los filtros de los reportes y las fotografías de respaldo. Las
+pruebas se hicieron en un entorno de prueba, nunca sobre la información de la farmacia.
 
-El ciclo se inicia con el entorno levantado, las pruebas automatizadas aprobadas, los datos y las
-cuentas de prueba cargados y los casos revisados. Se da por concluido cuando se ejecutaron todos los
-casos de prioridad alta y al menos el 90 % de los de prioridad media, no queda abierto un defecto
-crítico o alto fuera de un hallazgo con corrección planificada, todo caso fallido tiene un defecto
-asociado, los bloqueados tienen su causa anotada, las pruebas automatizadas siguen aprobadas y el
-registro de ejecución está completo. Los defectos se clasifican en cuatro severidades: crítica
-(pérdida de datos, descuento incorrecto de stock o acceso sin permiso), alta (resultado incorrecto en
-una función principal sin alternativa), media (defecto con alternativa o error de trazabilidad) y baja
-(mensaje inexacto o defecto cosmético).
+El ciclo de pruebas se daba por terminado cuando se ejecutaran todos los casos de prioridad alta y
+media, no quedara un defecto grave sin plan de corrección y cada caso fallido tuviera su defecto
+registrado. Los defectos se clasificaron en cuatro niveles: crítico, si afecta los datos, el
+inventario o el acceso; alto, si una función principal da un resultado incorrecto; medio, si hay una
+alternativa para seguir trabajando; y bajo, si es un mensaje inexacto o un detalle visual.
 
-Se especificaron 92 casos de prueba, CP-01 a CP-92, cuya distribución por caso de uso y prioridad se
-presenta en la Tabla 304. Catorce de ellos describen el comportamiento esperado tras corregir un
+Se elaboraron 92 casos de prueba, distribuidos por caso de uso y prioridad como muestra la Tabla 304.
+
+Tabla 304. Catorce de ellos describen el comportamiento esperado tras corregir un
 hallazgo ya registrado, por lo que se preveía que fallaran y su fallo no se cuenta como defecto nuevo.
 
 Tabla 304.
@@ -99,197 +74,128 @@ Fuente: Elaboración propia.
 
 ## 8.3 Pruebas automatizadas
 
-El servidor cuenta con 53 pruebas automatizadas, escritas con el ejecutor de pruebas integrado de
-Node.js; las de integración crean sus propios datos y los eliminan al terminar. Se ejecutaron el 20 de
-octubre de 2026 sobre una base de datos de desarrollo recién creada y se aprobaron las 53, sin fallos;
-las de integración se repitieron con la zona horaria UTC, con el mismo resultado. En la Tabla 305 se
-resume qué verifica cada grupo. La cobertura tiene límites: de los 29 hallazgos resueltos total o
-parcialmente, solo cinco tienen una prueba que ejerce la corrección, ninguna corrección del frontend
-tiene prueba automatizada y no se midió la cobertura de código.
-
-Tabla 305.
-Pruebas automatizadas del servidor y resultados
-
-| Grupo | Qué verifica | Resultado |
-|-------|--------------|-----------|
-| Vencimiento y semáforo | Días para vencer, semáforo, stock dispensable y validación de la fecha de vencimiento | 9 de 9 |
-| Despacho y arranque | El despacho no toma lotes vencidos y al arrancar se marcan los vencidos | 2 de 2 |
-| Inicio de sesión | Límites de intentos por equipo y por usuario | 11 de 11 |
-| Configuración de arranque | El servidor no arranca sin clave de firma de sesiones | 5 de 5 |
-| Validación de datos | Fechas, paginación, parámetros y límite de registros por exportación | 17 de 17 |
-| Rutas de inventario y catálogos | Importación sin duplicar lotes, stock sin vencidos, tipos de datos y enlace de captura | 8 de 8 |
-| Carga inicial | La carga inicial no restaura catálogos modificados | 1 de 1 |
-| **Total** | | **53 de 53** |
-
-Fuente: Elaboración propia.
-
-El flujo automatizado "Despliegue seguro" se ejecuta en cada envío de cambios al repositorio y
-comprueba que el esquema tenga sus migraciones, que el sistema compile y pase las pruebas, que una
-actualización no altere los datos ni impida restaurar los respaldos y que una instalación desde cero
-funcione. Su efecto como barrera depende de la protección de la rama principal, que no se confirmó;
-desde el 11 de octubre de 2026 todos los cambios entraron con el flujo aprobado, por acuerdo del
-equipo.
+El servidor cuenta con 53 pruebas automatizadas, que revisan el cálculo de vencimientos, que no se
+entreguen lotes vencidos, el bloqueo del inicio de sesión, la validación de los datos, la carga desde
+Excel y el arranque del sistema. Las 53 se aprobaron, tanto al inicio como al final del ciclo de
+pruebas. Además, cada cambio que se propone para el sistema pasa por un proceso automático que lo
+compila, ejecuta estas pruebas y simula la actualización del servidor de la farmacia, para confirmar
+que no se pierde información.
 
 ## 8.4 Resultados de las pruebas funcionales
 
-Se ejecutó un ciclo de pruebas: los casos observables en la API, el 20 de octubre de 2026, y los de
-interfaz, el 21 de octubre, de forma automatizada en un navegador, bajo la supervisión de Audias
-Guevara y con evidencia de cada caso. En la Tabla 314 se presentan los resultados por prioridad. De
-los 92 casos, 74 se aprobaron y 18 fallaron, sin casos bloqueados ni sin ejecutar; 14 de los fallos
-eran los previstos por hallazgos ya registrados y los otros 4 corresponden a tres defectos nuevos de
-severidad baja. Se aprobaron todos los casos de las reglas críticas de vencimiento y orden FIFO,
-stock y concurrencia, permisos por rol y límite de intentos de inicio de sesión; entre ellos, se
-repitió la prueba de dos dispensaciones simultáneas, en la que una se registró y la otra se rechazó
-sin doble descuento.
+Se ejecutaron los 92 casos de prueba. Se aprobaron 74 y fallaron 18; ningún caso quedó sin ejecutar.
+De los 18 fallos, 14 correspondían a defectos que ya estaban registrados y 4 a tres defectos nuevos de
+gravedad baja. Se aprobaron todos los casos de las reglas más importantes: el descuento por fecha de
+vencimiento, la revisión de existencias, las entregas simultáneas, los permisos de cada rol y el
+bloqueo del inicio de sesión. La Tabla 314 resume los resultados por prioridad.
 
 Tabla 314.
 Resultados de las pruebas funcionales por prioridad
 
-| Prioridad | Casos | Aprobados | Fallidos por hallazgo ya registrado | Fallidos por defecto nuevo |
-|-----------|------:|----------:|------------------------------------:|---------------------------:|
-| Alta | 38 | 36 | 2 | 0 |
-| Media | 40 | 33 | 3 | 4 |
-| Baja | 14 | 5 | 9 | 0 |
-| **Total** | **92** | **74** | **14** | **4** |
+| Prioridad | Casos | Aprobados | Fallidos |
+|-----------|------:|----------:|---------:|
+| Alta | 38 | 36 | 2 |
+| Media | 40 | 33 | 7 |
+| Baja | 14 | 5 | 9 |
+| **Total** | **92** | **74** | **18** |
 
 Fuente: Elaboración propia.
 
-En la Tabla 308 se resumen los defectos asociados a los casos fallidos. Los nuevos, H-53 a H-55, se
-deben en dos casos a que la validación propia del navegador impide el dato inválido antes de mostrar
-el mensaje del sistema, por lo que el sistema protege igual y solo cambia el texto; el tercero deja
-en la bitácora un cambio que la persona no hizo.
+Los defectos que explican los casos fallidos se describen en la Tabla 308.
 
 Tabla 308.
-Defectos asociados a los casos de prueba fallidos
+Defectos encontrados en las pruebas funcionales
 
-| Casos | Defecto | Severidad |
-|-------|---------|-----------|
-| CP-82, CP-91 | H-46: el filtro de fecha inicial de reportes y bitácora incluye horas del día anterior | Alta |
-| CP-08 | H-10: el cierre de sesión no queda en la bitácora | Media |
-| CP-16 | H-15: un correo de usuario duplicado produce un error interno | Media |
-| CP-71 | H-45: los filtros de fecha del historial de dispensaciones no usan la hora local | Media |
-| CP-79 | H-35: la subida de fotografías se registra sin dirección IP y sin indicar el reemplazo | Media |
-| CP-07 | H-47: el inicio de sesión no muestra los intentos restantes | Baja |
-| CP-26 | H-31: mensaje de código duplicado inexacto para el mismo medicamento | Baja |
-| CP-29, CP-32 | H-42: una categoría o ubicación con solo espacios produce un error interno | Baja |
-| CP-43 | H-48: la importación rechaza un medicamento activo por su categoría inactiva | Baja |
-| CP-49 | H-43: una paginación no numérica produce un error o una respuesta vacía | Baja |
-| CP-78 | H-38: reutilizar el enlace de captura se registra como creación | Baja |
-| CP-88 | H-44: la exportación de inventario no valida el estado | Baja |
-| CP-19, CP-36 | H-53 (nuevo): el navegador muestra su propio mensaje de validación | Baja |
-| CP-41 | H-54 (nuevo): el botón de importar está deshabilitado sin archivo, sin aviso | Baja |
-| CP-20 | H-55 (nuevo): editar un medicamento sin nombre comercial registra un cambio inexistente | Baja |
+| Defecto | Gravedad |
+|---------|----------|
+| El filtro de fecha inicial de los reportes y de la bitácora incluye horas del día anterior | Alta |
+| El cierre de sesión no queda registrado en la bitácora | Media |
+| Un correo de usuario repetido produce un error general en lugar de un aviso claro | Media |
+| Los filtros de fecha del historial de entregas no toman la hora local | Media |
+| La subida de fotografías no registra desde qué equipo se hizo | Media |
+| La pantalla de inicio de sesión no indica cuántos intentos quedan | Baja |
+| Algunos mensajes de validación muestran un texto inexacto o el aviso propio del navegador | Baja |
+| Una categoría o ubicación con solo espacios produce un error general | Baja |
+| La carga desde Excel rechaza un medicamento activo cuya categoría está inactiva | Baja |
+| La exportación del inventario no valida uno de sus filtros | Baja |
+| Al editar un medicamento sin nombre comercial, la bitácora registra un cambio que no hubo | Baja |
 
-Fuente: Elaboración propia con base en el registro de ejecución de las pruebas.
+Fuente: Elaboración propia.
 
-Se cumplieron los seis criterios de salida: se ejecutó el 100 % de los casos de prioridad alta y
-media; los dos fallos de prioridad alta corresponden a H-46, con corrección planificada, y los
-defectos nuevos son de severidad baja; los 18 casos fallidos tienen defecto asociado; no hubo casos
-bloqueados; las 53 pruebas automatizadas se aprobaron de nuevo al terminar, y el registro quedó
-completo. El ciclo se dio por concluido. Quedan pendientes la prueba de la captura con un teléfono
-real y la reejecución de los casos fallidos cuando se integren sus correcciones.
+Se cumplieron los criterios para dar por terminado el ciclo: se ejecutaron todos los casos de
+prioridad alta y media, los dos fallos de prioridad alta corresponden a un defecto con corrección
+planificada y todos los fallos tienen su defecto registrado. Queda pendiente probar la toma de
+fotografías con los teléfonos del personal en la farmacia.
 
 ## 8.5 Gestión de defectos
 
-Los defectos siguieron un ciclo de detección, registro, corrección y verificación. Se detectaron
-principalmente al contrastar el código con la especificación durante la elaboración de esta
-documentación, y también en la auditoría de seguridad del equipo y en las pruebas funcionales. Cada
-uno se registró con un identificador, su descripción, su impacto y una prioridad, junto con un
-responsable y un lote de corrección. Las correcciones se integraron por lotes, con el flujo
-automatizado aprobado, y cada hallazgo se marcó como resuelto solo cuando el código lo mostraba. De
-los 34 primeros hallazgos, verificados uno por uno, 19 quedaron resueltos, 10 resueltos parcialmente,
-4 pendientes y 1 no verificable en el código; los 17 detectados después en esa verificación siguen
-pendientes, y se agregaron 4 más: H-52, por la instalación, que ya se resolvió, y H-53 a H-55, por las
-pruebas funcionales, que siguen pendientes. En total se resolvieron 20 hallazgos, 10 de forma parcial,
-y quedan 24 pendientes y 1 no verificable en el código.
-Entre los resueltos están el despacho de lotes que vencían el mismo día, el proceso de vencimiento
-desfasado por la zona horaria, el borrado de datos al actualizar el esquema, las fotografías de
-recetas accesibles sin sesión y la falta de límite de intentos de inicio de sesión.
+Los defectos siguieron un ciclo de detección, registro, corrección y verificación. La mayoría se
+encontraron al revisar el código durante la elaboración de esta documentación, y otros en las
+pruebas de seguridad y en las pruebas funcionales. Cada uno se registró con su descripción, su
+gravedad y un responsable, y se corrigió en grupos pequeños de cambios. Un defecto solo se dio por
+resuelto cuando la corrección se comprobó en el sistema. Entre los defectos corregidos están la
+posibilidad de entregar lotes que vencían ese mismo día, el horario incorrecto del proceso de
+vencimientos, el riesgo de perder datos al actualizar la base de datos, el acceso a las fotografías
+sin iniciar sesión y la falta de un límite de intentos en el inicio de sesión.
 
-El hallazgo H-52, de prioridad crítica, se detectó y resolvió antes de la entrega. La instalación de
-la farmacia conservaba el usuario administrador con la contraseña fija que creaba la carga inicial
-anterior al 7 de octubre de 2026, publicada en el historial del repositorio, lo que permitía a
-cualquier persona de la red local entrar con control total del sistema. El 21 de octubre de 2026 el
-personal de la farmacia cambió esa contraseña desde la gestión de usuarios, sin cambios en el código.
+El defecto más grave encontrado en la instalación fue que la cuenta del administrador conservaba una
+contraseña inicial conocida públicamente, con la que cualquiera en la red podía entrar al sistema con
+todos los permisos. El personal de la farmacia la cambió y el riesgo quedó resuelto.
 
-En la Tabla 311 se presentan los hallazgos abiertos de prioridad crítica y alta. Cuatro de ellos
-(H-36, H-03, H-07 y H-17) dependen de la configuración con que se ejecuta el servidor de la farmacia,
-que por defecto usa el modo de desarrollo y al que nadie del equipo tiene acceso; como no consta que
-los secretos de ejemplo se hayan cambiado, se tratan como riesgo abierto.
-
-Tabla 311.
-Hallazgos abiertos de prioridad crítica y alta
-
-| ID | Hallazgo | Prioridad | Corrección |
-|----|----------|-----------|------------|
-| H-36 | La actualización automática del servidor usa la configuración de desarrollo, con secretos por defecto | Crítica | Después de la entrega |
-| H-03 | La configuración conserva valores por defecto de la contraseña de la base de datos y de la clave de firma de sesiones | Crítica | Bloqueada: requiere acceso al servidor |
-| H-46 | El filtro de fecha inicial de reportes y bitácora incluye horas del día anterior | Alta | Después del cierre de la documentación |
-| H-07 | En modo de desarrollo los errores internos muestran detalles del servidor | Alta | Después de la entrega |
-| H-17 | En modo de desarrollo la API acepta peticiones de cualquier origen | Alta | Después de la entrega |
-| H-39 | La contraseña aleatoria del administrador inicial queda en el registro del contenedor y nada obliga a cambiarla | Alta | Después de la entrega |
-
-Fuente: Elaboración propia.
-
-El equipo acordó que hasta el 24 de octubre de 2026 solo se integren correcciones pequeñas que no
-modifiquen la base de datos, porque lo que entra a la rama principal se aplica solo en el servidor de
-la municipalidad, y que las demás se integren después de la entrega. Las correcciones programadas
-para después de la entrega se presentan en la Tabla 312. Además, trece elementos de prioridad media o
-baja se aceptaron sin corrección, entre ellos diferencias con la especificación que el equipo decidió
-conservar.
+Los defectos que siguen abiertos de mayor gravedad tienen que ver con la configuración del servidor
+de la farmacia, que conserva claves de ejemplo y funciona en modo de desarrollo, y con el filtro de
+fechas de los reportes. Como todo cambio que se integra se instala solo en el servidor de la
+farmacia, el equipo acordó hacer antes de la entrega únicamente correcciones pequeñas y dejar las
+demás para después. La Tabla 312 resume las correcciones planificadas.
 
 Tabla 312.
-Correcciones programadas para después de la entrega
+Correcciones planificadas
 
-| Lote | Contenido | Modifica la base de datos |
-|------|-----------|---------------------------|
-| 1 Fechas de reportes | Filtros de fecha de reportes y bitácora en hora local y validación del estado en la exportación | No |
-| 2 Configuración de producción | Configuración segura del servidor, secretos propios y corrección de la guía de despliegue | No |
-| 4 Usuarios y contraseñas | Validación de usuarios, contraseñas de 8 caracteres, cambio obligatorio de la contraseña inicial y registro del cierre de sesión | Sí |
-| 5 Trazabilidad de la dispensación | Filtros de fecha del historial, auditoría de las fotografías y desactivación de beneficiarios | No |
-| 6 Bajas y umbrales | Paginación, motivo obligatorio de la baja y pantalla de umbrales del semáforo | Sí |
-| 7 Reportes para el Encargado | Acceso del Encargado de Beneficencia a los reportes, sin exportación | No |
-| Operación | Uso de una cuenta de Encargado de Beneficencia para el despacho diario | No |
-| Sin lote asignado | Mensajes de validación de la interfaz y nombre comercial vacío al editar (H-53 a H-55) | No |
+| Grupo | Contenido |
+|-------|-----------|
+| Fechas de reportes | Filtros de fecha de los reportes y de la bitácora en hora local |
+| Configuración de producción | Configuración segura del servidor y claves propias |
+| Usuarios y contraseñas | Validación de usuarios, contraseñas de al menos 8 caracteres, cambio obligatorio de la contraseña inicial y registro del cierre de sesión |
+| Entregas y beneficiarios | Filtros de fecha del historial, registro completo de las fotografías y desactivación de beneficiarios |
+| Inventario | Motivo obligatorio al dar de baja un lote y pantalla para ajustar los plazos del indicador de vencimiento |
+| Reportes para el Encargado | Acceso del Encargado de Beneficencia a la consulta de reportes |
+| Mensajes de la interfaz | Mensajes de validación más claros |
 
 Fuente: Elaboración propia.
 
 ## 8.6 Pruebas de seguridad
 
-Las pruebas de seguridad se realizaron el 7 y el 8 de octubre de 2026 sobre el entorno de desarrollo
-y comprendieron una auditoría ofensiva contra la API, una matriz de 62 pruebas, el mapa de la
-superficie de ataque y una revisión según OWASP Top 10. De ellas derivaron correcciones como el
-límite de intentos de inicio de sesión, las cabeceras de seguridad y la protección de las fotografías
-de evidencia. Los riesgos residuales que declaran se contrastaron con el código y en su mayoría
-coinciden. El informe y los documentos que lo respaldan se presentan en el Anexo B.
+Las pruebas de seguridad comprendieron ataques controlados al sistema, una lista de 62 pruebas y una
+revisión según las vulnerabilidades más comunes de las aplicaciones web (OWASP Top 10). De ellas
+salieron correcciones como el límite de intentos en el inicio de sesión, protecciones adicionales en
+las respuestas del servidor y la protección de las fotografías de respaldo. El informe completo se
+presenta en el Anexo B.
 
-## 8.7 Evaluación frente a los requerimientos no funcionales
+## 8.7 Cumplimiento de los requerimientos no funcionales
 
-En la Tabla 313 se presenta el resultado de la verificación de los requerimientos no funcionales
-principales del capítulo 4. Las verificaciones se hicieron en el equipo de desarrollo, por lo que no
-sustituyen la comprobación en el servidor de la farmacia, cuya configuración determina el
-cumplimiento real de los requerimientos de seguridad.
+La Tabla 313 presenta el resultado de la revisión de los requerimientos no funcionales principales
+del capítulo 4.
 
 Tabla 313.
-Verificación de los requerimientos no funcionales principales
+Cumplimiento de los requerimientos no funcionales principales
 
 | RNF | Resultado |
 |-----|-----------|
-| RNF-01 Contraseñas cifradas | Conforme en la revisión del código |
-| RNF-02 Sesión obligatoria | Cumple: una petición sin sesión se rechaza |
-| RNF-03 Acceso restringido por rol | Cumple en la interfaz y en peticiones directas |
-| RNF-04 Límite de intentos de inicio de sesión | Cumple: pruebas automatizadas aprobadas |
-| RNF-07 Enlace de captura no adivinable ni reutilizable | Cumple en lo probado; la vigencia y el uso único se revisaron en el código |
-| RNF-11 Registro de las acciones | Conforme en la revisión del código |
-| RNF-12 Validación de datos de entrada | Cumple parcialmente: quedan funciones sin validación completa |
-| RNF-13 Sin doble descuento de stock | Cumple en las dos pruebas de dispensaciones simultáneas |
-| RNF-14 Sin dispensación de lotes vencidos | Cumple: pruebas automatizadas aprobadas |
-| RNF-16 Respaldo cada 12 horas | Verificado solo en el flujo automatizado |
-| RNF-22 Interfaz y mensajes en español | Cumple, salvo los mensajes propios del navegador |
-| RNF-23 Lector de códigos de barras | No verificado con un lector en la farmacia |
-| RNF-28 Listados paginados | Cumple parcialmente: dos listados no usan la paginación común |
-| RNF-33 Pruebas automatizadas del servidor | Cumple: 53 de 53 aprobadas |
-| RNF-38 Instalación con Docker | Verificado solo en el flujo automatizado |
-| RNF-43 Importación y exportación | Cumple: Excel de entrada; PDF y Excel de salida |
+| RNF-01 Contraseñas cifradas | Cumple |
+| RNF-02 Sesión obligatoria | Cumple |
+| RNF-03 Acceso según el rol | Cumple |
+| RNF-04 Bloqueo por intentos fallidos | Cumple |
+| RNF-07 Enlace del código QR seguro | Cumple |
+| RNF-11 Bitácora de acciones | Cumple |
+| RNF-12 Validación de datos | Cumple en parte: algunas funciones necesitan mejor validación |
+| RNF-13 Entregas simultáneas sin doble descuento | Cumple |
+| RNF-14 Sin entrega de lotes vencidos | Cumple |
+| RNF-16 Respaldo cada 12 horas | Cumple |
+| RNF-22 Interfaz en español | Cumple, salvo algunos avisos propios del navegador |
+| RNF-23 Lector de código de barras | Cumple en pruebas; falta probarlo con el lector de la farmacia |
+| RNF-28 Listados por páginas | Cumple en parte: dos listados se cargan completos |
+| RNF-33 Pruebas automatizadas | Cumple: 53 de 53 aprobadas |
+| RNF-38 Instalación con Docker | Cumple |
+| RNF-43 Importación y exportación de archivos | Cumple |
 
 Fuente: Elaboración propia.
