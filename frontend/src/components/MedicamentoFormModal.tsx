@@ -5,6 +5,7 @@ import {
   crearMedicamento,
   editarMedicamento,
   buscarPorCodigoBarras,
+  agregarCodigoBarras,
   lookupFda,
   subirImagenMedicamento,
   type MedicamentoInput,
@@ -13,6 +14,9 @@ import type { MedicamentoCatalogo, CategoriaRef } from '../types';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
 import { Field, TextInput, Select } from './ui/Field';
+
+// Campos que OpenFDA puede rellenar al escanear.
+const CAMPOS_FDA = ['nombreGenerico', 'nombreComercial', 'presentacion', 'concentracion', 'unidadMedida'] as const;
 
 const formVacio: MedicamentoInput = {
   nombreGenerico: '',
@@ -48,9 +52,17 @@ export default function MedicamentoFormModal({ open, medicamento, categorias, on
   const [fdaSugerido, setFdaSugerido] = useState(false);
   const [imagenSubiendo, setImagenSubiendo] = useState(false);
   const scanNuevoRef = useRef<HTMLInputElement>(null);
+  // Número del último escaneo: una consulta lenta no debe pisar a un escaneo posterior.
+  const scanSeq = useRef(0);
+  // Valores exactos que puso OpenFDA, para vaciar al escanear de nuevo solo lo que la encargada no tocó.
+  const fdaPuso = useRef<Partial<Record<(typeof CAMPOS_FDA)[number], string>>>({});
 
   // Reinicia el formulario cada vez que se abre o cambia el medicamento objetivo.
   useEffect(() => {
+    // También al cerrar: invalida cualquier consulta de escaneo que siga en vuelo.
+    scanSeq.current++;
+    fdaPuso.current = {};
+    setScanLoading(false);
     if (!open) return;
     setCurrent(medicamento);
     setDuplicados(null);
@@ -73,42 +85,77 @@ export default function MedicamentoFormModal({ open, medicamento, categorias, on
   const escanearParaNuevo = async (codigo: string) => {
     const val = codigo.trim();
     if (!val) return;
+    const seq = ++scanSeq.current;
+    const vigente = () => seq === scanSeq.current;
     setScanLoading(true);
+    // Un escaneo nuevo descarta lo que sugirió el anterior, salvo lo que la encargada ya cambió a mano.
+    const anteriores = fdaPuso.current;
+    fdaPuso.current = {};
+    setForm((f) => {
+      const n = { ...f };
+      for (const k of CAMPOS_FDA) if (anteriores[k] !== undefined && n[k] === anteriores[k]) n[k] = '';
+      return n;
+    });
     setFdaSugerido(false);
     try {
-      let existeLocal = false;
+      let yaRegistrado: string | null = null;
       try {
         const local = await buscarPorCodigoBarras(val);
-        if (local?.id) {
-          existeLocal = true;
-          toast.error(`Este medicamento ya está registrado: ${local.nombreGenerico}`);
-        }
+        if (local?.id) yaRegistrado = local.nombreGenerico;
       } catch {
         // No existe localmente: seguir a la consulta de OpenFDA.
       }
-      if (existeLocal) return;
+      if (!vigente()) return;
+      if (yaRegistrado) {
+        // Solo aquí se vacía: el código ya pertenece a otro medicamento.
+        toast.error(`Este medicamento ya está registrado: ${yaRegistrado}`);
+        if (scanNuevoRef.current) scanNuevoRef.current.value = '';
+        return;
+      }
 
       const fda = await lookupFda(val);
+      if (!vigente()) return;
       if (fda.found) {
-        setForm((f) => ({
-          ...f,
-          nombreGenerico: fda.nombreGenerico || f.nombreGenerico,
-          nombreComercial: fda.nombreComercial || f.nombreComercial,
-          presentacion: fda.presentacion || f.presentacion,
-          concentracion: fda.concentracion || f.concentracion,
-          unidadMedida: fda.unidadMedida || f.unidadMedida,
-        }));
+        const puestos: typeof fdaPuso.current = {};
+        for (const k of CAMPOS_FDA) if (fda[k]) puestos[k] = fda[k]!;
+        fdaPuso.current = puestos;
+        setForm((f) => ({ ...f, ...puestos }));
         setFdaSugerido(true);
         toast.success('Datos sugeridos por OpenFDA — verifique antes de guardar');
       } else {
         toast('No se encontraron datos en OpenFDA para este código. Complete el formulario manualmente.');
       }
     } catch {
-      toast.error('No se pudo consultar OpenFDA');
+      if (vigente()) toast.error('No se pudo consultar OpenFDA');
     } finally {
-      setScanLoading(false);
-      if (scanNuevoRef.current) scanNuevoRef.current.value = '';
+      if (vigente()) setScanLoading(false);
     }
+  };
+
+  // Asocia al medicamento recién creado el código que haya en el campo de escaneo
+  // (escaneado o escrito a mano). Devuelve false si no se pudo guardar.
+  const vincularCodigo = async (medicamentoId: string): Promise<boolean> => {
+    const codigo = scanNuevoRef.current?.value.trim();
+    if (!codigo) return true;
+    try {
+      await agregarCodigoBarras(medicamentoId, { codigo });
+      return true;
+    } catch (err: any) {
+      const ayuda = 'Agréguelo desde Catálogos → Medicamentos → Códigos de barras.';
+      toast.error(
+        err.response?.status === 409
+          ? `Medicamento creado, pero el código de barras ${codigo} ya pertenece a otro medicamento. ${ayuda}`
+          : `Medicamento creado, pero el código de barras ${codigo} no se guardó. ${ayuda}`
+      );
+      return false;
+    }
+  };
+
+  const alCrear = async (creado: MedicamentoCatalogo) => {
+    if (await vincularCodigo(creado.id)) toast.success('Medicamento creado');
+    setDuplicados(null);
+    onSaved(creado);
+    onClose();
   };
 
   const subirFoto = async (file: File) => {
@@ -141,10 +188,7 @@ export default function MedicamentoFormModal({ open, medicamento, categorias, on
         if (res.advertencia) {
           setDuplicados({ mensaje: res.mensaje, similares: res.similares });
         } else {
-          toast.success('Medicamento creado');
-          setDuplicados(null);
-          onSaved(res.data);
-          onClose();
+          await alCrear(res.data);
         }
       }
     } catch (err: any) {
@@ -158,12 +202,7 @@ export default function MedicamentoFormModal({ open, medicamento, categorias, on
     setSaving(true);
     try {
       const res = await crearMedicamento({ ...form, forzarCreacion: true });
-      if (!res.advertencia) {
-        toast.success('Medicamento creado');
-        setDuplicados(null);
-        onSaved(res.data);
-        onClose();
-      }
+      if (!res.advertencia) await alCrear(res.data);
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'No se pudo guardar el medicamento');
     } finally {
@@ -211,17 +250,22 @@ export default function MedicamentoFormModal({ open, medicamento, categorias, on
               </label>
               <input
                 ref={scanNuevoRef}
+                // El código ya no se borra tras escanear. Se selecciona al dar Enter (y al volver al
+                // campo, por foco o por clic) para que el siguiente escaneo lo reemplace, sin importar cuánto tarde OpenFDA.
+                onFocus={(e) => e.currentTarget.select()}
+                onClick={(e) => e.currentTarget.select()}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
+                    e.currentTarget.select();
                     escanearParaNuevo(e.currentTarget.value);
                   }
                 }}
-                disabled={scanLoading}
-                className="w-full rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm font-mono outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
-                placeholder={scanLoading ? 'Consultando...' : 'Escanee o escriba el código y presione Enter'}
+                className="w-full rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm font-mono outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500"
+                placeholder="Escanee o escriba el código y presione Enter"
                 autoComplete="off"
               />
+              {scanLoading && <p className="mt-1 text-xs font-medium text-blue-800">Consultando...</p>}
               <p className="mt-1 text-xs text-blue-700">
                 Se busca primero en el sistema; si no existe, se consulta OpenFDA para auto-completar el formulario.
               </p>
