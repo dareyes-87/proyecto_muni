@@ -289,7 +289,7 @@ export default function Entradas() {
                   </div>
                   <div className="sm:col-span-1">
                     <label className="mb-1 block text-xs text-gray-500">Cant.</label>
-                    <input type="number" min={1} value={l.cantidad} onChange={(e) => setLote(i, 'cantidad', e.target.value)} className={inputClass} />
+                    <TextInput type="number" min={1} value={l.cantidad} onChange={(e) => setLote(i, 'cantidad', e.target.value)} />
                   </div>
                   <div className="sm:col-span-2">
                     <label className="mb-1 block text-xs text-gray-500">Vence</label>
@@ -307,7 +307,7 @@ export default function Entradas() {
                   <div className="flex items-center gap-2 sm:col-span-2">
                     <div className="flex-1">
                       <label className="mb-1 block text-xs text-gray-500">Costo unit.</label>
-                      <input type="number" step="0.01" min={0} value={l.costoUnitario} onChange={(e) => setLote(i, 'costoUnitario', e.target.value)} className={inputClass} placeholder="Opcional" />
+                      <TextInput type="number" step="0.01" min={0} value={l.costoUnitario} onChange={(e) => setLote(i, 'costoUnitario', e.target.value)} placeholder="Opcional" />
                     </div>
                     {lotes.length > 1 && (
                       <button type="button" onClick={() => quitarLote(i)} className="mb-0.5 rounded-md p-2 text-red-500 hover:bg-red-50">

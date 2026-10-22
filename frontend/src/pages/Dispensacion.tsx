@@ -210,13 +210,16 @@ function EstadoFoto({ subida, etiqueta }: { subida: boolean; etiqueta: string })
 // puede borrar el campo y escribir otro valor sin que reaparezca un "1". El
 // carrito solo recibe valores válidos (el tope de 1..stock lo sigue aplicando
 // actualizarCantidad); al salir del campo se muestra el valor vigente.
+// Teclado: ↑ +1, ↓ −1, Mayús+↑/↓ ±10, dentro de 1..maximo (mantener la tecla repite).
 
 function InputCantidad({
   valor,
+  maximo,
   onCambiar,
   onEnter,
 }: {
   valor: number;
+  maximo: number;
   onCambiar: (cantidad: number) => void;
   onEnter: () => void;
 }) {
@@ -246,8 +249,19 @@ function InputCantidad({
         if (e.key === 'Enter') {
           e.preventDefault();
           onEnter();
+        } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+          e.preventDefault(); // sin esto el cursor salta al inicio/fin del campo
+          const base = texto !== null ? parseInt(texto, 10) || valor : valor;
+          const paso = (e.shiftKey ? 10 : 1) * (e.key === 'ArrowUp' ? 1 : -1);
+          setTexto(null);
+          onCambiar(Math.max(1, Math.min(base + paso, maximo)));
         }
       }}
+      role="spinbutton"
+      aria-label="Cantidad"
+      aria-valuemin={1}
+      aria-valuemax={maximo}
+      aria-valuenow={valor}
       className="w-14 text-center border border-gray-300 rounded py-1 text-sm"
     />
   );
@@ -947,25 +961,12 @@ export default function Dispensacion() {
                       </p>
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <button
-                          onClick={() => actualizarCantidad(item.medicamento.id, item.cantidad - 1)}
-                          className="w-7 h-7 rounded border border-gray-300 hover:bg-gray-100 text-gray-600 text-lg leading-none"
-                        >
-                          −
-                        </button>
-                        <InputCantidad
-                          valor={item.cantidad}
-                          onCambiar={(c) => actualizarCantidad(item.medicamento.id, c)}
-                          onEnter={() => barcodeInputRef.current?.focus()}
-                        />
-                        <button
-                          onClick={() => actualizarCantidad(item.medicamento.id, item.cantidad + 1)}
-                          className="w-7 h-7 rounded border border-gray-300 hover:bg-gray-100 text-gray-600 text-lg leading-none"
-                        >
-                          +
-                        </button>
-                      </div>
+                      <InputCantidad
+                        valor={item.cantidad}
+                        maximo={item.stock.stockTotal}
+                        onCambiar={(c) => actualizarCantidad(item.medicamento.id, c)}
+                        onEnter={() => barcodeInputRef.current?.focus()}
+                      />
                     </td>
                     <td className="px-4 py-3 text-center text-gray-600">
                       {item.stock.stockTotal}
@@ -985,6 +986,9 @@ export default function Dispensacion() {
                 ))}
               </tbody>
             </table>
+            <p className="border-t border-gray-100 bg-gray-50 px-4 py-2 text-xs text-gray-500">
+              En la cantidad: las flechas ↑ ↓ suman o restan 1; con Mayús, 10.
+            </p>
           </div>
         )}
       </div>
