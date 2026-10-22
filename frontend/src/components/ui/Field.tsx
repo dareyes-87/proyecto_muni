@@ -33,9 +33,25 @@ export function Field({ label, htmlFor, hint, required, children }: FieldProps) 
   );
 }
 
-/** Input de texto con el estilo del sistema ya aplicado. */
+/** Oculta las flechitas nativas de <input type="number"> (Chromium y Firefox). */
+const sinFlechitas =
+  '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
+
+/** Input de texto con el estilo del sistema ya aplicado. En type="number" sin flechitas nativas
+ *  y la rueda del ratón no cambia el valor: en Chromium cambiaba el campo enfocado al desplazar
+ *  la página, así que la rueda hace que el campo suelte el foco. */
 export const TextInput = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
-  ({ className, ...rest }, ref) => <input ref={ref} className={cn(inputClass, className)} {...rest} />
+  ({ className, onWheel, ...rest }, ref) => {
+    const numerico = rest.type === 'number';
+    return (
+      <input
+        ref={ref}
+        className={cn(inputClass, numerico && sinFlechitas, className)}
+        onWheel={numerico ? (e) => { e.currentTarget.blur(); onWheel?.(e); } : onWheel}
+        {...rest}
+      />
+    );
+  }
 );
 TextInput.displayName = 'TextInput';
 

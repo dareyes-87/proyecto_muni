@@ -17,6 +17,8 @@ import PageHeader from '../components/ui/PageHeader';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import { Field, TextInput, inputClass } from '../components/ui/Field';
+import { useAutocompleteTeclado } from '../components/ui/useAutocompleteTeclado';
+import { exactosPrimero } from '../utils/coincidenciaExacta';
 import { obtenerConfiguracion } from '../api/inventario';
 import { formatFecha, diasParaVencer } from '../utils/formatDate';
 
@@ -209,13 +211,18 @@ function EstadoFoto({ subida, etiqueta }: { subida: boolean; etiqueta: string })
 // puede borrar el campo y escribir otro valor sin que reaparezca un "1". El
 // carrito solo recibe valores válidos (el tope de 1..stock lo sigue aplicando
 // actualizarCantidad); al salir del campo se muestra el valor vigente.
+// Teclado: ↑ +1, ↓ −1, Mayús+↑/↓ ±10, dentro de 1..maximo (mantener la tecla repite).
 
 function InputCantidad({
+  etiqueta,
   valor,
+  maximo,
   onCambiar,
   onEnter,
 }: {
+  etiqueta: string;
   valor: number;
+  maximo: number;
   onCambiar: (cantidad: number) => void;
   onEnter: () => void;
 }) {
@@ -245,8 +252,21 @@ function InputCantidad({
         if (e.key === 'Enter') {
           e.preventDefault();
           onEnter();
+        } else if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && !e.altKey && !e.ctrlKey && !e.metaKey) {
+          e.preventDefault(); // sin esto el cursor salta al inicio/fin del campo
+          const paso = (e.shiftKey ? 10 : 1) * (e.key === 'ArrowUp' ? 1 : -1);
+          const campo = e.currentTarget;
+          setTexto(null);
+          onCambiar(Math.max(1, Math.min(valor + paso, maximo)));
+          // React reescribe el valor y se pierde la selección: se restablece para que teclear reemplace.
+          requestAnimationFrame(() => campo.select());
         }
       }}
+      role="spinbutton"
+      aria-label={`Cantidad de ${etiqueta}`}
+      aria-valuemin={1}
+      aria-valuemax={maximo}
+      aria-valuenow={valor}
       className="w-14 text-center border border-gray-300 rounded py-1 text-sm"
     />
   );
@@ -289,14 +309,15 @@ export default function Dispensacion() {
   const [buscandoBenef, setBuscandoBenef] = useState(false);
   const [showDropdownBenef, setShowDropdownBenef] = useState(false);
   const [showModalBenef, setShowModalBenef] = useState(false);
-  const debounceRefBenef = useRef<ReturnType<typeof setTimeout>>();
+  // Texto con el que se pidieron los resultados que se muestran (ver useAutocompleteTeclado).
+  const [benefPara, setBenefPara] = useState('');
 
   // --- Búsqueda de medicamento ---
   const [queryMed, setQueryMed] = useState('');
   const [resultadosMed, setResultadosMed] = useState<Medicamento[]>([]);
   const [buscandoMed, setBuscandoMed] = useState(false);
   const [showDropdownMed, setShowDropdownMed] = useState(false);
-  const debounceRefMed = useRef<ReturnType<typeof setTimeout>>();
+  const [medPara, setMedPara] = useState('');
   const barcodeInputRef = useRef<HTMLInputElement>(null);
 
   // ============================================
@@ -315,23 +336,31 @@ export default function Dispensacion() {
   useEffect(() => {
     if (queryBenef.length < 2) {
       setResultadosBenef([]);
+      setBenefPara('');
       setShowDropdownBenef(false);
+      setBuscandoBenef(false);
       return;
     }
-    clearTimeout(debounceRefBenef.current);
-    debounceRefBenef.current = setTimeout(async () => {
+    // `cancelado`: una respuesta de un texto anterior no debe pisar a la del texto actual.
+    let cancelado = false;
+    const t = setTimeout(async () => {
       setBuscandoBenef(true);
       try {
         const { data } = await api.get(`/dispensacion/beneficiarios/buscar?q=${encodeURIComponent(queryBenef)}`);
-        setResultadosBenef(data.data || []);
+        if (cancelado) return;
+        setResultadosBenef(exactosPrimero<Beneficiario>(data.data || [], queryBenef, (b) => b.dpi, (b) => b.nombreCompleto));
+        setBenefPara(queryBenef);
         setShowDropdownBenef(true);
       } catch {
-        toast.error('Error al buscar beneficiario');
+        if (!cancelado) toast.error('Error al buscar beneficiario');
       } finally {
-        setBuscandoBenef(false);
+        if (!cancelado) setBuscandoBenef(false);
       }
     }, 300);
-    return () => clearTimeout(debounceRefBenef.current);
+    return () => {
+      clearTimeout(t);
+      cancelado = true;
+    };
   }, [queryBenef]);
 
   const seleccionarBeneficiario = useCallback(async (b: Beneficiario) => {
@@ -339,6 +368,7 @@ export default function Dispensacion() {
     setQueryBenef('');
     setShowDropdownBenef(false);
     setResultadosBenef([]);
+    setBenefPara('');
     try {
       const { data } = await api.get(`/dispensacion/beneficiarios/${b.id}`);
       setHistorialReciente((data.dispensaciones || []).slice(0, 5));
@@ -355,23 +385,30 @@ export default function Dispensacion() {
   useEffect(() => {
     if (queryMed.length < 2) {
       setResultadosMed([]);
+      setMedPara('');
       setShowDropdownMed(false);
+      setBuscandoMed(false);
       return;
     }
-    clearTimeout(debounceRefMed.current);
-    debounceRefMed.current = setTimeout(async () => {
+    let cancelado = false;
+    const t = setTimeout(async () => {
       setBuscandoMed(true);
       try {
         const { data } = await api.get(`/catalogos/medicamentos/buscar?q=${encodeURIComponent(queryMed)}`);
+        if (cancelado) return;
         setResultadosMed(data.data || data || []);
+        setMedPara(queryMed);
         setShowDropdownMed(true);
       } catch {
-        toast.error('Error al buscar medicamento');
+        if (!cancelado) toast.error('Error al buscar medicamento');
       } finally {
-        setBuscandoMed(false);
+        if (!cancelado) setBuscandoMed(false);
       }
     }, 300);
-    return () => clearTimeout(debounceRefMed.current);
+    return () => {
+      clearTimeout(t);
+      cancelado = true;
+    };
   }, [queryMed]);
 
   // ============================================
@@ -401,12 +438,16 @@ export default function Dispensacion() {
   // CARRITO
   // ============================================
 
+  // Ids que se están agregando: con Enter repetido la lista sigue abierta mientras llega el stock y
+  // el `carrito` de este cierre todavía no incluye el medicamento.
+  const agregando = useRef(new Set<string>());
+
   const agregarAlCarrito = async (med: Medicamento) => {
-    const yaEnCarrito = carrito.find((i) => i.medicamento.id === med.id);
-    if (yaEnCarrito) {
-      toast.error('Este medicamento ya está en la lista');
+    if (carrito.some((i) => i.medicamento.id === med.id) || agregando.current.has(med.id)) {
+      toast.error('Ya está en el carrito', { id: 'ya-en-carrito' });
       return;
     }
+    agregando.current.add(med.id);
 
     try {
       const { data: stock } = await api.get(`/dispensacion/stock/${med.id}`);
@@ -414,14 +455,27 @@ export default function Dispensacion() {
         toast.error(`${med.nombreGenerico} no tiene stock disponible`);
         return;
       }
-      setCarrito((prev) => [...prev, { medicamento: med, cantidad: 1, stock }]);
+      setCarrito((prev) => (prev.some((i) => i.medicamento.id === med.id) ? prev : [...prev, { medicamento: med, cantidad: 1, stock }]));
       setQueryMed('');
       setShowDropdownMed(false);
       setResultadosMed([]);
+      setMedPara('');
     } catch {
       toast.error('Error al consultar stock');
+    } finally {
+      agregando.current.delete(med.id);
     }
   };
+
+  // Teclado (↑↓ Enter Esc) en los dos buscadores con lista desplegable.
+  const tecladoBenef = useAutocompleteTeclado({
+    items: resultadosBenef, texto: queryBenef, textoDeItems: benefPara,
+    abierto: showDropdownBenef, setAbierto: setShowDropdownBenef, onElegir: seleccionarBeneficiario,
+  });
+  const tecladoMed = useAutocompleteTeclado({
+    items: resultadosMed, texto: queryMed, textoDeItems: medPara,
+    abierto: showDropdownMed, setAbierto: setShowDropdownMed, onElegir: agregarAlCarrito,
+  });
 
   const actualizarCantidad = (medId: string, cantidad: number) => {
     setCarrito((prev) =>
@@ -746,9 +800,11 @@ export default function Dispensacion() {
                   value={queryBenef}
                   onChange={(e) => setQueryBenef(e.target.value)}
                   onFocus={() => resultadosBenef.length > 0 && setShowDropdownBenef(true)}
-                  onBlur={() => setTimeout(() => setShowDropdownBenef(false), 200)}
                   className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   autoFocus
+                  autoComplete="off"
+                  aria-label="Buscar beneficiario por nombre o DPI"
+                  {...tecladoBenef.inputProps}
                 />
                 {buscandoBenef && (
                   <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -758,12 +814,14 @@ export default function Dispensacion() {
 
                 {/* Dropdown resultados */}
                 {showDropdownBenef && resultadosBenef.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 max-h-48 overflow-y-auto">
-                    {resultadosBenef.map((b) => (
+                  <div {...tecladoBenef.listaProps} className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 max-h-48 overflow-y-auto">
+                    {resultadosBenef.map((b, i) => (
                       <button
                         key={b.id}
+                        type="button"
+                        {...tecladoBenef.opcionProps(i)}
                         onMouseDown={() => seleccionarBeneficiario(b)}
-                        className="w-full text-left px-4 py-2.5 hover:bg-gray-50 border-b border-gray-100 last:border-0"
+                        className={`w-full text-left px-4 py-2.5 border-b border-gray-100 last:border-0 ${tecladoBenef.claseOpcion(i)}`}
                       >
                         <p className="font-medium text-sm text-gray-900">{b.nombreCompleto}</p>
                         <p className="text-xs text-gray-500">{b.dpi || 'Sin DPI'}</p>
@@ -852,8 +910,10 @@ export default function Dispensacion() {
             value={queryMed}
             onChange={(e) => setQueryMed(e.target.value)}
             onFocus={() => resultadosMed.length > 0 && setShowDropdownMed(true)}
-            onBlur={() => setTimeout(() => setShowDropdownMed(false), 200)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
+            autoComplete="off"
+            aria-label="Buscar medicamento por nombre"
+            {...tecladoMed.inputProps}
           />
           {buscandoMed && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -862,12 +922,14 @@ export default function Dispensacion() {
           )}
 
           {showDropdownMed && resultadosMed.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 max-h-48 overflow-y-auto">
-              {resultadosMed.map((m) => (
+            <div {...tecladoMed.listaProps} className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 max-h-48 overflow-y-auto">
+              {resultadosMed.map((m, i) => (
                 <button
                   key={m.id}
+                  type="button"
+                  {...tecladoMed.opcionProps(i)}
                   onMouseDown={() => agregarAlCarrito(m)}
-                  className="w-full text-left px-4 py-2.5 hover:bg-gray-50 border-b border-gray-100 last:border-0"
+                  className={`w-full text-left px-4 py-2.5 border-b border-gray-100 last:border-0 ${tecladoMed.claseOpcion(i)}`}
                 >
                   <p className="font-medium text-sm text-gray-900">{m.nombreGenerico}</p>
                   <p className="text-xs text-gray-500">
@@ -914,25 +976,13 @@ export default function Dispensacion() {
                       </p>
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <button
-                          onClick={() => actualizarCantidad(item.medicamento.id, item.cantidad - 1)}
-                          className="w-7 h-7 rounded border border-gray-300 hover:bg-gray-100 text-gray-600 text-lg leading-none"
-                        >
-                          −
-                        </button>
-                        <InputCantidad
-                          valor={item.cantidad}
-                          onCambiar={(c) => actualizarCantidad(item.medicamento.id, c)}
-                          onEnter={() => barcodeInputRef.current?.focus()}
-                        />
-                        <button
-                          onClick={() => actualizarCantidad(item.medicamento.id, item.cantidad + 1)}
-                          className="w-7 h-7 rounded border border-gray-300 hover:bg-gray-100 text-gray-600 text-lg leading-none"
-                        >
-                          +
-                        </button>
-                      </div>
+                      <InputCantidad
+                        etiqueta={item.medicamento.nombreGenerico}
+                        valor={item.cantidad}
+                        maximo={item.stock.stockTotal}
+                        onCambiar={(c) => actualizarCantidad(item.medicamento.id, c)}
+                        onEnter={() => barcodeInputRef.current?.focus()}
+                      />
                     </td>
                     <td className="px-4 py-3 text-center text-gray-600">
                       {item.stock.stockTotal}
@@ -952,6 +1002,9 @@ export default function Dispensacion() {
                 ))}
               </tbody>
             </table>
+            <p className="border-t border-gray-100 bg-gray-50 px-4 py-2 text-xs text-gray-500">
+              En la cantidad: las flechas ↑ ↓ suman o restan 1; con Mayús, 10.
+            </p>
           </div>
         )}
       </div>
