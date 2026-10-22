@@ -15,6 +15,7 @@ import { obtenerAlertas, listarEntradas } from '../api/inventario';
 import type { Alertas } from '../types';
 import Semaforo from '../components/ui/Semaforo';
 import Card from '../components/ui/Card';
+import { cn } from '../utils/cn';
 import { formatFecha, formatFechaDia, formatFechaHora } from '../utils/formatDate';
 
 interface EntradaReciente {
@@ -104,10 +105,46 @@ export default function Dashboard() {
       <section>
         <SectionHeader title="Resumen" />
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <StatCard to="/catalogos" title="Medicamentos" value={loading ? '—' : String(r?.totalMedicamentos ?? 0)} icon={Package} color="blue" />
-          <StatCard to="/inventario" title="Stock bajo" value={loading ? '—' : String(r?.stockBajo ?? 0)} icon={TrendingDown} color="red" />
-          <StatCard to="/inventario" title="Por vencer" value={loading ? '—' : String(r?.porVencer ?? 0)} icon={AlertTriangle} color="amber" />
-          <StatCard to="/dispensacion" title="Dispensaciones hoy" value={loading ? '—' : String(r?.dispensacionesHoy ?? 0)} icon={HandHeart} color="green" />
+          <StatCard
+            to="/catalogos"
+            linkLabel="Ver catálogo"
+            title="Medicamentos"
+            value={loading ? '—' : String(r?.totalMedicamentos ?? 0)}
+            backTitle="Con stock suficiente"
+            backValue={loading ? '—' : String((r?.totalMedicamentos ?? 0) - (r?.stockBajo ?? 0))}
+            icon={Package}
+            color="blue"
+          />
+          <StatCard
+            to="/inventario"
+            linkLabel="Ver inventario"
+            title="Stock bajo"
+            value={loading ? '—' : String(r?.stockBajo ?? 0)}
+            backTitle="Agotados"
+            backValue={loading ? '—' : String(alertas?.stockBajo.filter((m) => m.stockDisponible === 0).length ?? 0)}
+            icon={TrendingDown}
+            color="red"
+          />
+          <StatCard
+            to="/inventario"
+            linkLabel="Ver inventario"
+            title="Por vencer"
+            value={loading ? '—' : String(r?.porVencer ?? 0)}
+            backTitle="Urgentes (semáforo rojo)"
+            backValue={loading ? '—' : String(alertas?.porVencer.filter((l) => l.semaforo === 'ROJO').length ?? 0)}
+            icon={AlertTriangle}
+            color="amber"
+          />
+          <StatCard
+            to="/dispensacion"
+            linkLabel="Ir a dispensación"
+            title="Dispensaciones hoy"
+            value={loading ? '—' : String(r?.dispensacionesHoy ?? 0)}
+            backTitle="Beneficiarios activos"
+            backValue={loading ? '—' : String(r?.beneficiarios ?? 0)}
+            icon={HandHeart}
+            color="green"
+          />
         </div>
       </section>
 
@@ -211,7 +248,10 @@ const sectionLink =
 function SectionHeader({ title, action }: { title: string; action?: React.ReactNode }) {
   return (
     <div className="mb-3 flex items-center justify-between gap-3">
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">{title}</h2>
+      <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+        <span aria-hidden className="h-[3px] w-4 shrink-0 rounded-full bg-[#F5C518]" />
+        {title}
+      </h2>
       {action}
     </div>
   );
@@ -231,7 +271,7 @@ function QuickAction({
   return (
     <Link
       to={to}
-      className="group flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-4 transition-colors hover:border-primary-300 hover:bg-primary-50/40"
+      className="group flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-4 transition-colors hover:border-[#F5C518] hover:bg-primary-50/40 focus-visible:border-[#F5C518]"
     >
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-100 text-primary-700">
         <Icon size={20} />
@@ -240,7 +280,10 @@ function QuickAction({
         <p className="font-semibold text-gray-900">{title}</p>
         <p className="truncate text-sm text-gray-500">{description}</p>
       </div>
-      <ArrowRight size={18} className="shrink-0 text-gray-300 transition-colors group-hover:text-primary-600" />
+      <ArrowRight
+        size={18}
+        className="shrink-0 text-gray-300 transition duration-200 group-hover:translate-x-1 group-hover:text-primary-600 group-focus-visible:translate-x-1 group-focus-visible:text-primary-600"
+      />
     </Link>
   );
 }
@@ -283,19 +326,35 @@ function AlertPanel({
   );
 }
 
+/**
+ * Tarjeta de métrica que gira en 3D para mostrar un segundo dato en el reverso.
+ * Gira al pasar el mouse (solo puntero de mouse), al tocarla, o con Tab + Enter.
+ * Con prefers-reduced-motion cambia con un fundido en lugar de girar.
+ * El reverso trae el enlace a la página de la tarjeta.
+ */
 function StatCard({
   to,
+  linkLabel,
   title,
   value,
+  backTitle,
+  backValue,
   icon: Icon,
   color,
 }: {
   to: string;
+  linkLabel: string;
   title: string;
   value: string;
+  backTitle: string;
+  backValue: string;
   icon: React.ElementType;
   color: 'blue' | 'amber' | 'green' | 'red';
 }) {
+  const [volteada, setVolteada] = useState(false);
+  const [hover, setHover] = useState(false);
+  const reverso = volteada || hover;
+
   const colors = {
     blue: 'bg-primary-50 text-primary-700',
     amber: 'bg-amber-50 text-amber-700',
@@ -303,15 +362,66 @@ function StatCard({
     red: 'bg-red-50 text-red-600',
   };
 
+  const cara =
+    'col-start-1 row-start-1 rounded-xl border border-gray-200 bg-white p-4 [backface-visibility:hidden] motion-reduce:transition-opacity motion-reduce:duration-300';
+
   return (
-    <Link to={to} className="rounded-xl border border-gray-200 bg-white p-4 transition-colors hover:border-gray-300 hover:bg-gray-50">
-      <div className="mb-2 flex items-center justify-between">
-        <span className="text-sm font-medium text-gray-500">{title}</span>
-        <div className={`rounded-lg p-1.5 ${colors[color]}`}>
-          <Icon size={18} />
+    <div
+      className="rounded-xl [perspective:1000px] has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary-500 has-[:focus-visible]:ring-offset-2"
+      onPointerEnter={(e) => e.pointerType === 'mouse' && setHover(true)}
+      onPointerLeave={(e) => {
+        if (e.pointerType === 'mouse') {
+          setHover(false);
+          setVolteada(false);
+        }
+      }}
+    >
+      <div
+        className={cn(
+          'grid transition-transform duration-500 ease-in-out [transform-style:preserve-3d] motion-reduce:transition-none',
+          reverso && 'motion-safe:[transform:rotateY(180deg)]'
+        )}
+      >
+        {/* Frente */}
+        <button
+          type="button"
+          onClick={() => setVolteada((v) => !v)}
+          aria-pressed={reverso}
+          aria-label={`${title}: ${value}. Mostrar ${backTitle.toLowerCase()}`}
+          className={cn(cara, 'text-left focus:outline-none', reverso && 'pointer-events-none motion-reduce:opacity-0')}
+        >
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-500">{title}</span>
+            <div className={`rounded-lg p-1.5 ${colors[color]}`}>
+              <Icon size={18} />
+            </div>
+          </div>
+          <p className="text-2xl font-bold text-gray-900">{value}</p>
+        </button>
+
+        {/* Reverso */}
+        <div
+          aria-hidden={!reverso}
+          onClick={(e) => !(e.target as HTMLElement).closest('a') && setVolteada((v) => !v)}
+          className={cn(
+            cara,
+            'flex flex-col justify-between border-t-[3px] border-t-[#F5C518] [transform:rotateY(180deg)] motion-reduce:[transform:none]',
+            !reverso && 'pointer-events-none motion-reduce:opacity-0'
+          )}
+        >
+          <div>
+            <span className="text-sm font-medium text-gray-500">{backTitle}</span>
+            <p className="text-2xl font-bold text-gray-900">{backValue}</p>
+          </div>
+          <Link
+            to={to}
+            tabIndex={reverso ? 0 : -1}
+            className="mt-1 inline-flex items-center gap-1 self-start text-sm font-medium text-primary-700 hover:text-primary-900 focus:outline-none"
+          >
+            {linkLabel} <ArrowRight size={14} />
+          </Link>
         </div>
       </div>
-      <p className="text-2xl font-bold text-gray-900">{value}</p>
-    </Link>
+    </div>
   );
 }
