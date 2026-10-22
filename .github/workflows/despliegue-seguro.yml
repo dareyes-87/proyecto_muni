@@ -163,6 +163,8 @@ jobs:
         run: |
           git worktree add ../servidor "${{ steps.base.outputs.base }}"
           cd ../servidor
+          # Docker crea los bind mounts que faltan como root (Linux) y luego git no puede escribir en ellos al desplegar la versión nueva.
+          mkdir -p frontend/public
           case "${{ matrix.env_servidor }}" in
             env-de-ejemplo) cp .env.example .env ;;
             produccion-ejemplo)
