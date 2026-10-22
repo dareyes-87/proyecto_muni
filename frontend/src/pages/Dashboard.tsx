@@ -240,7 +240,7 @@ function SectionHeader({ title, action }: { title: string; action?: React.ReactN
   return (
     <div className="mb-3 flex items-center justify-between gap-3">
       <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
-        <span aria-hidden className="h-[3px] w-4 shrink-0 rounded-full bg-[#F5C518]" />
+        <span aria-hidden className="h-[3px] w-4 shrink-0 rounded-full bg-dorado-500" />
         {title}
       </h2>
       {action}
@@ -262,7 +262,7 @@ function QuickAction({
   return (
     <Link
       to={to}
-      className="group flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-4 transition-colors hover:border-[#F5C518] hover:bg-primary-50/40 focus-visible:border-[#F5C518]"
+      className="group flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-4 transition-colors hover:border-dorado-500 hover:bg-primary-50/40 focus-visible:border-dorado-500"
     >
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-100 text-primary-700">
         <Icon size={20} />

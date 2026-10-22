@@ -34,7 +34,7 @@ export default function Login() {
   return (
     <div className="min-h-screen flex bg-white">
       {/* Panel institucional (solo pantallas grandes) */}
-      <aside className="hidden lg:flex w-[560px] shrink-0 relative overflow-hidden flex-col justify-between bg-[#0B4F8A] text-white px-14 py-12">
+      <aside className="hidden lg:flex w-[560px] shrink-0 relative overflow-hidden flex-col justify-between bg-primary-800 text-white px-14 py-12">
         <div aria-hidden className="pointer-events-none absolute -right-[180px] -top-[160px] w-[460px] h-[460px] rounded-full bg-white/5" />
         <div aria-hidden className="pointer-events-none absolute -left-[140px] -bottom-[120px] w-[320px] h-[320px] rounded-full bg-white/5" />
 
@@ -104,7 +104,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-[50px] rounded-[10px] bg-[#0B4F8A] hover:bg-[#083A66] text-white text-base font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0B4F8A] focus-visible:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full h-[50px] rounded-[10px] bg-primary-800 hover:bg-[#083A66] text-white text-base font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-800 focus-visible:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? 'Ingresando...' : 'Iniciar sesión'}
             </button>
@@ -120,12 +120,12 @@ export default function Login() {
 }
 
 const inputClass =
-  'w-full h-12 px-3.5 rounded-[10px] border-[1.5px] border-[#C9D3DF] text-[15px] text-[#10233A] placeholder:text-[#8A97A8] focus:outline-none focus:border-[#0B4F8A] focus:ring-2 focus:ring-[#0B4F8A]/25 transition-colors';
+  'w-full h-12 px-3.5 rounded-[10px] border-[1.5px] border-[#C9D3DF] text-[15px] text-[#10233A] placeholder:text-[#8A97A8] focus:outline-none focus:border-primary-800 focus:ring-2 focus:ring-primary-800/25 transition-colors';
 
 function Marca({ className = '' }: { className?: string }) {
   return (
     <div className={`flex items-center gap-3 ${className}`}>
-      <div className="w-11 h-11 rounded-xl bg-[#F5C518] flex items-center justify-center">
+      <div className="w-11 h-11 rounded-xl bg-dorado-500 flex items-center justify-center">
         <Pill className="text-[#0A2E52]" size={24} />
       </div>
       <span className="text-[22px] font-extrabold">FarmaG</span>

@@ -66,7 +66,7 @@ const navigation: NavItem[] = [
 
 // Activo: indicador amarillo de 4px a la izquierda e ícono en amarillo.
 const leafActive =
-  'relative bg-primary-700 text-white before:absolute before:inset-y-1.5 before:left-0 before:w-1 before:rounded-full before:bg-[#F5C518] [&>svg]:text-[#F5C518]';
+  'relative bg-primary-700 text-white before:absolute before:inset-y-1.5 before:left-0 before:w-1 before:rounded-full before:bg-dorado-500 [&>svg]:text-dorado-500';
 const leafIdle = 'text-primary-200 hover:bg-primary-700/50 hover:text-white';
 
 const COLLAPSE_KEY = 'farmag_sidebar_collapsed';
@@ -294,7 +294,10 @@ export default function Layout() {
           <h2 className="text-lg font-semibold text-gray-800">Farmacia Municipal de Gualán</h2>
         </header>
         {/* Franja institucional: azul 75% / amarillo 25% */}
-        <div aria-hidden className="h-[3px] shrink-0 bg-[linear-gradient(to_right,#0B4F8A_75%,#F5C518_75%)]" />
+        <div aria-hidden className="flex h-[3px] shrink-0">
+          <div className="w-3/4 bg-primary-800" />
+          <div className="w-1/4 bg-dorado-500" />
+        </div>
 
         <main className="flex-1 overflow-auto p-4 lg:p-6">
           <Outlet />
