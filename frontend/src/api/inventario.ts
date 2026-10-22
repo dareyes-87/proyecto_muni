@@ -13,7 +13,6 @@ export interface LoteEntradaInput {
   cantidad: number;
   numeroLote: string;
   fechaVencimiento: string;
-  costoUnitario?: number | null;
   ubicacionId?: string | null;
 }
 

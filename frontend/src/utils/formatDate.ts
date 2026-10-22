@@ -40,3 +40,18 @@ export function formatFechaDia(iso: string | Date): string {
   const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
   return `${dd}/${mm}/${d.getUTCFullYear()}`;
 }
+
+/** Fecha local de calendario como 'AAAA-MM-DD' (valor de <input type="date">). No usa toISOString: eso da la fecha UTC
+ *  y en Guatemala, pasadas las 18:00, ya marcaría el día siguiente. */
+export function fechaLocalISO(d: Date = new Date()): string {
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+/** Mañana en hora local: el backend rechaza vencimientos de hoy o anteriores (estaVencido: días <= 0). */
+export function mananaLocalISO(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return fechaLocalISO(d);
+}
