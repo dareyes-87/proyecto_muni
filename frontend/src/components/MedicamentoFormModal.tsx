@@ -15,6 +15,9 @@ import Modal from './ui/Modal';
 import Button from './ui/Button';
 import { Field, TextInput, Select } from './ui/Field';
 
+// Campos que OpenFDA puede rellenar al escanear.
+const CAMPOS_FDA = ['nombreGenerico', 'nombreComercial', 'presentacion', 'concentracion', 'unidadMedida'] as const;
+
 const formVacio: MedicamentoInput = {
   nombreGenerico: '',
   nombreComercial: '',
@@ -51,9 +54,15 @@ export default function MedicamentoFormModal({ open, medicamento, categorias, on
   const scanNuevoRef = useRef<HTMLInputElement>(null);
   // Número del último escaneo: una consulta lenta no debe pisar a un escaneo posterior.
   const scanSeq = useRef(0);
+  // Valores exactos que puso OpenFDA, para vaciar al escanear de nuevo solo lo que la encargada no tocó.
+  const fdaPuso = useRef<Partial<Record<(typeof CAMPOS_FDA)[number], string>>>({});
 
   // Reinicia el formulario cada vez que se abre o cambia el medicamento objetivo.
   useEffect(() => {
+    // También al cerrar: invalida cualquier consulta de escaneo que siga en vuelo.
+    scanSeq.current++;
+    fdaPuso.current = {};
+    setScanLoading(false);
     if (!open) return;
     setCurrent(medicamento);
     setDuplicados(null);
@@ -79,21 +88,27 @@ export default function MedicamentoFormModal({ open, medicamento, categorias, on
     const seq = ++scanSeq.current;
     const vigente = () => seq === scanSeq.current;
     setScanLoading(true);
+    // Un escaneo nuevo descarta lo que sugirió el anterior, salvo lo que la encargada ya cambió a mano.
+    const anteriores = fdaPuso.current;
+    fdaPuso.current = {};
+    setForm((f) => {
+      const n = { ...f };
+      for (const k of CAMPOS_FDA) if (anteriores[k] !== undefined && n[k] === anteriores[k]) n[k] = '';
+      return n;
+    });
     setFdaSugerido(false);
     try {
-      let existeLocal = false;
+      let yaRegistrado: string | null = null;
       try {
         const local = await buscarPorCodigoBarras(val);
-        if (local?.id) {
-          existeLocal = true;
-          toast.error(`Este medicamento ya está registrado: ${local.nombreGenerico}`);
-        }
+        if (local?.id) yaRegistrado = local.nombreGenerico;
       } catch {
         // No existe localmente: seguir a la consulta de OpenFDA.
       }
       if (!vigente()) return;
-      if (existeLocal) {
+      if (yaRegistrado) {
         // Solo aquí se vacía: el código ya pertenece a otro medicamento.
+        toast.error(`Este medicamento ya está registrado: ${yaRegistrado}`);
         if (scanNuevoRef.current) scanNuevoRef.current.value = '';
         return;
       }
@@ -101,14 +116,10 @@ export default function MedicamentoFormModal({ open, medicamento, categorias, on
       const fda = await lookupFda(val);
       if (!vigente()) return;
       if (fda.found) {
-        setForm((f) => ({
-          ...f,
-          nombreGenerico: fda.nombreGenerico || f.nombreGenerico,
-          nombreComercial: fda.nombreComercial || f.nombreComercial,
-          presentacion: fda.presentacion || f.presentacion,
-          concentracion: fda.concentracion || f.concentracion,
-          unidadMedida: fda.unidadMedida || f.unidadMedida,
-        }));
+        const puestos: typeof fdaPuso.current = {};
+        for (const k of CAMPOS_FDA) if (fda[k]) puestos[k] = fda[k]!;
+        fdaPuso.current = puestos;
+        setForm((f) => ({ ...f, ...puestos }));
         setFdaSugerido(true);
         toast.success('Datos sugeridos por OpenFDA — verifique antes de guardar');
       } else {
@@ -133,8 +144,8 @@ export default function MedicamentoFormModal({ open, medicamento, categorias, on
       const ayuda = 'Agréguelo desde Catálogos → Medicamentos → Códigos de barras.';
       toast.error(
         err.response?.status === 409
-          ? `Medicamento creado, pero ese código de barras ya pertenece a otro medicamento. ${ayuda}`
-          : `Medicamento creado, pero el código de barras no se guardó. ${ayuda}`
+          ? `Medicamento creado, pero el código de barras ${codigo} ya pertenece a otro medicamento. ${ayuda}`
+          : `Medicamento creado, pero el código de barras ${codigo} no se guardó. ${ayuda}`
       );
       return false;
     }
@@ -250,10 +261,11 @@ export default function MedicamentoFormModal({ open, medicamento, categorias, on
                     escanearParaNuevo(e.currentTarget.value);
                   }
                 }}
-                className="w-full rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm font-mono outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
-                placeholder={scanLoading ? 'Consultando...' : 'Escanee o escriba el código y presione Enter'}
+                className="w-full rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm font-mono outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500"
+                placeholder="Escanee o escriba el código y presione Enter"
                 autoComplete="off"
               />
+              {scanLoading && <p className="mt-1 text-xs font-medium text-blue-800">Consultando...</p>}
               <p className="mt-1 text-xs text-blue-700">
                 Se busca primero en el sistema; si no existe, se consulta OpenFDA para auto-completar el formulario.
               </p>
