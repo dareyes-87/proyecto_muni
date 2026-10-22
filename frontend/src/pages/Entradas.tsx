@@ -29,7 +29,7 @@ interface LoteForm {
   numeroLote: string;
   fechaVencimiento: string;
   ubicacionId: string;
-  /** Campos que el usuario ya abandonó: su error se muestra antes del primer intento de envío. */
+  /** Campos que el usuario ya abandonó o que un intento de envío marcó: solo en ellos se muestra el error. */
   tocados: Partial<Record<CampoLote, true>>;
 }
 
@@ -41,6 +41,8 @@ const loteVacio: LoteForm = {
   ubicacionId: '',
   tocados: {},
 };
+
+const TODOS_TOCADOS: Record<CampoLote, true> = { medicamentoId: true, numeroLote: true, cantidad: true, fechaVencimiento: true };
 
 // Columna Int de Postgres. El backend no lo valida (Zod acepta más) y respondería 500.
 const CANTIDAD_MAX = 2_147_483_647;
@@ -82,7 +84,7 @@ export default function Entradas() {
   const [observaciones, setObservaciones] = useState('');
   const [lotes, setLotes] = useState<LoteForm[]>([{ ...loteVacio }]);
   const [guardando, setGuardando] = useState(false);
-  // Tras el primer intento de envío se muestran los errores de todos los campos.
+  // Hubo un intento de envío fallido: habilita el resumen de errores por lote.
   const [intentado, setIntentado] = useState(false);
 
   const [entradas, setEntradas] = useState<any[]>([]);
@@ -156,8 +158,11 @@ export default function Entradas() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Se valida aquí con la fecha de ahora: el render anterior pudo quedar del día previo (pantalla abierta pasada la medianoche).
+    const errs = lotes.map(validarLote);
     setIntentado(true);
-    const primero = lotes.flatMap((_, i) => CAMPOS.filter((c) => errores[i][c]).map((c) => `lote-${i}-${c}`))[0];
+    setLotes((prev) => prev.map((l) => ({ ...l, tocados: TODOS_TOCADOS })));
+    const primero = lotes.flatMap((_, i) => CAMPOS.filter((c) => errs[i][c]).map((c) => `lote-${i}-${c}`))[0];
     if (primero) return document.getElementById(primero)?.focus();
 
     const lotesValidados: LoteEntradaInput[] = lotes.map((l) => ({
@@ -235,9 +240,9 @@ export default function Entradas() {
   };
 
   const errores = lotes.map(validarLote);
-  const errorVisible = (i: number, c: CampoLote) => (intentado || lotes[i].tocados[c] ? errores[i][c] : undefined);
+  const errorVisible = (i: number, c: CampoLote) => (lotes[i].tocados[c] ? errores[i][c] : undefined);
   const resumen = intentado && lotes.length > 1
-    ? lotes.flatMap((_, i) => CAMPOS.filter((c) => errores[i][c]).map((c) => `Lote ${i + 1}: ${errores[i][c]}`))
+    ? lotes.flatMap((_, i) => CAMPOS.filter((c) => errorVisible(i, c)).map((c) => `Lote ${i + 1}: ${errores[i][c]}`))
     : [];
   const minVencimiento = mananaLocalISO();
 
