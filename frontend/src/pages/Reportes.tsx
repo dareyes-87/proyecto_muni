@@ -21,6 +21,7 @@ import {
 } from '../api/reportes';
 import { listarCategorias, buscarMedicamentos } from '../api/catalogos';
 import { useAutocompleteTeclado } from '../components/ui/useAutocompleteTeclado';
+import { exactosPrimero } from '../utils/coincidenciaExacta';
 import Semaforo from '../components/ui/Semaforo';
 import PageHeader from '../components/ui/PageHeader';
 import Button from '../components/ui/Button';
@@ -83,6 +84,7 @@ function BuscadorInline({
   useEffect(() => {
     if (q.trim().length < 2) {
       setResultados([]);
+      setResultadosPara('');
       return;
     }
     // `cancelado`: una respuesta de un texto anterior no debe pisar a la del texto actual.
@@ -95,7 +97,11 @@ function BuscadorInline({
           setResultadosPara(q);
           setAbierto(true);
         })
-        .catch(() => !cancelado && setResultados([]));
+        .catch(() => {
+          if (cancelado) return;
+          setResultados([]);
+          setResultadosPara('');
+        });
     }, 300);
     return () => {
       clearTimeout(t);
@@ -133,10 +139,10 @@ function BuscadorInline({
         value={q}
         onChange={(e) => setQ(e.target.value)}
         onFocus={() => resultados.length > 0 && setAbierto(true)}
-        onBlur={() => setTimeout(() => setAbierto(false), 150)}
         placeholder={placeholder}
         className={inputClass}
         autoComplete="off"
+        aria-label={label}
         {...teclado.inputProps}
       />
       {abierto && resultados.length > 0 && (
@@ -273,7 +279,8 @@ export default function Reportes() {
 
   const buscarBeneficiarios = useCallback(async (q: string): Promise<Opcion[]> => {
     const { data } = await api.get('/dispensacion/beneficiarios/buscar', { params: { q } });
-    return (data.data as { id: string; nombreCompleto: string; dpi: string | null }[]).map((b) => ({
+    const lista = data.data as { id: string; nombreCompleto: string; dpi: string | null }[];
+    return exactosPrimero(lista, q, (b) => b.dpi, (b) => b.nombreCompleto).map((b) => ({
       id: b.id,
       label: b.dpi ? `${b.nombreCompleto} · ${b.dpi}` : b.nombreCompleto,
     }));

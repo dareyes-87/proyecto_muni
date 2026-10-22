@@ -18,6 +18,7 @@ import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import { Field, TextInput, inputClass } from '../components/ui/Field';
 import { useAutocompleteTeclado } from '../components/ui/useAutocompleteTeclado';
+import { exactosPrimero } from '../utils/coincidenciaExacta';
 import { obtenerConfiguracion } from '../api/inventario';
 import { formatFecha, diasParaVencer } from '../utils/formatDate';
 
@@ -213,11 +214,13 @@ function EstadoFoto({ subida, etiqueta }: { subida: boolean; etiqueta: string })
 // Teclado: ↑ +1, ↓ −1, Mayús+↑/↓ ±10, dentro de 1..maximo (mantener la tecla repite).
 
 function InputCantidad({
+  etiqueta,
   valor,
   maximo,
   onCambiar,
   onEnter,
 }: {
+  etiqueta: string;
   valor: number;
   maximo: number;
   onCambiar: (cantidad: number) => void;
@@ -249,16 +252,18 @@ function InputCantidad({
         if (e.key === 'Enter') {
           e.preventDefault();
           onEnter();
-        } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        } else if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && !e.altKey && !e.ctrlKey && !e.metaKey) {
           e.preventDefault(); // sin esto el cursor salta al inicio/fin del campo
-          const base = texto !== null ? parseInt(texto, 10) || valor : valor;
           const paso = (e.shiftKey ? 10 : 1) * (e.key === 'ArrowUp' ? 1 : -1);
+          const campo = e.currentTarget;
           setTexto(null);
-          onCambiar(Math.max(1, Math.min(base + paso, maximo)));
+          onCambiar(Math.max(1, Math.min(valor + paso, maximo)));
+          // React reescribe el valor y se pierde la selección: se restablece para que teclear reemplace.
+          requestAnimationFrame(() => campo.select());
         }
       }}
       role="spinbutton"
-      aria-label="Cantidad"
+      aria-label={`Cantidad de ${etiqueta}`}
       aria-valuemin={1}
       aria-valuemax={maximo}
       aria-valuenow={valor}
@@ -331,6 +336,7 @@ export default function Dispensacion() {
   useEffect(() => {
     if (queryBenef.length < 2) {
       setResultadosBenef([]);
+      setBenefPara('');
       setShowDropdownBenef(false);
       setBuscandoBenef(false);
       return;
@@ -342,7 +348,7 @@ export default function Dispensacion() {
       try {
         const { data } = await api.get(`/dispensacion/beneficiarios/buscar?q=${encodeURIComponent(queryBenef)}`);
         if (cancelado) return;
-        setResultadosBenef(data.data || []);
+        setResultadosBenef(exactosPrimero<Beneficiario>(data.data || [], queryBenef, (b) => b.dpi, (b) => b.nombreCompleto));
         setBenefPara(queryBenef);
         setShowDropdownBenef(true);
       } catch {
@@ -362,6 +368,7 @@ export default function Dispensacion() {
     setQueryBenef('');
     setShowDropdownBenef(false);
     setResultadosBenef([]);
+    setBenefPara('');
     try {
       const { data } = await api.get(`/dispensacion/beneficiarios/${b.id}`);
       setHistorialReciente((data.dispensaciones || []).slice(0, 5));
@@ -378,6 +385,7 @@ export default function Dispensacion() {
   useEffect(() => {
     if (queryMed.length < 2) {
       setResultadosMed([]);
+      setMedPara('');
       setShowDropdownMed(false);
       setBuscandoMed(false);
       return;
@@ -430,12 +438,16 @@ export default function Dispensacion() {
   // CARRITO
   // ============================================
 
+  // Ids que se están agregando: con Enter repetido la lista sigue abierta mientras llega el stock y
+  // el `carrito` de este cierre todavía no incluye el medicamento.
+  const agregando = useRef(new Set<string>());
+
   const agregarAlCarrito = async (med: Medicamento) => {
-    const yaEnCarrito = carrito.find((i) => i.medicamento.id === med.id);
-    if (yaEnCarrito) {
-      toast.error('Este medicamento ya está en la lista');
+    if (carrito.some((i) => i.medicamento.id === med.id) || agregando.current.has(med.id)) {
+      toast.error('Ya está en el carrito', { id: 'ya-en-carrito' });
       return;
     }
+    agregando.current.add(med.id);
 
     try {
       const { data: stock } = await api.get(`/dispensacion/stock/${med.id}`);
@@ -443,12 +455,15 @@ export default function Dispensacion() {
         toast.error(`${med.nombreGenerico} no tiene stock disponible`);
         return;
       }
-      setCarrito((prev) => [...prev, { medicamento: med, cantidad: 1, stock }]);
+      setCarrito((prev) => (prev.some((i) => i.medicamento.id === med.id) ? prev : [...prev, { medicamento: med, cantidad: 1, stock }]));
       setQueryMed('');
       setShowDropdownMed(false);
       setResultadosMed([]);
+      setMedPara('');
     } catch {
       toast.error('Error al consultar stock');
+    } finally {
+      agregando.current.delete(med.id);
     }
   };
 
@@ -785,10 +800,10 @@ export default function Dispensacion() {
                   value={queryBenef}
                   onChange={(e) => setQueryBenef(e.target.value)}
                   onFocus={() => resultadosBenef.length > 0 && setShowDropdownBenef(true)}
-                  onBlur={() => setTimeout(() => setShowDropdownBenef(false), 200)}
                   className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   autoFocus
                   autoComplete="off"
+                  aria-label="Buscar beneficiario por nombre o DPI"
                   {...tecladoBenef.inputProps}
                 />
                 {buscandoBenef && (
@@ -895,9 +910,9 @@ export default function Dispensacion() {
             value={queryMed}
             onChange={(e) => setQueryMed(e.target.value)}
             onFocus={() => resultadosMed.length > 0 && setShowDropdownMed(true)}
-            onBlur={() => setTimeout(() => setShowDropdownMed(false), 200)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
             autoComplete="off"
+            aria-label="Buscar medicamento por nombre"
             {...tecladoMed.inputProps}
           />
           {buscandoMed && (
@@ -962,6 +977,7 @@ export default function Dispensacion() {
                     </td>
                     <td className="px-4 py-3 text-center">
                       <InputCantidad
+                        etiqueta={item.medicamento.nombreGenerico}
                         valor={item.cantidad}
                         maximo={item.stock.stockTotal}
                         onCambiar={(c) => actualizarCantidad(item.medicamento.id, c)}
