@@ -42,7 +42,7 @@ export default function Login() {
 
         <div className="relative flex justify-center">
           <div className="w-[300px] h-[300px] rounded-full bg-white flex items-center justify-center shadow-[0_0_0_14px_rgba(255,255,255,.12),0_0_0_30px_rgba(255,255,255,.06)] motion-safe:animate-[login-flotar_6s_ease-in-out_infinite]">
-            <img src="/img/login-ilustracion.png" alt="" className="w-[210px] h-[210px] object-contain" />
+            <img src="/img/login-ilustracion.png" alt="" loading="lazy" className="w-[210px] h-[210px] object-contain" />
           </div>
         </div>
 

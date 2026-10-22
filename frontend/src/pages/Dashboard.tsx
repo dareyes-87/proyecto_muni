@@ -71,6 +71,13 @@ export default function Dashboard() {
 
         {loading ? (
           <Card className="animate-pulse text-sm text-gray-400">Cargando estado del sistema...</Card>
+        ) : !alertas ? (
+          <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+            <AlertTriangle className="shrink-0 text-gray-500" size={20} />
+            <p className="text-sm font-medium text-gray-700">
+              No se pudieron cargar las alertas. Actualice la página para intentarlo de nuevo.
+            </p>
+          </div>
         ) : totalAtencion === 0 ? (
           <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
             <CheckCircle2 className="shrink-0 text-emerald-600" size={20} />
@@ -108,7 +115,7 @@ export default function Dashboard() {
             to="/catalogos"
             title="Medicamentos"
             value={loading ? '—' : String(r?.totalMedicamentos ?? 0)}
-            detail={loading ? '—' : `${(r?.totalMedicamentos ?? 0) - (r?.stockBajo ?? 0)} con stock suficiente`}
+            detail={r ? `${r.totalMedicamentos - r.stockBajo} con stock suficiente` : '—'}
             icon={Package}
             color="blue"
           />
@@ -116,7 +123,7 @@ export default function Dashboard() {
             to="/inventario"
             title="Stock bajo"
             value={loading ? '—' : String(r?.stockBajo ?? 0)}
-            detail={loading ? '—' : `${alertas?.stockBajo.filter((m) => m.stockDisponible === 0).length ?? 0} agotados`}
+            detail={alertas ? plural(alertas.stockBajo.filter((m) => m.stockDisponible === 0).length, 'agotado', 'agotados') : '—'}
             icon={TrendingDown}
             color="red"
           />
@@ -124,7 +131,7 @@ export default function Dashboard() {
             to="/inventario"
             title="Por vencer"
             value={loading ? '—' : String(r?.porVencer ?? 0)}
-            detail={loading ? '—' : `${alertas?.porVencer.filter((l) => l.semaforo === 'ROJO').length ?? 0} urgentes (semáforo rojo)`}
+            detail={alertas ? plural(alertas.porVencer.filter((l) => l.semaforo === 'ROJO').length, 'urgente (semáforo rojo)', 'urgentes (semáforo rojo)') : '—'}
             icon={AlertTriangle}
             color="amber"
           />
@@ -132,7 +139,7 @@ export default function Dashboard() {
             to="/dispensacion"
             title="Dispensaciones hoy"
             value={loading ? '—' : String(r?.dispensacionesHoy ?? 0)}
-            detail={loading ? '—' : `${r?.beneficiarios ?? 0} beneficiarios activos`}
+            detail={alertas ? plural(alertas.resumen.beneficiarios, 'beneficiario activo', 'beneficiarios activos') : '—'}
             icon={HandHeart}
             color="green"
           />
@@ -216,6 +223,8 @@ export default function Dashboard() {
     </div>
   );
 }
+
+const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
 /** Fecha larga en español para el encabezado, ej. "Lunes, 7 de septiembre de 2026". */
 function fechaLarga(): string {
