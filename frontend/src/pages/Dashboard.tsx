@@ -71,6 +71,13 @@ export default function Dashboard() {
 
         {loading ? (
           <Card className="animate-pulse text-sm text-gray-400">Cargando estado del sistema...</Card>
+        ) : !alertas ? (
+          <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+            <AlertTriangle className="shrink-0 text-gray-500" size={20} />
+            <p className="text-sm font-medium text-gray-700">
+              No se pudieron cargar las alertas. Actualice la página para intentarlo de nuevo.
+            </p>
+          </div>
         ) : totalAtencion === 0 ? (
           <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
             <CheckCircle2 className="shrink-0 text-emerald-600" size={20} />
@@ -104,10 +111,38 @@ export default function Dashboard() {
       <section>
         <SectionHeader title="Resumen" />
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <StatCard to="/catalogos" title="Medicamentos" value={loading ? '—' : String(r?.totalMedicamentos ?? 0)} icon={Package} color="blue" />
-          <StatCard to="/inventario" title="Stock bajo" value={loading ? '—' : String(r?.stockBajo ?? 0)} icon={TrendingDown} color="red" />
-          <StatCard to="/inventario" title="Por vencer" value={loading ? '—' : String(r?.porVencer ?? 0)} icon={AlertTriangle} color="amber" />
-          <StatCard to="/dispensacion" title="Dispensaciones hoy" value={loading ? '—' : String(r?.dispensacionesHoy ?? 0)} icon={HandHeart} color="green" />
+          <StatCard
+            to="/catalogos"
+            title="Medicamentos"
+            value={loading ? '—' : String(r?.totalMedicamentos ?? 0)}
+            detail={r ? `${r.totalMedicamentos - r.stockBajo} con stock suficiente` : '—'}
+            icon={Package}
+            color="blue"
+          />
+          <StatCard
+            to="/inventario"
+            title="Stock bajo"
+            value={loading ? '—' : String(r?.stockBajo ?? 0)}
+            detail={alertas ? plural(alertas.stockBajo.filter((m) => m.stockDisponible === 0).length, 'agotado', 'agotados') : '—'}
+            icon={TrendingDown}
+            color="red"
+          />
+          <StatCard
+            to="/inventario"
+            title="Por vencer"
+            value={loading ? '—' : String(r?.porVencer ?? 0)}
+            detail={alertas ? plural(alertas.porVencer.filter((l) => l.semaforo === 'ROJO').length, 'urgente (semáforo rojo)', 'urgentes (semáforo rojo)') : '—'}
+            icon={AlertTriangle}
+            color="amber"
+          />
+          <StatCard
+            to="/dispensacion"
+            title="Dispensaciones hoy"
+            value={loading ? '—' : String(r?.dispensacionesHoy ?? 0)}
+            detail={alertas ? plural(alertas.resumen.beneficiarios, 'beneficiario activo', 'beneficiarios activos') : '—'}
+            icon={HandHeart}
+            color="green"
+          />
         </div>
       </section>
 
@@ -189,6 +224,8 @@ export default function Dashboard() {
   );
 }
 
+const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
+
 /** Fecha larga en español para el encabezado, ej. "Lunes, 7 de septiembre de 2026". */
 function fechaLarga(): string {
   try {
@@ -211,7 +248,10 @@ const sectionLink =
 function SectionHeader({ title, action }: { title: string; action?: React.ReactNode }) {
   return (
     <div className="mb-3 flex items-center justify-between gap-3">
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">{title}</h2>
+      <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+        <span aria-hidden className="h-[3px] w-4 shrink-0 rounded-full bg-dorado-500" />
+        {title}
+      </h2>
       {action}
     </div>
   );
@@ -231,7 +271,7 @@ function QuickAction({
   return (
     <Link
       to={to}
-      className="group flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-4 transition-colors hover:border-primary-300 hover:bg-primary-50/40"
+      className="group flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-4 transition-colors hover:border-dorado-500 hover:bg-primary-50/40 focus-visible:border-dorado-500"
     >
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-100 text-primary-700">
         <Icon size={20} />
@@ -240,7 +280,10 @@ function QuickAction({
         <p className="font-semibold text-gray-900">{title}</p>
         <p className="truncate text-sm text-gray-500">{description}</p>
       </div>
-      <ArrowRight size={18} className="shrink-0 text-gray-300 transition-colors group-hover:text-primary-600" />
+      <ArrowRight
+        size={18}
+        className="shrink-0 text-gray-300 transition duration-200 group-hover:translate-x-1 group-hover:text-primary-600 group-focus-visible:translate-x-1 group-focus-visible:text-primary-600"
+      />
     </Link>
   );
 }
@@ -283,16 +326,19 @@ function AlertPanel({
   );
 }
 
+/** Tarjeta de métrica: un enlace de un clic a su pantalla, con un dato secundario bajo el número. */
 function StatCard({
   to,
   title,
   value,
+  detail,
   icon: Icon,
   color,
 }: {
   to: string;
   title: string;
   value: string;
+  detail: string;
   icon: React.ElementType;
   color: 'blue' | 'amber' | 'green' | 'red';
 }) {
@@ -304,7 +350,10 @@ function StatCard({
   };
 
   return (
-    <Link to={to} className="rounded-xl border border-gray-200 bg-white p-4 transition-colors hover:border-gray-300 hover:bg-gray-50">
+    <Link
+      to={to}
+      className="rounded-xl border border-gray-200 bg-white p-4 transition-colors hover:border-gray-300 hover:bg-gray-50"
+    >
       <div className="mb-2 flex items-center justify-between">
         <span className="text-sm font-medium text-gray-500">{title}</span>
         <div className={`rounded-lg p-1.5 ${colors[color]}`}>
@@ -312,6 +361,7 @@ function StatCard({
         </div>
       </div>
       <p className="text-2xl font-bold text-gray-900">{value}</p>
+      <p className="mt-0.5 text-xs text-gray-500">{detail}</p>
     </Link>
   );
 }

@@ -64,7 +64,9 @@ const navigation: NavItem[] = [
   },
 ];
 
-const leafActive = 'bg-primary-700 text-white';
+// Activo: indicador amarillo de 4px a la izquierda e ícono en amarillo.
+const leafActive =
+  'relative bg-primary-700 text-white before:absolute before:inset-y-1.5 before:left-0 before:w-1 before:rounded-full before:bg-dorado-500 [&>svg]:text-dorado-500';
 const leafIdle = 'text-primary-200 hover:bg-primary-700/50 hover:text-white';
 
 const COLLAPSE_KEY = 'farmag_sidebar_collapsed';
@@ -153,6 +155,16 @@ export default function Layout() {
         </div>
 
         <div className="flex flex-1 flex-col overflow-y-auto overflow-x-hidden [scrollbar-color:#006eae_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-primary-600 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1.5">
+          {!rail && (
+            <div className="mx-3 mt-4 flex justify-center rounded-xl bg-white px-3 py-2.5">
+              <img
+                src="/img/logo-municipalidad.png"
+                alt="Municipalidad de Gualán"
+                className="max-h-[70px] w-auto max-w-full object-contain"
+              />
+            </div>
+          )}
+
           <nav className="mt-4 space-y-1 px-2">
             {filteredNav.map((item) =>
               item.children ? (
@@ -163,7 +175,7 @@ export default function Layout() {
                     title={item.name}
                     className={cn(
                       'flex w-full items-center justify-center rounded-lg py-2.5 transition-colors',
-                      groupHasActive(item) ? 'bg-primary-700 text-white' : 'text-primary-200 hover:bg-primary-700/50 hover:text-white'
+                      groupHasActive(item) ? leafActive : leafIdle
                     )}
                   >
                     <item.icon size={20} />
@@ -265,7 +277,7 @@ export default function Layout() {
 
       {/* Main content */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-16 shrink-0 items-center gap-3 border-b border-gray-200 bg-white px-4 lg:px-6">
+        <header className="flex h-16 shrink-0 items-center gap-3 bg-white px-4 lg:px-6">
           {/* Toggle móvil */}
           <button className="lg:hidden" onClick={() => setSidebarOpen(true)} aria-label="Abrir menú">
             <Menu size={24} className="text-gray-600" />
@@ -281,6 +293,11 @@ export default function Layout() {
           </button>
           <h2 className="text-lg font-semibold text-gray-800">Farmacia Municipal de Gualán</h2>
         </header>
+        {/* Franja institucional: azul 75% / amarillo 25% */}
+        <div aria-hidden className="flex h-[3px] shrink-0">
+          <div className="w-3/4 bg-primary-800" />
+          <div className="w-1/4 bg-dorado-500" />
+        </div>
 
         <main className="flex-1 overflow-auto p-4 lg:p-6">
           <Outlet />
