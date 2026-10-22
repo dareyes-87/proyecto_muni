@@ -120,7 +120,7 @@ export default function Login() {
 }
 
 const inputClass =
-  'w-full h-12 px-3.5 rounded-[10px] border-[1.5px] border-[#C9D3DF] text-[15px] text-[#10233A] placeholder:text-[#8A97A8] focus:outline-none focus:border-primary-800 focus:ring-2 focus:ring-primary-800/25 transition-colors';
+  'w-full h-12 px-3.5 rounded-[10px] border-[1.5px] border-[#C9D3DF] text-[15px] text-[#10233A] placeholder:text-gray-500 focus:outline-none focus:border-primary-800 focus:ring-2 focus:ring-primary-800/25 transition-colors';
 
 function Marca({ className = '' }: { className?: string }) {
   return (
