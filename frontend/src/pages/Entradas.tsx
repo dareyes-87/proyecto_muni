@@ -13,18 +13,24 @@ import { useAuth } from '../context/AuthContext';
 import Modal from '../components/ui/Modal';
 import PageHeader from '../components/ui/PageHeader';
 import Button from '../components/ui/Button';
-import { Field, TextInput, inputClass } from '../components/ui/Field';
+import { Field, TextInput, Select, ariaError } from '../components/ui/Field';
 import MedicamentoFormModal from '../components/MedicamentoFormModal';
-import { formatFechaHora } from '../utils/formatDate';
+import { formatFechaHora, mananaLocalISO } from '../utils/formatDate';
 import type { MedicamentoCatalogo, CategoriaRef, Ubicacion, ResumenImportacionExcel } from '../types';
+
+// Campos validados, en el orden en que aparecen en pantalla (el foco va al primero con error).
+const CAMPOS = ['medicamentoId', 'numeroLote', 'cantidad', 'fechaVencimiento'] as const;
+type CampoLote = (typeof CAMPOS)[number];
+type ErroresLote = Partial<Record<CampoLote, string>>;
 
 interface LoteForm {
   medicamentoId: string;
   cantidad: string;
   numeroLote: string;
   fechaVencimiento: string;
-  costoUnitario: string;
   ubicacionId: string;
+  /** Campos que el usuario ya abandonó o que un intento de envío marcó: solo en ellos se muestra el error. */
+  tocados: Partial<Record<CampoLote, true>>;
 }
 
 const loteVacio: LoteForm = {
@@ -32,9 +38,42 @@ const loteVacio: LoteForm = {
   cantidad: '',
   numeroLote: '',
   fechaVencimiento: '',
-  costoUnitario: '',
   ubicacionId: '',
+  tocados: {},
 };
+
+const TODOS_TOCADOS: Record<CampoLote, true> = { medicamentoId: true, numeroLote: true, cantidad: true, fechaVencimiento: true };
+
+// Columna Int de Postgres. El backend no lo valida (Zod acepta más) y respondería 500.
+const CANTIDAD_MAX = 2_147_483_647;
+
+/** Reglas de POST /api/inventario/entradas (loteEntradaSchema + validarFechaVencimientoEntrada). */
+function validarLote(l: LoteForm): ErroresLote {
+  const e: ErroresLote = {};
+  if (!l.medicamentoId) e.medicamentoId = 'Seleccione el medicamento';
+  if (!l.numeroLote.trim()) e.numeroLote = 'Ingrese el número de lote';
+
+  const cantidad = Number(l.cantidad);
+  if (!l.cantidad.trim()) e.cantidad = 'Ingrese la cantidad';
+  else if (!Number.isInteger(cantidad)) e.cantidad = 'La cantidad debe ser un número entero';
+  else if (cantidad <= 0) e.cantidad = 'La cantidad debe ser mayor que 0';
+  else if (cantidad > CANTIDAD_MAX) e.cantidad = 'La cantidad es demasiado grande';
+
+  const f = l.fechaVencimiento;
+  if (!f) e.fechaVencimiento = 'Ingrese la fecha de vencimiento';
+  else if (!fechaValida(f)) e.fechaVencimiento = 'La fecha de vencimiento no es válida';
+  // El backend rechaza hoy y anteriores: la primera fecha aceptada es mañana (hora local).
+  else if (f < mananaLocalISO()) e.fechaVencimiento = 'La fecha de vencimiento debe ser posterior a hoy';
+  return e;
+}
+
+/** 'AAAA-MM-DD' con año de 4 dígitos y día real del calendario (el backend deja pasar 2026-02-31 y falla con 500). */
+function fechaValida(f: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(f)) return false;
+  const [y, m, d] = f.split('-').map(Number);
+  const fecha = new Date(Date.UTC(y, m - 1, d));
+  return fecha.getUTCFullYear() === y && fecha.getUTCMonth() === m - 1 && fecha.getUTCDate() === d;
+}
 
 export default function Entradas() {
   const { isAdmin } = useAuth();
@@ -45,6 +84,8 @@ export default function Entradas() {
   const [observaciones, setObservaciones] = useState('');
   const [lotes, setLotes] = useState<LoteForm[]>([{ ...loteVacio }]);
   const [guardando, setGuardando] = useState(false);
+  // Hubo un intento de envío fallido: habilita el resumen de errores por lote.
+  const [intentado, setIntentado] = useState(false);
 
   const [entradas, setEntradas] = useState<any[]>([]);
 
@@ -91,6 +132,8 @@ export default function Entradas() {
   const setLote = (i: number, campo: keyof LoteForm, valor: string) => {
     setLotes((prev) => prev.map((l, idx) => (idx === i ? { ...l, [campo]: valor } : l)));
   };
+  const tocar = (i: number, campo: CampoLote) =>
+    setLotes((prev) => prev.map((l, idx) => (idx === i ? { ...l, tocados: { ...l.tocados, [campo]: true } } : l)));
   const agregarLote = () => setLotes((prev) => [...prev, { ...loteVacio }]);
   const quitarLote = (i: number) => setLotes((prev) => prev.filter((_, idx) => idx !== i));
 
@@ -115,24 +158,20 @@ export default function Entradas() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const lotesValidados: LoteEntradaInput[] = [];
-    for (const l of lotes) {
-      if (!l.medicamentoId || !l.cantidad || !l.numeroLote || !l.fechaVencimiento) {
-        return toast.error('Complete medicamento, cantidad, número de lote y vencimiento en cada lote');
-      }
-      const cantidad = parseInt(l.cantidad, 10);
-      if (!Number.isFinite(cantidad) || cantidad <= 0) {
-        return toast.error('La cantidad debe ser mayor a 0');
-      }
-      lotesValidados.push({
-        medicamentoId: l.medicamentoId,
-        cantidad,
-        numeroLote: l.numeroLote.trim(),
-        fechaVencimiento: l.fechaVencimiento,
-        costoUnitario: l.costoUnitario ? parseFloat(l.costoUnitario) : null,
-        ubicacionId: l.ubicacionId || null,
-      });
-    }
+    // Se valida aquí con la fecha de ahora: el render anterior pudo quedar del día previo (pantalla abierta pasada la medianoche).
+    const errs = lotes.map(validarLote);
+    setIntentado(true);
+    setLotes((prev) => prev.map((l) => ({ ...l, tocados: TODOS_TOCADOS })));
+    const primero = lotes.flatMap((_, i) => CAMPOS.filter((c) => errs[i][c]).map((c) => `lote-${i}-${c}`))[0];
+    if (primero) return document.getElementById(primero)?.focus();
+
+    const lotesValidados: LoteEntradaInput[] = lotes.map((l) => ({
+      medicamentoId: l.medicamentoId,
+      cantidad: Number(l.cantidad),
+      numeroLote: l.numeroLote.trim(),
+      fechaVencimiento: l.fechaVencimiento,
+      ubicacionId: l.ubicacionId || null,
+    }));
 
     setGuardando(true);
     try {
@@ -143,6 +182,7 @@ export default function Entradas() {
       toast.success('Entrada registrada');
       setObservaciones('');
       setLotes([{ ...loteVacio }]);
+      setIntentado(false);
       cargarEntradas();
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'No se pudo registrar la entrada');
@@ -199,6 +239,13 @@ export default function Entradas() {
     }
   };
 
+  const errores = lotes.map(validarLote);
+  const errorVisible = (i: number, c: CampoLote) => (lotes[i].tocados[c] ? errores[i][c] : undefined);
+  const resumen = intentado && lotes.length > 1
+    ? lotes.flatMap((_, i) => CAMPOS.filter((c) => errorVisible(i, c)).map((c) => `Lote ${i + 1}: ${errores[i][c]}`))
+    : [];
+  const minVencimiento = mananaLocalISO();
+
   const getMedNombre = (id: string) => {
     const m = medicamentos.find((med) => med.id === id);
     return m ? `${m.nombreGenerico}${m.concentracion ? ` (${m.concentracion})` : ''}` : '';
@@ -218,7 +265,7 @@ export default function Entradas() {
         }
       />
 
-      <form onSubmit={submit} className="mb-8 rounded-xl border border-gray-200 bg-white p-6">
+      <form onSubmit={submit} noValidate className="mb-8 rounded-xl border border-gray-200 bg-white p-6">
         <Field label="Observaciones">
           <TextInput value={observaciones} onChange={(e) => setObservaciones(e.target.value)} placeholder="Opcional" />
         </Field>
@@ -236,6 +283,7 @@ export default function Entradas() {
               <div key={i} className="rounded-lg border border-gray-200 bg-gray-50 p-3">
                 {/* Fila de escaneo */}
                 <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-semibold uppercase text-gray-500">Lote {i + 1}</span>
                   <div className="relative min-w-[220px] flex-1">
                     <Barcode size={16} className="absolute left-3 top-2.5 text-gray-400" />
                     <input
@@ -268,58 +316,100 @@ export default function Entradas() {
                       {getMedNombre(l.medicamentoId)}
                     </span>
                   )}
+                  {lotes.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => quitarLote(i)}
+                      aria-label={`Quitar lote ${i + 1}`}
+                      className="ml-auto rounded-md p-2 text-red-500 hover:bg-red-50"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
                 </div>
 
                 {/* Fila de datos del lote */}
-                <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-12">
+                <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-12">
                   <div className="sm:col-span-3">
-                    <label className="mb-1 block text-xs text-gray-500">Medicamento</label>
-                    <select value={l.medicamentoId} onChange={(e) => setLote(i, 'medicamentoId', e.target.value)} className={inputClass}>
-                      <option value="">Seleccione...</option>
-                      {medicamentos.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.nombreGenerico} {m.concentracion ? `(${m.concentracion})` : ''}
-                        </option>
-                      ))}
-                    </select>
+                    <Field label="Medicamento" htmlFor={`lote-${i}-medicamentoId`} required error={errorVisible(i, 'medicamentoId')}>
+                      <Select
+                        id={`lote-${i}-medicamentoId`}
+                        value={l.medicamentoId}
+                        onChange={(e) => setLote(i, 'medicamentoId', e.target.value)}
+                        onBlur={() => tocar(i, 'medicamentoId')}
+                        {...ariaError(`lote-${i}-medicamentoId`, errorVisible(i, 'medicamentoId'))}
+                      >
+                        <option value="">Seleccione...</option>
+                        {medicamentos.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.nombreGenerico} {m.concentracion ? `(${m.concentracion})` : ''}
+                          </option>
+                        ))}
+                      </Select>
+                    </Field>
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="mb-1 block text-xs text-gray-500">N° lote</label>
-                    <input value={l.numeroLote} onChange={(e) => setLote(i, 'numeroLote', e.target.value)} className={inputClass} />
-                  </div>
-                  <div className="sm:col-span-1">
-                    <label className="mb-1 block text-xs text-gray-500">Cant.</label>
-                    <TextInput type="number" min={1} value={l.cantidad} onChange={(e) => setLote(i, 'cantidad', e.target.value)} />
+                    <Field label="N° lote" htmlFor={`lote-${i}-numeroLote`} required error={errorVisible(i, 'numeroLote')}>
+                      <TextInput
+                        id={`lote-${i}-numeroLote`}
+                        value={l.numeroLote}
+                        onChange={(e) => setLote(i, 'numeroLote', e.target.value)}
+                        onBlur={() => tocar(i, 'numeroLote')}
+                        {...ariaError(`lote-${i}-numeroLote`, errorVisible(i, 'numeroLote'))}
+                      />
+                    </Field>
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="mb-1 block text-xs text-gray-500">Vence</label>
-                    <input type="date" value={l.fechaVencimiento} onChange={(e) => setLote(i, 'fechaVencimiento', e.target.value)} className={inputClass} />
+                    <Field label="Cantidad" htmlFor={`lote-${i}-cantidad`} required error={errorVisible(i, 'cantidad')}>
+                      <TextInput
+                        id={`lote-${i}-cantidad`}
+                        type="number"
+                        value={l.cantidad}
+                        onChange={(e) => setLote(i, 'cantidad', e.target.value)}
+                        onBlur={() => tocar(i, 'cantidad')}
+                        {...ariaError(`lote-${i}-cantidad`, errorVisible(i, 'cantidad'))}
+                      />
+                    </Field>
+                  </div>
+                  <div className="sm:col-span-3">
+                    <Field label="Vence" htmlFor={`lote-${i}-fechaVencimiento`} required error={errorVisible(i, 'fechaVencimiento')}>
+                      <TextInput
+                        id={`lote-${i}-fechaVencimiento`}
+                        type="date"
+                        min={minVencimiento}
+                        value={l.fechaVencimiento}
+                        onChange={(e) => setLote(i, 'fechaVencimiento', e.target.value)}
+                        onBlur={() => tocar(i, 'fechaVencimiento')}
+                        {...ariaError(`lote-${i}-fechaVencimiento`, errorVisible(i, 'fechaVencimiento'))}
+                      />
+                    </Field>
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="mb-1 block text-xs text-gray-500">Ubicación</label>
-                    <select value={l.ubicacionId} onChange={(e) => setLote(i, 'ubicacionId', e.target.value)} className={inputClass}>
-                      <option value="">—</option>
-                      {ubicaciones.map((u) => (
-                        <option key={u.id} value={u.id}>{u.codigo}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex items-center gap-2 sm:col-span-2">
-                    <div className="flex-1">
-                      <label className="mb-1 block text-xs text-gray-500">Costo unit.</label>
-                      <TextInput type="number" step="0.01" min={0} value={l.costoUnitario} onChange={(e) => setLote(i, 'costoUnitario', e.target.value)} placeholder="Opcional" />
-                    </div>
-                    {lotes.length > 1 && (
-                      <button type="button" onClick={() => quitarLote(i)} className="mb-0.5 rounded-md p-2 text-red-500 hover:bg-red-50">
-                        <Trash2 size={16} />
-                      </button>
-                    )}
+                    <Field label="Ubicación" htmlFor={`lote-${i}-ubicacionId`}>
+                      <Select id={`lote-${i}-ubicacionId`} value={l.ubicacionId} onChange={(e) => setLote(i, 'ubicacionId', e.target.value)}>
+                        <option value="">—</option>
+                        {ubicaciones.map((u) => (
+                          <option key={u.id} value={u.id}>{u.codigo}</option>
+                        ))}
+                      </Select>
+                    </Field>
                   </div>
                 </div>
               </div>
             ))}
           </div>
         </div>
+
+        {resumen.length > 0 && (
+          <div role="alert" className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+            <p className="font-medium">Revise los lotes antes de registrar:</p>
+            <ul className="mt-1 list-disc pl-5">
+              {resumen.map((m) => (
+                <li key={m}>{m}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div className="mt-6 flex justify-end">
           <Button type="submit" disabled={guardando} className="px-5 py-2.5">

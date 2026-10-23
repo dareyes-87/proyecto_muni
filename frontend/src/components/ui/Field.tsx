@@ -6,7 +6,15 @@ import { cn } from '../../utils/cn';
 export const inputClass =
   'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none ' +
   'transition-colors focus:border-primary-500 focus:ring-2 focus:ring-primary-500 ' +
-  'disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500';
+  'disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500 ' +
+  'aria-invalid:!border-red-500 aria-invalid:focus:!ring-red-500';
+
+export const errorId = (id: string) => `${id}-error`;
+
+/** Atributos de un input con error de validación (borde rojo vía inputClass). Esparcir junto con su `id`,
+ *  el mismo que se pasa a <Field htmlFor error>, que dibuja el mensaje al que apunta aria-describedby. */
+export const ariaError = (id: string, error?: string) =>
+  error ? ({ 'aria-invalid': true, 'aria-describedby': errorId(id) } as const) : {};
 
 export const labelClass = 'mb-1 block text-sm font-medium text-gray-700';
 
@@ -16,11 +24,13 @@ interface FieldProps {
   /** Texto de ayuda opcional bajo el campo. */
   hint?: string;
   required?: boolean;
+  /** Mensaje de validación; reemplaza a `hint`. Requiere `htmlFor` para enlazarse al input. */
+  error?: string;
   children: ReactNode;
 }
 
 /** Envuelve un input con su etiqueta y ayuda opcional, con espaciado consistente. */
-export function Field({ label, htmlFor, hint, required, children }: FieldProps) {
+export function Field({ label, htmlFor, hint, required, error, children }: FieldProps) {
   return (
     <div>
       <label htmlFor={htmlFor} className={labelClass}>
@@ -28,7 +38,11 @@ export function Field({ label, htmlFor, hint, required, children }: FieldProps) 
         {required && <span className="ml-0.5 text-red-500">*</span>}
       </label>
       {children}
-      {hint && <p className="mt-1 text-xs text-gray-400">{hint}</p>}
+      {error && htmlFor ? (
+        <p id={errorId(htmlFor)} className="mt-1 text-xs text-red-600">{error}</p>
+      ) : (
+        hint && <p className="mt-1 text-xs text-gray-400">{hint}</p>
+      )}
     </div>
   );
 }

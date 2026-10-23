@@ -1086,8 +1086,8 @@ verificación visual en navegador (Vite dev + sesión inyectada, la API no corr�
 **1. Eliminación completa de proveedores / procedencia (frontend + backend + esquema):**
 - `schema.prisma`: se quitaron el modelo `Proveedor`, el enum `TipoProveedor`, el enum
   `OrigenEntrada` y los campos `proveedorId`/`origen` de `Entrada`. **Se conservó
-  `Lote.costoUnitario`** (el costo no es procedencia y alimenta el reporte de mermas; ahora es un
-  campo siempre opcional en el formulario de entrada, ya no gateado por `origen`).
+  `Lote.costoUnitario`** (el costo no es procedencia; ahora es un campo siempre opcional en el
+  formulario de entrada, ya no gateado por `origen`). *Actualizado en la sesión 2026-10-22: ver abajo.*
 - Backend: se borraron los endpoints CRUD de proveedores (`catalogos.routes.ts`); el registro de
   entradas y la importación por Excel ya no piden/crean proveedor ni origen (plantilla e
   instrucciones actualizadas); el reporte "Entradas por proveedor" pasó a **"Entradas"**
@@ -1139,6 +1139,24 @@ Registrar entrada); el catálogo conserva la edición.
 `docker compose up --build` correspondiente). Verificación visual con un browser real de las páginas
 que aún no se han click-through en navegador de forma exhaustiva (Catálogos/Auditoría) sigue
 pendiente como antes.
+
+### 2026-10-22 — Entradas: validación por campo, vencimiento desde mañana, sin costo unitario (PR #16)
+
+- **El costo unitario ya no se captura en Entradas** (es medicamento donado, no hay venta). La
+  columna `lotes.costo_unitario` queda **opcional en el esquema solo por datos históricos**; el
+  formulario ya no la envía y el validador del backend la sigue aceptando como opcional. La
+  plantilla de Excel nunca tuvo columna de costo.
+- **Reportes:** en la pantalla se ocultaron "Costo total" (Entradas), "Costo estimado" (Dados de
+  baja) y "Costo total estimado". **Pendiente:** `reportes.routes.ts` y `reportes.service.ts`
+  siguen calculando y exportando esas columnas en los PDF/Excel (saldrán en Q0.00 o vacías para lotes
+  nuevos); se dejaron a propósito sin tocar.
+- **Regla de vencimiento:** el backend rechaza fecha de vencimiento **hoy o anterior**
+  (`estaVencido`: días <= 0, medianoche del servidor con `TZ=America/Guatemala`). La primera fecha
+  válida es mañana; el formulario usa `mananaLocalISO()` (hora local, nunca `toISOString()`).
+- **Validación por campo:** patrón reutilizable en `components/ui/Field.tsx` (`Field error`,
+  `ariaError()`, variante `aria-invalid:` de `inputClass`). Hoy solo lo usa Entradas.
+- **Huecos del backend sin corregir:** una cantidad > 2 147 483 647 y una fecha imposible
+  (`2026-02-31`) pasan Zod y terminan en 500 si se llama a la API directamente.
 
 ---
 

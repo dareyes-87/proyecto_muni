@@ -39,7 +39,6 @@ const TIPOS: { value: TipoReporte; label: string }[] = [
 ];
 
 const fmtDT = formatFechaHora;
-const quetzales = (n: number) => `Q${n.toFixed(2)}`;
 
 const filtrosVacios = {
   desde: '',
@@ -393,7 +392,6 @@ export default function Reportes() {
           columnHelper.accessor('usuario', { header: 'Usuario' }),
           columnHelper.accessor('totalLotes', { header: 'N.º lotes' }),
           columnHelper.accessor('totalUnidades', { header: 'Unidades' }),
-          columnHelper.accessor((r) => quetzales(r.costoTotal), { id: 'costoTotal', header: 'Costo total' }),
         ];
       case 'baja':
         return [
@@ -402,10 +400,6 @@ export default function Reportes() {
           columnHelper.accessor('estado', { header: 'Estado' }),
           columnHelper.accessor((r) => formatFechaDia(r.fechaVencimiento), { id: 'vencimiento', header: 'Vencimiento' }),
           columnHelper.accessor('cantidadPerdida', { header: 'Cant. perdida' }),
-          columnHelper.accessor((r) => (r.costoEstimado != null ? quetzales(r.costoEstimado) : '—'), {
-            id: 'costoEstimado',
-            header: 'Costo estimado',
-          }),
         ];
       default:
         return [];
@@ -546,9 +540,6 @@ export default function Reportes() {
         <div className="mb-4 flex flex-wrap gap-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           <div>
             <span className="font-medium">Unidades perdidas:</span> {resumen.totalUnidadesPerdidas}
-          </div>
-          <div>
-            <span className="font-medium">Costo total estimado:</span> {quetzales(resumen.costoTotalEstimado)}
           </div>
         </div>
       )}
