@@ -1146,10 +1146,10 @@ pendiente como antes.
   columna `lotes.costo_unitario` queda **opcional en el esquema solo por datos históricos**; el
   formulario ya no la envía y el validador del backend la sigue aceptando como opcional. La
   plantilla de Excel nunca tuvo columna de costo.
-- **Reportes:** en la pantalla se ocultaron "Costo total" (Entradas), "Costo estimado" (Dados de
-  baja) y "Costo total estimado". **Pendiente:** `reportes.routes.ts` y `reportes.service.ts`
-  siguen calculando y exportando esas columnas en los PDF/Excel (saldrán en Q0.00 o vacías para lotes
-  nuevos); se dejaron a propósito sin tocar.
+- **Reportes:** ni la pantalla ni los PDF/Excel exportados muestran ya "Costo total" (Entradas),
+  "Costo estimado" (Dados de baja) ni "Costo total estimado" (PR #16 pantalla, PR #17 exportaciones).
+  `reportes.service.ts` y los endpoints JSON siguen calculando y devolviendo esos valores a propósito
+  (lotes históricos con costo); solo se dejaron de mostrar.
 - **Regla de vencimiento:** el backend rechaza fecha de vencimiento **hoy o anterior**
   (`estaVencido`: días <= 0, medianoche del servidor con `TZ=America/Guatemala`). La primera fecha
   válida es mañana; el formulario usa `mananaLocalISO()` (hora local, nunca `toISOString()`).
