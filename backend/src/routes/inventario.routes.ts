@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { EstadoLote } from '@prisma/client';
+import { EstadoLote, Prisma } from '@prisma/client';
 import { z } from 'zod';
 import multer from 'multer';
 import ExcelJS from 'exceljs';
@@ -48,6 +48,20 @@ const entradaSchema = z.object({
 function parseFechaVencimiento(valor: string): Date {
   return new Date(`${valor.slice(0, 10)}T00:00:00Z`);
 }
+
+/** Lote tal como se muestra en el historial de entradas: lo recibido, sin costo ni existencia actual. */
+const LOTE_HISTORIAL = {
+  id: true,
+  numeroLote: true,
+  cantidad: true,
+  fechaVencimiento: true,
+  medicamento: { select: { nombreGenerico: true, concentracion: true } },
+  ubicacion: { select: { codigo: true } },
+} satisfies Prisma.LoteSelect;
+const ORDEN_LOTES_HISTORIAL = [
+  { medicamento: { nombreGenerico: 'asc' } },
+  { numeroLote: 'asc' },
+] satisfies Prisma.LoteOrderByWithRelationInput[];
 
 // ============================================
 // POST /api/inventario/entradas
@@ -146,7 +160,8 @@ router.post('/entradas', authMiddleware, async (req: Request, res: Response): Pr
 
 // ============================================
 // GET /api/inventario/entradas
-// Historial de entradas registradas.
+// Historial de entradas registradas. Cada una trae solo sus primeros 3 lotes (resumen);
+// el total está en _count.lotes y el detalle completo en GET /entradas/:id.
 // ============================================
 router.get('/entradas', authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
@@ -161,6 +176,7 @@ router.get('/entradas', authMiddleware, async (req: Request, res: Response): Pro
         include: {
           usuario: { select: { id: true, nombreCompleto: true } },
           _count: { select: { lotes: true } },
+          lotes: { take: 3, orderBy: ORDEN_LOTES_HISTORIAL, select: LOTE_HISTORIAL },
         },
       }),
       prisma.entrada.count(),
@@ -172,6 +188,38 @@ router.get('/entradas', authMiddleware, async (req: Request, res: Response): Pro
     });
   } catch (error) {
     console.error('Error listando entradas:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// ============================================
+// GET /api/inventario/entradas/:id
+// Detalle de una entrada con todos sus lotes (lo recibido; sin costo ni existencia actual).
+// ============================================
+router.get('/entradas/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+  const { id } = req.params as { id: string };
+  if (!z.string().uuid().safeParse(id).success) {
+    res.status(400).json({ error: 'ID de entrada inválido' });
+    return;
+  }
+  try {
+    const entrada = await prisma.entrada.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        createdAt: true,
+        observaciones: true,
+        usuario: { select: { id: true, nombreCompleto: true } },
+        lotes: { orderBy: ORDEN_LOTES_HISTORIAL, select: LOTE_HISTORIAL },
+      },
+    });
+    if (!entrada) {
+      res.status(404).json({ error: 'Entrada no encontrada' });
+      return;
+    }
+    res.json({ data: entrada });
+  } catch (error) {
+    console.error('Error obteniendo entrada:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
