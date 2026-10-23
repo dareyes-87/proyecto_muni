@@ -299,7 +299,7 @@ farma-rh/
 - [x] Endpoint GET /api/reportes/inventario-actual (a nivel de lote, filtros: categoría, origen, estado)
 - [x] Endpoint GET /api/reportes/por-vencer (filtro: umbral de días, default 90)
 - [x] Endpoint GET /api/reportes/entradas (filtro: fecha; antes `entradas-proveedor`, ver 2026-09-07)
-- [x] Endpoint GET /api/reportes/medicamentos-baja (lotes VENCIDO/DADO_DE_BAJA, con resumen de unidades y costo estimado perdidos)
+- [x] Endpoint GET /api/reportes/medicamentos-baja (lotes VENCIDO/DADO_DE_BAJA, con resumen de unidades perdidas; el costo ya no se muestra ni se exporta)
 - [x] Endpoint GET /api/reportes/exportar/:tipo/:formato (PDF + Excel, solo ADMIN)
 - [x] Página de Reportes con selector de tipo, filtros dinámicos y tabla TanStack
 - [x] Exportación a PDF (pdfkit, con encabezado institucional desde `NOMBRE_FARMACIA`)
@@ -607,7 +607,7 @@ módulo de Reportes según CLAUDE.md).
   medicamento vía `groupBy`, inventario actual a nivel de lote reutilizando
   `getUmbrales`/`calcularSemaforo`/`diasParaVencer` de `inventario.service.ts`, por vencer con
   umbral configurable, entradas por proveedor con totales calculados, medicamentos dados de baja
-  con resumen de unidades/costo perdido), todas paginadas.
+  con resumen de unidades perdidas), todas paginadas.
 - `backend/src/utils/pdf.ts` (pdfkit, tabla simple con paginación automática) y
   `backend/src/utils/excel.ts` (exceljs, headers + autofilter).
 - `backend/src/routes/reportes.routes.ts`: 6 GET (solo `authMiddleware`) + `GET
@@ -1146,10 +1146,10 @@ pendiente como antes.
   columna `lotes.costo_unitario` queda **opcional en el esquema solo por datos históricos**; el
   formulario ya no la envía y el validador del backend la sigue aceptando como opcional. La
   plantilla de Excel nunca tuvo columna de costo.
-- **Reportes:** en la pantalla se ocultaron "Costo total" (Entradas), "Costo estimado" (Dados de
-  baja) y "Costo total estimado". **Pendiente:** `reportes.routes.ts` y `reportes.service.ts`
-  siguen calculando y exportando esas columnas en los PDF/Excel (saldrán en Q0.00 o vacías para lotes
-  nuevos); se dejaron a propósito sin tocar.
+- **Reportes:** ni la pantalla ni los PDF/Excel exportados muestran ya "Costo total" (Entradas),
+  "Costo estimado" (Dados de baja) ni "Costo total estimado" (PR #16 pantalla, PR #17 exportaciones).
+  `reportes.service.ts` y los endpoints JSON siguen calculando y devolviendo esos valores a propósito
+  (lotes históricos con costo); solo se dejaron de mostrar.
 - **Regla de vencimiento:** el backend rechaza fecha de vencimiento **hoy o anterior**
   (`estaVencido`: días <= 0, medianoche del servidor con `TZ=America/Guatemala`). La primera fecha
   válida es mañana; el formulario usa `mananaLocalISO()` (hora local, nunca `toISOString()`).
