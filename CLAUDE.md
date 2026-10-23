@@ -299,7 +299,7 @@ farma-rh/
 - [x] Endpoint GET /api/reportes/inventario-actual (a nivel de lote, filtros: categoría, origen, estado)
 - [x] Endpoint GET /api/reportes/por-vencer (filtro: umbral de días, default 90)
 - [x] Endpoint GET /api/reportes/entradas (filtro: fecha; antes `entradas-proveedor`, ver 2026-09-07)
-- [x] Endpoint GET /api/reportes/medicamentos-baja (lotes VENCIDO/DADO_DE_BAJA, con resumen de unidades perdidas; el costo ya no se muestra ni se exporta, ver 2026-10-22)
+- [x] Endpoint GET /api/reportes/medicamentos-baja (lotes VENCIDO/DADO_DE_BAJA, con resumen de unidades perdidas; el costo ya no se muestra ni se exporta)
 - [x] Endpoint GET /api/reportes/exportar/:tipo/:formato (PDF + Excel, solo ADMIN)
 - [x] Página de Reportes con selector de tipo, filtros dinámicos y tabla TanStack
 - [x] Exportación a PDF (pdfkit, con encabezado institucional desde `NOMBRE_FARMACIA`)
