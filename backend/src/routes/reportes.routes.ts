@@ -316,20 +316,18 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
         usuario: e.usuario,
         totalLotes: e.totalLotes,
         totalUnidades: e.totalUnidades,
-        costoTotal: e.costoTotal,
       }));
       return {
         titulo: 'Reporte de Entradas Registradas',
-        columnasPdf: ['Fecha', 'Usuario', 'N.º lotes', 'Unidades', 'Costo total'],
-        alineacionesPdf: ['left', 'left', 'right', 'right', 'right'],
-        anchosRelativosPdf: [1.6, 2.0, 0.9, 0.9, 1.0],
-        filasPdf: filas.map((f) => [f.fecha, f.usuario, f.totalLotes, f.totalUnidades, f.costoTotal.toFixed(2)]),
+        columnasPdf: ['Fecha', 'Usuario', 'N.º lotes', 'Unidades'],
+        alineacionesPdf: ['left', 'left', 'right', 'right'],
+        anchosRelativosPdf: [1.6, 2.0, 0.9, 0.9],
+        filasPdf: filas.map((f) => [f.fecha, f.usuario, f.totalLotes, f.totalUnidades]),
         columnasExcel: [
           { header: 'Fecha', key: 'fecha', width: 20 },
           { header: 'Usuario', key: 'usuario', width: 25 },
           { header: 'N.º de lotes', key: 'totalLotes', width: 12 },
           { header: 'Unidades totales', key: 'totalUnidades', width: 15 },
-          { header: 'Costo total', key: 'costoTotal', width: 15 },
         ],
         filasExcel: filas,
       };
@@ -351,14 +349,13 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
         estado: l.estado,
         fechaVencimiento: formatFechaDia(l.fechaVencimiento),
         cantidadPerdida: l.cantidadPerdida,
-        costoEstimado: l.costoEstimado !== null ? l.costoEstimado.toFixed(2) : '',
       }));
       return {
         titulo: 'Reporte de Medicamentos Dados de Baja',
-        columnasPdf: ['Medicamento', 'Lote', 'Estado', 'Vencimiento', 'Cant. perdida', 'Costo est.'],
-        alineacionesPdf: ['left', 'left', 'left', 'left', 'right', 'right'],
-        anchosRelativosPdf: [2.0, 0.9, 1.1, 1.0, 1.0, 1.0],
-        filasPdf: filas.map((f) => [f.medicamento, f.numeroLote, f.estado, f.fechaVencimiento, f.cantidadPerdida, f.costoEstimado]),
+        columnasPdf: ['Medicamento', 'Lote', 'Estado', 'Vencimiento', 'Cant. perdida'],
+        alineacionesPdf: ['left', 'left', 'left', 'left', 'right'],
+        anchosRelativosPdf: [2.0, 0.9, 1.1, 1.0, 1.0],
+        filasPdf: filas.map((f) => [f.medicamento, f.numeroLote, f.estado, f.fechaVencimiento, f.cantidadPerdida]),
         columnasExcel: [
           { header: 'Medicamento', key: 'medicamento', width: 25 },
           { header: 'Presentación', key: 'presentacion', width: 15 },
@@ -367,7 +364,6 @@ async function construirTabla(tipo: TipoReporte, query: Request['query']): Promi
           { header: 'Estado', key: 'estado', width: 15 },
           { header: 'Fecha de vencimiento', key: 'fechaVencimiento', width: 18 },
           { header: 'Cantidad perdida', key: 'cantidadPerdida', width: 15 },
-          { header: 'Costo estimado', key: 'costoEstimado', width: 15 },
         ],
         filasExcel: filas,
       };
