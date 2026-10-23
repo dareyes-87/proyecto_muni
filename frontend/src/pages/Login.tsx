@@ -2,18 +2,21 @@ import { useState, FormEvent } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { Pill } from 'lucide-react';
+import { Pill, Eye, EyeOff } from 'lucide-react';
 
 export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [verPassword, setVerPassword] = useState(false);
   const { login, usuario } = useAuth();
   const navigate = useNavigate();
 
   if (usuario) {
     return <Navigate to="/" replace />;
   }
+
+  const alternarPassword = () => setVerPassword((v) => !v);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -90,15 +93,30 @@ export default function Login() {
               <label htmlFor="password" className="text-sm font-medium text-[#10233A]">
                 Contraseña
               </label>
-              <input
-                id="password"
-                type="password"
-                className={inputClass}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                placeholder="••••••••"
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  type={verPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  className={`${inputClass} pr-12 [&::-ms-reveal]:hidden`}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  aria-label={verPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  aria-pressed={verPassword}
+                  aria-controls="password"
+                  // El clic no le quita el foco al campo: el cursor se queda donde estaba.
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={alternarPassword}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-lg text-primary-800 hover:bg-primary-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-800"
+                >
+                  {verPassword ? <EyeOff size={20} aria-hidden /> : <Eye size={20} aria-hidden />}
+                </button>
+              </div>
             </div>
 
             <button
