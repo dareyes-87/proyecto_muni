@@ -58,9 +58,12 @@ const LOTE_HISTORIAL = {
   medicamento: { select: { nombreGenerico: true, concentracion: true } },
   ubicacion: { select: { codigo: true } },
 } satisfies Prisma.LoteSelect;
+// numeroLote no es único: fechaVencimiento e id desempatan para que el resumen de la lista (take: 3) y el detalle coincidan.
 const ORDEN_LOTES_HISTORIAL = [
   { medicamento: { nombreGenerico: 'asc' } },
   { numeroLote: 'asc' },
+  { fechaVencimiento: 'asc' },
+  { id: 'asc' },
 ] satisfies Prisma.LoteOrderByWithRelationInput[];
 
 // ============================================

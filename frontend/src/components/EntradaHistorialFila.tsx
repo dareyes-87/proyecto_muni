@@ -17,6 +17,8 @@ export default function EntradaHistorialFila({ entrada }: { entrada: EntradaResu
   const fecha = formatFechaHora(entrada.createdAt);
   const total = entrada._count.lotes;
   const restantes = total - entrada.lotes.length;
+  // Mismo texto que ve quien usa el ratón: distingue entradas registradas en el mismo minuto.
+  const resumen = entrada.lotes.map((l) => `${nombreLote(l)} × ${l.cantidad}`).join(', ') + (restantes > 0 ? ` y ${restantes} más` : '');
 
   const alternar = async () => {
     setAbierto(!abierto);
@@ -51,8 +53,8 @@ export default function EntradaHistorialFila({ entrada }: { entrada: EntradaResu
             type="button"
             onClick={alternar}
             aria-expanded={abierto}
-            aria-controls={panelId}
-            aria-label={`${abierto ? 'Ocultar' : 'Ver'} detalle de la entrada del ${fecha}`}
+            aria-controls={abierto ? panelId : undefined}
+            aria-label={`${abierto ? 'Ocultar' : 'Ver'} detalle de la entrada del ${fecha}: ${resumen}`}
             className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm text-primary-700 hover:bg-primary-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-500"
           >
             {abierto ? 'Ocultar' : 'Ver detalle'}
