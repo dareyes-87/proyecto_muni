@@ -46,9 +46,41 @@ export async function registrarEntrada(entrada: EntradaInput) {
   return data;
 }
 
-export async function listarEntradas(page = 1) {
+/** Lote de una entrada tal como lo muestra el historial: lo recibido, no la existencia actual. */
+export interface LoteHistorial {
+  id: string;
+  numeroLote: string;
+  cantidad: number;
+  fechaVencimiento: string;
+  medicamento: { nombreGenerico: string; concentracion: string | null };
+  ubicacion: { codigo: string } | null;
+}
+
+interface EntradaBase {
+  id: string;
+  createdAt: string;
+  observaciones: string | null;
+  usuario: { id: string; nombreCompleto: string };
+}
+
+/** Fila del historial: solo los primeros lotes; el total viene en `_count.lotes`. */
+export interface EntradaResumen extends EntradaBase {
+  _count: { lotes: number };
+  lotes: LoteHistorial[];
+}
+
+export interface EntradaDetalle extends EntradaBase {
+  lotes: LoteHistorial[];
+}
+
+export async function listarEntradas(page = 1): Promise<{ data: EntradaResumen[]; pagination: Pagination }> {
   const { data } = await api.get('/inventario/entradas', { params: { page } });
   return data;
+}
+
+export async function detalleEntrada(id: string): Promise<EntradaDetalle> {
+  const { data } = await api.get(`/inventario/entradas/${id}`);
+  return data.data;
 }
 
 export async function darDeBajaLote(loteId: string, motivo?: string) {

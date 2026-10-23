@@ -7,6 +7,7 @@ import {
   descargarPlantillaExcel,
   importarExcelInventario,
   type LoteEntradaInput,
+  type EntradaResumen,
 } from '../api/inventario';
 import { listarMedicamentosTodos, listarUbicaciones, listarCategorias, buscarPorCodigoBarras } from '../api/catalogos';
 import { useAuth } from '../context/AuthContext';
@@ -15,7 +16,8 @@ import PageHeader from '../components/ui/PageHeader';
 import Button from '../components/ui/Button';
 import { Field, TextInput, Select, ariaError } from '../components/ui/Field';
 import MedicamentoFormModal from '../components/MedicamentoFormModal';
-import { formatFechaHora, mananaLocalISO } from '../utils/formatDate';
+import { mananaLocalISO } from '../utils/formatDate';
+import EntradaHistorialFila from '../components/EntradaHistorialFila';
 import type { MedicamentoCatalogo, CategoriaRef, Ubicacion, ResumenImportacionExcel } from '../types';
 
 // Campos validados, en el orden en que aparecen en pantalla (el foco va al primero con error).
@@ -87,7 +89,7 @@ export default function Entradas() {
   // Hubo un intento de envío fallido: habilita el resumen de errores por lote.
   const [intentado, setIntentado] = useState(false);
 
-  const [entradas, setEntradas] = useState<any[]>([]);
+  const [entradas, setEntradas] = useState<EntradaResumen[]>([]);
 
   const barcodeRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -425,21 +427,17 @@ export default function Entradas() {
           <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
             <tr>
               <th className="px-4 py-3">Fecha</th>
+              <th className="px-4 py-3">Medicamentos</th>
               <th className="px-4 py-3 text-center">Lotes</th>
               <th className="px-4 py-3">Registró</th>
+              <th className="px-4 py-3"><span className="sr-only">Detalle</span></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {entradas.length === 0 ? (
-              <tr><td colSpan={3} className="px-4 py-8 text-center text-gray-400">Sin entradas registradas</td></tr>
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">Sin entradas registradas</td></tr>
             ) : (
-              entradas.map((e) => (
-                <tr key={e.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-gray-600">{formatFechaHora(e.createdAt)}</td>
-                  <td className="px-4 py-3 text-center text-gray-600">{e._count?.lotes ?? '—'}</td>
-                  <td className="px-4 py-3 text-gray-600">{e.usuario?.nombreCompleto}</td>
-                </tr>
-              ))
+              entradas.map((e) => <EntradaHistorialFila key={e.id} entrada={e} />)
             )}
           </tbody>
         </table>
